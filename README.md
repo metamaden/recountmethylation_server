@@ -1,2 +1,2 @@
 # recount-methylation-server
-Server code for Recount-Methylation SQLite database.
+Server code for Recount-Methylation relational database.
