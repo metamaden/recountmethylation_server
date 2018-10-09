@@ -1,2 +1,2 @@
 # recount-methylation-server
-Server code for Recount-Methylation relational database.
+Server code for hosting and maintaining Recount-Methylation database.
