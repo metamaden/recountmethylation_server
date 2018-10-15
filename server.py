@@ -23,6 +23,9 @@ import multiprocessing
 import subprocess
 import os
 import sys
+import time
+import datetime
+import dateparser # use to parse GEO record timestamps
 
 # For polling, investigate subclassing threading.Thread to run polling on a separate thread
 # This poll should add to the multiprocessing pool's jobs
@@ -32,6 +35,60 @@ import sys
 # So the polling class (and it is a class) is updating the mongodb with new
 # metadata for studies on the server, at the same time diffing to detect
 # changes, and also adding to the queue for processing
+
+def get_diffs(cdt_path,ndt_path):
+	"""
+	
+	Retrieve sample diffs for for job queue update
+	Get status of data and metadata downloads
+	cdt_path : filepath to current dirtree 'cdt' 
+	ndt_path : filepath to new dirtree 'ndt'
+	Currently expect same format for cdt and ndt objects
+	todo: Handle options to automate cdt/ndt creation if files don't exist
+
+	"""
+	sqadd_idat=[]
+	sqadd_metadata=[]
+	cdt_list = []
+	ndt_list = []
+
+	cdt_lines = [line.rstrip('\n') for line in open(cdt_path)]
+	for el in cdt_lines:
+		cdt_list += [el.split('\t')[1::]]
+	ndt_lines = [line.rstrip('\n') for line in open(ndt_path)]
+	for el in ndt_lines:
+		ndt_list += [el.split('\t')[1::]]
+
+	# check cdt logfiles
+	for e in cdt_list:
+		if os.path.exists(os.path.join('GSE', str(e[0]))):
+			for s in e[1::]:
+				if not os.path.exists(os.path.join('GSE', str(e[0]), str(s),str("{0}_idat-transfer_SUCCESS".format(s)))):
+					sqadd_idat += s
+				if not os.path.exists(os.path.join('GSE', str(e[0]), str(s),str("{0}_msrap-metadata_SUCCESS".format(s)))):
+					sqadd_metadata += s
+		else:
+			sqadd_idat += e[1::]
+			sqadd_metadata += e[1::]
+
+	# get diffs between cdt and ndt
+	for ein in ndt_list:
+		enamei = ein[0]
+		flc = [e for sublist in cdt_list for e in sublist] # flat list
+		if not enamei in flc and not enamei in sqadd_idat:
+			sqadd_idat += ein[1::]
+		if not enamei in flc and not enamei in sqadd_metadata:
+			sqadd_metadata += ein[1::]
+		for s in ein[1::]:
+			if not s in flc and not s in sqadd_idat:
+				sqadd_idat += s
+			if not s in flc and not s in sqadd_metadata:
+				sqadd_metadata += s
+
+	print("Found {0} idat and {1} metadata diffs.".format(len(sqadd_idat),len(sqadd_metadata)))
+	sqadd_dt = datetime.date.fromtimestamp(time.time())
+	sqadd_list = [sqadd_idat,sqadd_metadata,sqadd_dt]
+	return sqadd_list
 
 def run_idat_jobs(temp_dir, num_processes=50):
 	""" 
@@ -63,7 +120,9 @@ def run_idat_jobs(temp_dir, num_processes=50):
 		# ji a list of dl jobs incremented as specified in num_processes
         # review https://stackoverflow.com/questions/19924104/python-multiprocessing-handling-child-errors-in-parent
         # to robustify if child processes fail; handle failure.
-        # if it fails, add to end of queue. keep log. if K failures are encountered (make this eg a command line parameter), log failure and proceed
+        # if it fails, add to end of queue. keep log. 
+        # if K failures are encountered (make this eg a command line 
+        # parameter), log failure and proceed
 		print("Running jobs: ", ji, file=sys.stderr)
 		pool.imap_unordered(lambda x: subprocess.check_call(
                 ['dl_gsm_idat.sh', gsm_name],
@@ -86,9 +145,9 @@ def main(working_dir, temp_dir):
     import shutil
     atexit.register(shutil.rmtree, temp_dir)
     tally_file = os.path.join(temp_dir, 'all_gse_newtally')
-	#subprocess.call(shlex.split("echo '' > ./tempfiles/all_gse_newtally")) # instantiate file for new query data
 	try:
-        subprocess.check_call(['remeth_server_utilities.sh'], executable='/bin/bash')
+        subprocess.check_call(['remeth_server_utilities.sh'], 
+        	executable='/bin/bash')
     except CalledProcessError:
         # Handle failure
         raise
