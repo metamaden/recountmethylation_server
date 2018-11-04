@@ -12,9 +12,10 @@ def update_date(ftp_addresses):
             last updated date/timestamps corresponding respectively to ftp
             addresses. Times are UTC.
     """
-    if not ftp_address.startswith('ftp://'):
+    firstftp = ftp_addresses[0]
+    if not firstftp.startswith('ftp://'):
         raise RuntimeError("FTP address must begin with \"ftp://\".")
-    ftp_tokens = ftp_address.split('/')
+    ftp_tokens = firstftp.split('/')
     try:
         ftp = ftplib.FTP(ftp_tokens[2])
         ftp.login()
