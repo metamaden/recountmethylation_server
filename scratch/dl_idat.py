@@ -21,6 +21,53 @@ def gettime_ntp(addr='time.nist.gov'):
         t -= TIME1970
     return t
 
+# alternate function, works 
+# from:https://stackoverflow.com/questions/39466780/simple-sntp-python-script
+def gettime_ntp_alt():
+    NTP_SERVER = '0.uk.pool.ntp.org'
+    TIME1970 = 2208988800
+    client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    data = '\x1b' + 47 * '\0'
+    client.sendto(data.encode('utf-8'), (NTP_SERVER, 123))
+    data, address = client.recvfrom(1024)
+    t = struct.unpack('!12I', data)[10] - TIME1970
+    return t
+
+# mongodb connection function
+def connect_mongo(gsm_id,filename,hostname='localhost',conport=27017):
+    db_query = []
+    return_status_list = []
+    client = pymongo.MongoClient(hostname, conport)
+    if not 'recount_methylation' in client.list_database_names():
+        return_status_list.append('db \'recount_methylation\' not found')
+    else:
+        rmdb = client.recount_methylation
+        if not 'gsm' in rmdb.list_collection_names():
+            return_status_list.append('collection \'gsm\' not found')
+        else:
+            gsmc = rmdb.gsm
+            if not 'idats' in gsmc.list_collection_names():
+                return_status_list.append('subcollection \'idats\' not found')
+            else:
+                idatsc = gsmc.idats
+                if 'grn' in filename:
+                    if not 'grn' in idatsc.list_collection_names():
+                        return_status_list.append('subcollection \'grn\' not found')
+                    else:
+                        if idatsc.grn.find_one({'__id': gsm_id}):
+                            db_query.append(grn.find_one({'__id': gsm_id}))
+                        else:
+                            return_status.append('gsm record not in subcollection')
+                else:
+                    if not 'red' in idatsc.list_collection_names():
+                        return_status_list.append('subcollection \'red\' not found')
+                    else:
+                        if idatsc.red.find_one({'__id': gsm_id}):
+                            db_query.append(grn.find_one({'__id': gsm_id}))
+                        else:
+                            return_status.append('gsm record not in subcollection')
+    return [return_status,db_query]
+
 def dl_idat(input_list, dldir, retries=3, interval=.1, validate=True):
     """ Download idats, 
         Reads in either list of GSM IDs or ftp addresses
