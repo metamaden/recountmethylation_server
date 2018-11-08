@@ -63,7 +63,7 @@ def connect_mongo(gsm_id,filename,hostname='localhost',conport=27017):
                         return_status_list.append('subcollection \'red\' not found')
                     else:
                         if idatsc.red.find_one({'__id': gsm_id}):
-                            db_query.append(grn.find_one({'__id': gsm_id}))
+                            db_query.append(red.find_one({'__id': gsm_id}))
                         else:
                             return_status.append('gsm record not in subcollection')
     return [return_status,db_query]
