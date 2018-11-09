@@ -4,69 +4,59 @@ import os
 import subprocess
 import glob
 import filecmp
+import pymongo
+import socket
+import struct
+import sys
+import time
 
-def gettime_ntp(addr='time.nist.gov'):
-    # http://code.activestate.com/recipes/117211-simple-very-sntp-client/
-    import socket
-    import struct
-    import sys
-    import time
-    TIME1970 = 2208988800L      # Thanks to F.Lundh
-    client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    data = '\x1b' + 47 * '\0'
-    client.sendto(data, (addr, 123))
-    data, address = client.recvfrom( 1024 )
-    if data:
-        t = struct.unpack( '!12I', data )[10]
-        t -= TIME1970
-    return t
-
-# alternate function, works 
-# from:https://stackoverflow.com/questions/39466780/simple-sntp-python-script
-def gettime_ntp_alt():
-    NTP_SERVER = '0.uk.pool.ntp.org'
+def gettime_ntp(addr='0.uk.pool.ntp.org'):
+    """ Get NTP Timestamp,
+        code from:
+        <https://stackoverflow.com/questions/39466780/simple-sntp-python-script>
+        
+        Arguments
+            * addr : valid NTP address ('0.uk.pool.ntp.org','time.nist.gov' etc)
+        Returns
+            * timestamp : NTP seconds timestamp of type 'int'
+    """
     TIME1970 = 2208988800
     client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     data = '\x1b' + 47 * '\0'
-    client.sendto(data.encode('utf-8'), (NTP_SERVER, 123))
+    client.sendto(data.encode('utf-8'), (addr, 123))
     data, address = client.recvfrom(1024)
     t = struct.unpack('!12I', data)[10] - TIME1970
     return t
 
-# mongodb connection function
-def connect_mongo(gsm_id,filename,hostname='localhost',conport=27017):
-    db_query = []
-    return_status_list = []
-    client = pymongo.MongoClient(hostname, conport)
-    if not 'recount_methylation' in client.list_database_names():
-        return_status_list.append('db \'recount_methylation\' not found')
+def idat_mongo_date(gsm_id,filename,client):
+    """ Get date(s) from mongo idat subcollections
+
+        Arguments
+            * gsm_id : valid sample GSM ID
+            * filename : name of array idat file, inc. 'grn' or 'red'
+            * client : mongodb client connection
+
+        Returns
+            * mongo_date_list : list of resultant date(s) from query, or empty 
+                                list if no docs detected
+    """
+    mongo_date_list = []
+    rmdb = client.recount_methylation
+    gsmc = rmdb.gsm
+    idatc = gsmc.idats  
+    if 'grn' in filename:
+        [mongo_date_list.append(
+            d['date']) for d in idatc.grn.find(
+            {'gsm' : gsm_id},
+            {'date' : 1}
+            )]
     else:
-        rmdb = client.recount_methylation
-        if not 'gsm' in rmdb.list_collection_names():
-            return_status_list.append('collection \'gsm\' not found')
-        else:
-            gsmc = rmdb.gsm
-            if not 'idats' in gsmc.list_collection_names():
-                return_status_list.append('subcollection \'idats\' not found')
-            else:
-                idatsc = gsmc.idats
-                if 'grn' in filename:
-                    if not 'grn' in idatsc.list_collection_names():
-                        return_status_list.append('subcollection \'grn\' not found')
-                    else:
-                        if idatsc.grn.find_one({'__id': gsm_id}):
-                            db_query.append(grn.find_one({'__id': gsm_id}))
-                        else:
-                            return_status_list.append('gsm record not in subcollection')
-                else:
-                    if not 'red' in idatsc.list_collection_names():
-                        return_status_list.append('subcollection \'red\' not found')
-                    else:
-                        if idatsc.red.find_one({'__id': gsm_id}):
-                            db_query.append(red.find_one({'__id': gsm_id}))
-                        else:
-                            return_status_list.append('gsm record not in subcollection')
-    return [return_status_list,db_query]
+        [mongo_date_list.append(
+            d['date']) for d in idatc.red.find(
+            {'gsm' : gsm_id},
+            {'date' : 1}
+            )]
+    return mongo_date_list
 
 def dl_idat(input_list, dldir, retries=3, interval=.1, validate=True):
     """ Download idats, 
@@ -97,6 +87,7 @@ def dl_idat(input_list, dldir, retries=3, interval=.1, validate=True):
         loginstat = ftp.login()
     except ftplib.all_errors as e:
         return str(e)
+    client = pymongo.MongoClient('localhost', 27017) # mongodb connection
     dldict = {}
     for gsm_id in input_list:
         dldict[gsm_id] = []
@@ -120,17 +111,40 @@ def dl_idat(input_list, dldir, retries=3, interval=.1, validate=True):
                     filedl_estat = ""
                     file_tokens = file.split('/')
                     try:
+                        # compare online to local file last update date
                         filedate = ftp.sendcmd("MDTM /" + '/'.join(file_tokens))
                         filedate = datetime.datetime.strptime(filedate[4:],
                             "%Y%m%d%H%M%S")
-                        # Check if filedate is the same as in db, and if it is
-                        # break out, or indicate in return value that this was
-                        # the case.
-                        filedate_estat = "success"
+                        mongo_date = idat_mongo_date(gsm_id,file,client)
+                        # date present and same, append and break, else continue
+                        if filedate in mongo_date:
+                            filedate_estat = "same_as_local_date"
+                            dldict[gsm_id].append(
+                                [gsm_id,
+                                file,
+                                filedate,
+                                filedate_estat]
+                            )
+                            # note: should make current file vers. with older 
+                            # date, in case ftp date reverts to older one 
+                            # eg. where server vers. was rolled back
+                            break
+                        else:
+                            filedate_estat = "new_date"
+                            continue
                     except ftplib.all_errors as efiledate:
                         filedate_estat = str(efiledate)
                         filedate = "not_available"
-                    to_write = '.'.join([gsm_id, timestamp, file_tokens[-1]])
+                        dldict[gsm_id].append(
+                                [gsm_id,
+                                file,
+                                filedate,
+                                filedate_estat]
+                        )
+                        break
+                    to_write = '.'.join([gsm_id, str(timestamp), 
+                        file_tokens[-1]]
+                        )
                     file_ftpadd = '/'.join(file_tokens[:-1])
                     file_ftpadd = file_ftpadd+'/'+file_tokens[-1:][0]
                     try:
@@ -143,23 +157,24 @@ def dl_idat(input_list, dldir, retries=3, interval=.1, validate=True):
                                 )
                     except ftplib.all_errors as efiledl:
                         filedl_estat = str(efiledl)
-                    dldict[gsm_id].append(
-                        [gsm_id,
-                        to_write,
-                        file_ftpadd,
-                        filedate,
-                        filedate_estat,
-                        filedl_estat]
-                    )
                     if '226 Transfer complete' in filedl_estat:
                         files_written.append(
                                 (gsm_id, to_write, len(dldict[gsm_id]) - 1)
                             )
+                    dldict[gsm_id].append(
+                        [gsm_id,
+                        file_ftpadd,
+                        to_write,
+                        filedl_estat,
+                        filedate,
+                        filedate_estat]
+                    )
             except ftplib.error_temp as eid:
                 if retries_left:
                     retries_left -= 1
                     time.sleep(interval)
                     continue
+                # finally write err. after reties exhausted
                 dldict[gsm_id].append([gsm_id, id_ftpadd, str(eid)])
             else:
                 break
@@ -179,3 +194,51 @@ def dl_idat(input_list, dldir, retries=3, interval=.1, validate=True):
                         # If filename is false, we found it was the same
                         dldict[gsm_id][index][1] = False
     return dldict
+
+
+"""Example section
+
+# data entries
+gsm_id = 'GSM1505330'
+file = 'geo/samples/GSM1505nnn/GSM1505330/suppl/
+GSM1505330_9376538060_R04C01_Grn.idat.gz'
+timestamp = '1541719636'
+to_write = 'GSM1505330.1541719636.GSM1505330_9376538060_R04C01_Grn.idat.gz'
+date1 = datetime.datetime(2014, 9, 16, 15, 15, 45)
+date2 = datetime.datetime(2015, 9, 16, 15, 15, 45)
+
+# mongo options and query
+client = pymongo.MongoClient('localhost', 27017)
+# make the db and collections
+rmdb = client["recount_methylation"]
+gsm = rmdb["gsm"]
+idats = gsm["idats"]
+grn = idats["grn"]
+red = idats["red"]
+client.list_database_names()
+rmdb.list_collection_names() # returns: ['gsm.idats.grn']
+# add a single doc
+doc_add1 = {"gsm": 'GSM1505330',
+"filename": "GSM1505330_9376538060_R04C01_Grn.idat","date": date1
+}
+doc_add2 = {"gsm": 'GSM1505330',
+"filename": "GSM1505330_9376538060_R04C01_Grn.idat","date": date2
+}
+add1 = grn.insert_one(doc_add1).inserted_id
+add2 = grn.insert_one(doc_add2).inserted_id
+
+grn.find_one({'gsm' : gsm_id},{'date' : 1})
+[print(d) for d in grn.find({'gsm' : gsm_id},{'date' : 1})]
+for file in grn.find({'gsm' : gsm_id},{'date' : 1}):
+    print(file)
+datelist = []
+[datelist.append(d['date']) for d in grn.find({'gsm' : gsm_id},{'date' : 1})]
+dbdate = max(datelist)
+
+datelist2 = []
+[datelist2.append(d['date']) for d in red.find({'gsm' : gsm_id},{'date' : 1})]
+[print(d) for d in red.find({'gsm' : gsm_id},{'date' : 1})]
+
+dbdate = idat_mongo_query(gsm_id,file,client)
+
+"""
