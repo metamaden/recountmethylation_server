@@ -45,17 +45,17 @@ def idat_mongo_date(gsm_id,filename,client):
     gsmc = rmdb.gsm
     idatc = gsmc.idats  
     if 'grn' in filename:
-        [mongo_date_list.append(
+        mongo_date_list.append(
             d['date']) for d in idatc.grn.find(
             {'gsm' : gsm_id},
             {'date' : 1}
-            )]
+            )
     else:
-        [mongo_date_list.append(
+        mongo_date_list.append(
             d['date']) for d in idatc.red.find(
             {'gsm' : gsm_id},
             {'date' : 1}
-            )]
+            )
     return mongo_date_list
 
 def dl_idat(input_list, dldir, retries=3, interval=.1, validate=True):
