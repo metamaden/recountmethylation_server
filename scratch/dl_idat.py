@@ -9,6 +9,9 @@ import socket
 import struct
 import sys
 import time
+import tempfile
+import atexit
+import shutil
 
 def gettime_ntp(addr='0.uk.pool.ntp.org'):
     """ Get NTP Timestamp,
@@ -46,25 +49,24 @@ def idat_mongo_date(gsm_id,filename,client):
     idatc = gsmc.idats  
     if 'grn' in filename:
         mongo_date_list.append(
-            d['date']) for d in idatc.grn.find(
+            d['date'] for d in idatc.grn.find(
             {'gsm' : gsm_id},
-            {'date' : 1}
-            )
+            {'date' : 1}))
     else:
         mongo_date_list.append(
-            d['date']) for d in idatc.red.find(
+            d['date'] for d in idatc.red.find(
             {'gsm' : gsm_id},
-            {'date' : 1}
-            )
+            {'date' : 1}))
     return mongo_date_list
 
-def dl_idat(input_list, dldir, retries=3, interval=.1, validate=True):
+def dl_idat(input_list, dest_dir='idats',temp_dir='temp_dir', retries=3, interval=.1, validate=True):
     """ Download idats, 
         Reads in either list of GSM IDs or ftp addresses
     
         Arguments
             * input list : list of GSM IDs
-            * dldir : target directory for new downloads
+            * dest_dir : target directory for new downloads
+            * temp_dir : temporary directory to store files
             * retries: number of times to retry a given file to download
             * interval: time (in s) before first retry
             * validate: compare most recently downloaded version with previous
@@ -77,11 +79,14 @@ def dl_idat(input_list, dldir, retries=3, interval=.1, validate=True):
             OR error string over connection issues
     """
     timestamp = str(gettime_ntp())
+    os.makedirs(dest_dir, exist_ok=True)
+    os.makedirs(temp_dir, exist_ok=True)
+    temp_dir_make = tempfile.mkdtemp(dir=temp_dir)
+    atexit.register(shutil.rmtree, temp_dir_make)
     item = input_list[0]
     if not item.startswith('GSM'):
         raise RuntimeError("GSM IDs must begin with \"GSM\".")
     ftptoken_login = 'ftp.ncbi.nlm.nih.gov'
-    os.makedirs(dldir, exist_ok=True)
     try:
         ftp = ftplib.FTP(ftptoken_login)
         loginstat = ftp.login()
@@ -98,6 +103,7 @@ def dl_idat(input_list, dldir, retries=3, interval=.1, validate=True):
         id_ftpadd = '/'.join(id_ftptokens[1::])+'/'
         retries_left = retries
         files_written = []
+        filenames = []
         while retries_left:
             try:
                 filenames = ftp.nlst(id_ftpadd)
@@ -111,12 +117,10 @@ def dl_idat(input_list, dldir, retries=3, interval=.1, validate=True):
                     filedl_estat = ""
                     file_tokens = file.split('/')
                     try:
-                        # compare online to local file last update date
                         filedate = ftp.sendcmd("MDTM /" + '/'.join(file_tokens))
                         filedate = datetime.datetime.strptime(filedate[4:],
                             "%Y%m%d%H%M%S")
                         mongo_date = idat_mongo_date(gsm_id,file,client)
-                        # date present and same, append and break, else continue
                         if filedate in mongo_date:
                             filedate_estat = "same_as_local_date"
                             dldict[gsm_id].append(
@@ -124,14 +128,47 @@ def dl_idat(input_list, dldir, retries=3, interval=.1, validate=True):
                                 file,
                                 filedate,
                                 filedate_estat]
-                            )
-                            # note: should make current file vers. with older 
-                            # date, in case ftp date reverts to older one 
-                            # eg. where server vers. was rolled back
+                                )
                             break
                         else:
                             filedate_estat = "new_date"
-                            continue
+                            to_write = '.'.join([gsm_id, str(timestamp), 
+                            file_tokens[-1]])
+                            file_ftpadd = '/'.join(file_tokens[:-1])
+                            file_ftpadd = file_ftpadd+'/'+file_tokens[-1:][0]
+                            try:
+                                with open(
+                                        os.path.join(temp_dir_make, to_write), 'wb'
+                                    ) as output_stream:
+                                    filedl_estat = ftp.retrbinary(
+                                            "RETR /"+file_ftpadd,
+                                            output_stream.write
+                                        )
+                                dldict[gsm_id].append(
+                                        [gsm_id,
+                                        file_ftpadd,
+                                        to_write,
+                                        filedl_estat,
+                                        filedate,
+                                        filedate_estat]
+                                    )
+                                if '226 Transfer complete' in filedl_estat:
+                                    files_written.append(
+                                            (gsm_id, to_write, 
+                                                len(dldict[gsm_id]) - 1)
+                                        )
+                                break
+                            except ftplib.all_errors as efiledl:
+                                filedl_estat = str(efiledl)
+                                dldict[gsm_id].append(
+                                        [gsm_id,
+                                        file_ftpadd,
+                                        to_write,
+                                        filedl_estat,
+                                        filedate,
+                                        filedate_estat]
+                                    )
+                                break
                     except ftplib.all_errors as efiledate:
                         filedate_estat = str(efiledate)
                         filedate = "not_available"
@@ -140,48 +177,22 @@ def dl_idat(input_list, dldir, retries=3, interval=.1, validate=True):
                                 file,
                                 filedate,
                                 filedate_estat]
-                        )
-                        break
-                    to_write = '.'.join([gsm_id, str(timestamp), 
-                        file_tokens[-1]]
-                        )
-                    file_ftpadd = '/'.join(file_tokens[:-1])
-                    file_ftpadd = file_ftpadd+'/'+file_tokens[-1:][0]
-                    try:
-                        with open(
-                                os.path.join(dldir, to_write), 'wb'
-                            ) as output_stream:
-                            filedl_estat = ftp.retrbinary(
-                                    "RETR /"+file_ftpadd,
-                                    output_stream.write
                                 )
-                    except ftplib.all_errors as efiledl:
-                        filedl_estat = str(efiledl)
-                    if '226 Transfer complete' in filedl_estat:
-                        files_written.append(
-                                (gsm_id, to_write, len(dldict[gsm_id]) - 1)
-                            )
-                    dldict[gsm_id].append(
-                        [gsm_id,
-                        file_ftpadd,
-                        to_write,
-                        filedl_estat,
-                        filedate,
-                        filedate_estat]
-                    )
+                        break
             except ftplib.error_temp as eid:
                 if retries_left:
                     retries_left -= 1
+                    print('ftplib error encountered, retries left = '
+                        +retries_left)
                     time.sleep(interval)
                     continue
-                # finally write err. after reties exhausted
-                dldict[gsm_id].append([gsm_id, id_ftpadd, str(eid)])
-            else:
-                break
+                else:
+                    dldict[gsm_id].append([gsm_id, id_ftpadd, str(eid)])
+                    break
         if validate:
             for gsm_id, file_written, index in files_written:
                 gsms = glob.glob('.'.join([
-                            os.path.join(dldir, gsm_id), '*', '.'.join(
+                            os.path.join(dest_dir, gsm_id), '*', '.'.join(
                                             file_written.split('.')[2:]
                                     )
                         ]))
@@ -193,6 +204,11 @@ def dl_idat(input_list, dldir, retries=3, interval=.1, validate=True):
                         os.remove(most_recent[1])
                         # If filename is false, we found it was the same
                         dldict[gsm_id][index][1] = False
+                else:
+                    shutil.copyfile(
+                        os.path.join(temp_dir_make,most_recent[0]), 
+                        os.path.join(dest_dir,most_recent[0])
+                        )
     return dldict
 
 
