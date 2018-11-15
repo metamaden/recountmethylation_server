@@ -59,7 +59,8 @@ def idat_mongo_date(gsm_id,filename,client):
             {'date' : 1}))
     return mongo_date_list
 
-def dl_idat(input_list, dest_dir='idats',temp_dir='temp_dir', retries=3, interval=.1, validate=True):
+def dl_idat(input_list, dest_dir='idats',temp_dir='temp_dir', retries=3, 
+    interval=.1, validate=True):
     """ Download idats, 
         Reads in either list of GSM IDs or ftp addresses
     
@@ -132,14 +133,15 @@ def dl_idat(input_list, dest_dir='idats',temp_dir='temp_dir', retries=3, interva
                             break
                         else:
                             filedate_estat = "new_date"
-                            to_write = '.'.join([gsm_id, str(timestamp), 
-                            file_tokens[-1]])
+                            to_write = os.path.join(
+                                    temp_dir_make,
+                                    '.'.join([gsm_id, str(timestamp), 
+                                    file_tokens[-1]])
+                                )
                             file_ftpadd = '/'.join(file_tokens[:-1])
                             file_ftpadd = file_ftpadd+'/'+file_tokens[-1:][0]
                             try:
-                                with open(
-                                        os.path.join(temp_dir_make, to_write), 'wb'
-                                    ) as output_stream:
+                                with open(to_write, 'wb') as output_stream:
                                     filedl_estat = ftp.retrbinary(
                                             "RETR /"+file_ftpadd,
                                             output_stream.write
@@ -196,19 +198,22 @@ def dl_idat(input_list, dest_dir='idats',temp_dir='temp_dir', retries=3, interva
                                             file_written.split('.')[2:]
                                     )
                         ]))
-                most_recent = gsms.sort(
+                if gsms:
+                    most_recent = gsms.sort(
                         key=lambda x: int(x.split('.')[1])
-                    )[-2:]
-                if len(most_recent) == 2:
-                    if filecmp.cmp(most_recent[0], most_recent[1]):
-                        os.remove(most_recent[1])
+                    )[-1]
+                    if filecmp.cmp(most_recent, file_written):
+                        os.remove(file_written)
                         # If filename is false, we found it was the same
                         dldict[gsm_id][index][1] = False
+                    else:
+                        shutil.move(file_written, os.path.join(
+                                dest_dir, os.path.basename(file_written))
+                            )
                 else:
-                    shutil.copyfile(
-                        os.path.join(temp_dir_make,most_recent[0]), 
-                        os.path.join(dest_dir,most_recent[0])
-                        )
+                    shutil.move(file_written, os.path.join(
+                                dest_dir, os.path.basename(file_written))
+                            )
     return dldict
 
 
