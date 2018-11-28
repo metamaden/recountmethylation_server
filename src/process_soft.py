@@ -3,24 +3,7 @@ import re
 import gzip
 import shutil
 import subprocess
-
-def gettime_ntp(addr='time.nist.gov'):
-    """ Get NTP Timestamp,
-        code from:
-        <https://stackoverflow.com/questions/39466780/simple-sntp-python-script>
-        
-        Arguments
-            * addr : valid NTP address ('0.uk.pool.ntp.org','time.nist.gov' etc)
-        Returns
-            * timestamp : NTP seconds timestamp of type 'int'
-    """
-    TIME1970 = 2208988800
-    client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    data = '\x1b' + 47 * '\0'
-    client.sendto(data.encode('utf-8'), (addr, 123))
-    data, address = client.recvfrom(1024)
-    t = struct.unpack('!12I', data)[10] - TIME1970
-    return t
+from dl import gettime_ntp
 
 def expand_soft(soft_dir='soft',rmcompressed=True):
     """ Automatically expand detected soft files
@@ -56,7 +39,7 @@ def expand_soft(soft_dir='soft',rmcompressed=True):
     return [softl_compressed,statuslist]
 
 def extract_gsm_soft(gse_soft_dir='gse_soft',gsm_soft_dir='gsm_soft',
-    temp_dir='temp_dir',edir_filt,validate=True):
+    temp_dir='temp',edir_filt,validate=True):
     """ Extract GSM soft file sections from GSE soft file
         Arguments 
             * gse_soft_dir : directory to search for gse soft files
@@ -95,7 +78,7 @@ def extract_gsm_soft(gse_soft_dir='gse_soft',gsm_soft_dir='gsm_soft',
                 gsmfile.close()
     return
 
-def gsm_soft2json(gsm_soft_fn,gsm_json_destdir='gsm_soft_json'):
+def gsm_soft2json(gsm_soft_fn,gsm_json_destdir='gsm_json'):
     """ Convert GSM soft file to JSON format
         Call R script to process GSM soft (XML) to JSON format
         Arguments
@@ -111,25 +94,48 @@ def gsm_soft2json(gsm_soft_fn,gsm_json_destdir='gsm_soft_json'):
     except subprocess.CalledProcessError as e:
         raise e
 
-""" Examples and tests
+def msrap_prepare_json(gsm_json_filelist,gsm_json_dir='gsm_json',
+    dest_dir='msrap_infiles',dest_filename='new_prepared_file'):
+    """ Prepare GSM JSON metadata files for input to MetaSRA-pipeline
+        Arguments
+            * gsm_json_filelist : list of files to prepare
+            * gsm_json_dir : directory of GSM JSON files to read
+            * dest_dir : location to store new prepared file
+            * dest_filename : prepared file name, to write
+        Returns
+            * null or error
+    """
+    os.makedirs(dest_dir, exist_ok=True)
+    # manually add brackets '[' or ']', exclude from JSON concatenation
+    with open(os.path.join(dest_dir,dest_filename),"w+") as preparedfile:
+        preparedfile.write("[\n")
+        for num, jsonfn in enumerate(gsm_json_filelist,0):
+            with open(os.path.join(gsm_json_dir,jsonfn)) as jsonfile:
+                for line in jsonfile:
+                    if not ( line[0] == "]" or line[0] == "[" ):
+                        if line == "  }\n" and num < (len(gsm_json_filelist)-1):
+                            preparedfile.write("},\n")
+                        else:
+                            preparedfile.write(line)
+        preparedfile.write("]")
 
-import os
-import re
-import gzip
-import shutil
-import subprocess
-
-from process_soft import expand_soft
-from process_soft import process_soft
-
-process_soft()
-
-
-soft_dir = 'soft'
-softfile = "GSE109904.1542514817.GSE109904_family.soft"
-subprocess.check_call(['process_gsm_from_soft.sh',os.path.join(soft_dir,softfile)], executable='/bin/bash')
-
-
-gsm_soft2json('./gsm_soft/GSM3177405.soft')
-
-"""
+def run_metasrapipeline(gsm_json_file,json_file_dir='msrap_torun',
+    msrap_fn='new_msrap_outfile',
+    msrap_dest_dir='msrap_output'):
+    """ Run MetaSRA-pipeline on a GSM json file or list of JSON files
+        Arguments
+            * gsm_json_file : individual or group GSM JSON file
+            * json_file_dir : dir of JSON file to map
+            * msrap_fn : name of file to write new mapped MSRA-p. output
+            * msrap_dest_dir : dest. dir. of final mapped output
+        Returns
+            * null or error, generating a new MetaSRA file as side effect 
+    """
+    os.makedirs(msrap_dest_dir, exist_ok=True)
+    try:
+        cmdlist = ['python',os.path.join('MetaSRA-pipeline','run_pipeline.py'),
+        os.path.join(json_file_dir,gsm_json_file),'>',
+        os.path.join(msrap_dest_dir,msrap_fn)]
+        subprocess.call(cmdlist,shell=False)
+    except subprocess.CalledProcessError as e:
+        raise e
