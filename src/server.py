@@ -1,5 +1,53 @@
 #!/usr/bin/env python3
 
+""" server.py
+Recount Methylation Server
+Authors: Sean Maden, Abhinav Nellore
+Website: 
+
+DESCRIPTION
+    Server script manages an instance of recount-methylation database.
+
+OVERVIEW
+    A recount-methylation instance consists of files (namely edirect query 
+    results, experiment metadata in soft format, and methylation array intensity 
+    data or 'idat' files) obtained from edirect queries and ftp-called downloads 
+    from the Gene Expression Omnibus (GEO). RMDB is a recount-methylation Mongo 
+    database that aggregates file metadata as documents, including experiement 
+    (GSE) and sample (GSM) ids, ftp addresses and file paths to downloaded 
+    files, and a datetime-formatted date corresponding to last file update. 
+    Files are versioned using NTP timestamps in filenames. 
+
+    For best results, we recommend users attempt an initial setup of their 
+    recount-methylation instance using default generated directory trees and 
+    filenames, and do not directly change locations or names of files initially 
+    downloaded.
+
+SERVER PROCESSES
+    The server.py script manages process queues, error handling, and 
+    coordination of recount-methylation. It currently uses Celery distributed 
+    task queue to queue jobs synchronously. Jobs are brokered using RabbitMQ, 
+    and queue details are backed up locally in a SQLite db.
+
+DEPENDENCIES AND SETUP
+    1. Recount-methylation primarily uses Python 3 for download handling and 
+        file management. R is used for SOFT-to-JSON conversion, and for 
+        preprocessing arrays. MetaSRA-pipeline is used for standardizing 
+        experiment metadata, and we recommend installing a fork of the original
+        repo (link to GitHub repo). 
+
+    2. To run recount-methylation server.py, ensure the following resources are 
+        installed and running:
+        * Celery (http://www.celeryproject.org/) 
+            -- you may run this in a new terminal or shell window to monitor 
+                jobs in realtime (in mac terminal use:
+                'celery worker -A gse_celerytask -l INFO' 
+                from dir: './recount-methylation-server/src/')
+        * RabbitMQ (https://www.rabbitmq.com/)
+        * MongoDB (https://www.mongodb.com/)
+
+"""
+
 import subprocess
 import glob
 import sys
@@ -7,7 +55,7 @@ import os
 sys.path.insert(0, os.path.join("recount-methylation-server","src"))
 import edirect_query
 from edirect_query import gsm_query, gse_query, querydict, gsequery_filter
-from gse_celerytask import gse_task
+
 
 def getlatest_filepath(filepath,filestr):
     """ Get path the latest version of a file, based on timestamp
@@ -31,7 +79,7 @@ def getlatest_filepath(filepath,filestr):
         return 0       
 
 def firsttime_run(filedir = 'recount-methylation-files'):
-    """ Tasks performed on first time setup
+    """ On first setup, run new equeries and query filter
         Arguments
             * filedir (str): dir name for db files 
         Returns
@@ -39,22 +87,22 @@ def firsttime_run(filedir = 'recount-methylation-files'):
     """
     equery_dest = os.path.join(filedir,'equery')
     temp = os.path.join(filedir,'temp')
-    # run equeries 
     gse_query(dest = equery_dest, temp = temp)
     gsm_query(dest = equery_dest, temp = temp)
-    # run filter
-    gsequeryfile = glob.glob(os.path.join(equery_dest,'gse_edirectquery.*'))
-    gsmqueryfile = glob.glob(os.path.join(equery_dest,'gsm_edirectquery.*'))
-    gsequery_filter(gsequery = gsequeryfile,
-        gsmquery = gsmqueryfile,
-        target = equery_dest,
-        splitdelim = ' '
+    gseqfile = getlatest_filepath(equery_dest,'gse_edirectquery') 
+    gsmqfile = getlatest_filepath(equery_dest,'gsm_edirectquery')
+    gsequery_filter(gsequery = gseqfile,gsmquery = gsmqfile,
+        target = equery_dest,splitdelim = ' '
         )
-    gsefiltpath = glob.glob(os.path.join(equery_dest,'gsequery_filt.*'))
-    gsefiltd = querydict(query = gsefiltpath)
-    gseidlist = list(gsefilt.keys())
-    print("GSE id list of len "+str(len(gseidlist))+" found. Returning...")
-    return gseidlist
+    gsefiltpath = getlatest_filepath(equery_dest,'gsequery_filt')
+    if gsefiltpath and not gsefiltpath == 0:
+        gsefiltd = querydict(query = gsefiltpath,splitdelim=' ')
+        gseidlist = list(gsefilt.keys())
+        print("GSE id list of len "+str(len(gseidlist))+" found. Returning...")
+        return gseidlist
+    else:
+        print("Error retrieving gse query filtered file. Returning...")
+        return 0
 
 def scheduled_run(eqfilt_path=False, filedir = 'recount-methylation-files'):
     """ Tasks performed on regular schedule, after first setup
@@ -65,47 +113,35 @@ def scheduled_run(eqfilt_path=False, filedir = 'recount-methylation-files'):
             * 0 (int) : If error encountered, or
             * gse_list (list) : list of valid GSE IDs
     """
-    if eqfilt_path:
-        gsefiltd = querydict(query=eqfilt_path,splitdelim=' ')
-        if gsefiltd:
-            gseidlist = list(gsefiltd.keys())
-            return gseidlist
-        else:
-            print("Error processing file at provided path: "+eqfilt_path)
-            return 0     
-    else:
-        print("No gse filt file dir provided, checking default location...")
-        # check if gse query filt file exists
-        eqpath = os.path.join(filedir,'equery')
+    eqpath = os.path.join(filedir,'equery')
+    gsefilt_latest = getlatest_filepath(eqpath,'gsequery_filt')
+    if not gsefilt_latest or gsefilt_latest == 0:
+        print("No gse query filt file found, checking for gse and gsm "
+            +"queries...")
+        # run fresh gse/gsm queries if not found
+        gsequery_latest = getlatest_filepath(eqpath,'gse_edirectquery')
+        if not gsequery_latest or gsequery_latest == 0:
+            gse_query(dest = eqpath,
+                temp=os.path.join(filedir,'temp')
+                )
+        gsmquery_latest = getlatest_filepath(eqpath,'gsm_edirectquery')
+        if not gsmquery_latest or gsmquery_latest == 0:
+            gsm_query(dest = eqpath,
+                temp = os.path.join(filedir,'temp')
+                )
+        # run new gse filt
+        print("Running filter on gse query...")
+        gsequery_filter(gsequery=gsequery_latest,
+                gsmquery = gsmquery_latest,
+                target = eqpath, splitdelim = ' '
+                )
         gsefilt_latest = getlatest_filepath(eqpath,'gsequery_filt')
-        if not gsefilt_latest or gsefilt_latest == 0:
-            print("No gse query filt file found, checking for gse and gsm "
-                +"queries...")
-            # run fresh gse/gsm queries if not found
-            gsequery_latest = getlatest_filepath(eqpath,'gse_edirectquery')
-            gsmquery_latest = getlatest_filepath(eqpath,'gsm_edirectquery')
-            if not gsequery_latest or gsequery_latest == 0:
-                gse_query(dest = eqpath,
-                    temp=os.path.join(filedir,'temp')
-                    )
-            if not gsmquery_latest or gsmquery_latest == 0:
-                gsm_query(dest = eqpath,
-                    temp = os.path.join(filedir,'temp')
-                    )
-            # run new gse filt
-            print("Running filter on gse query...")
-            gsequery_filter(gsequery=gsequery_latest,
-                    gsmquery = gsmquery_latest,
-                    target = eqpath, splitdelim = ' '
-                    )
-            gsefilt_latest = getlatest_filepath(eqpath,'gsequery_filt')
-        else:
-            print("Gse filt file found. Continuing...")
+    else:
+        print("Gse query filt file found. Continuing...")
     if gsefilt_latest:
         print("Getting dictionary from gse filt file...")
-        gsefiltd = querydict(query = gsefilt_latest)
+        gsefiltd = querydict(query = gsefilt_latest, splitdelim = ' ')
         gseidlist = list(gsefiltd.keys())
-        # print(gseidlist)
         print("GSE id list of len "+str(len(gseidlist)) + " found. Returning..")
         return gseidlist
     else: 
@@ -113,81 +149,16 @@ def scheduled_run(eqfilt_path=False, filedir = 'recount-methylation-files'):
             +"gse query filt file and gse/gsm query files.")
         return 0
 
-def serverstart(rabbitmq_args, celery_args, mongodb_args, platform = "mac"):
-    """ What to run on server start (setup dependencies in console)
-        Arguments
-            * rabbitmq_args (list) : subprocess commands to start RabbitMQ
-            * celery_args (list) : subprocess commands to start Celery
-            * mongodb_args (list) : subprocess commands to start MongoDB
-            * platform (str) : Either 'mac', 'ux', or 'pc'. 
-                If provided, overrides given lists with new lists
-        Returns
-            * rd (dict) : dictionary of subprocess objects
+def get_queryfilt_dict(filesdir='recount-methylation-files',eqtarget='equery'):
     """
-    if platform:
-        if platform=="mac":
-            rabbitmq_args = ["brew","services","start","rabbitmq"]
-            celery_args = ["celery","worker","-A","gse_celerytask","-l","INFO"]
-            mongodb_args = ["mongod"]
-        if platform=="nix":
-            rabbitmq_args = []
-            celery_args = []
-            mongodb_args = []
-        if platform=="pc":
-            rabbitmq_args = []
-            celery_args = []
-            mongodb_args = []
-        else: 
-            print("invalid platform provided. Returning...")
-            return 0
-    # define process running (check active processes if possible)
-    if not processrunning:
-        celery_run = 0
-        try: 
-            celery_start = subprocess.check_call(celery_args, shell=False)
-        except subprocess.CalledProcessError as e:
-             celery_start = e
-    else:
-        celery_run = 1
-        celery_start = 0
-    # rabbitmq
-    if not processrunning:
-        rabbitmq_run = 0
-        try:
-            rabbitmq_start = subprocess.check_call(rabbitmq_args, shell=False)
-        except subprocess.CalledProcessError as e:
-            rabbitmq_start = e
-    else:
-        rabbitmq_run = 1
-        rabbitmq_start = 0
-    # mongodb
-    if not processrunning:
-        mongodb_run = 0
-        try:
-            mongodb_start = subprocess.check_call(mongodb_args, shell=False)
-        except subprocess.CalledProcessError as e:
-            mongodb_start = e
-    else:
-        mongodb_run = 1
-        mongodb_start = 0
-    rd = {'rabbitmq': [rabbitmq_run, rabbitmq_start],
-            'celery': [rabbitmq_run, celery_start],
-            'mongodb': [mongodb_run, mongodb_start]
-            }
-    return rd
-
-def run_gsequeue(gse_list):
-    """ Run task queue with GSE IDs
-        Arguments
-            * gse_list
-        Returns
-            * 
     """
-    qstatlist = []
-    # run tasks synchronously in celery
-    for gse in gse_list:
-        qstatlist.append(gse_task.apply_async(gse))
-    return qstatlist
+    eqpath = os.path.join('recount-methylation-files','equery')
+    gsefilt_latest = getlatest_filepath(eqpath,'gsequery_filt')
+    if gsefilt_latest and not gsefilt_latest == 0:
+        gsefiltd = querydict(query = gsefilt_latest, splitdelim = ' ')
+        return gsefiltd
+    else:
+        print("Error, no gse filtered file found at location.")
 
 def on_restart():
     """ Handling server.py restart, inc. interruptions when processing queue
@@ -202,17 +173,24 @@ def main(files_dir='recount-methylation-files'):
     """
 
 if __name__ == "__main__":
+    from gse_celerytask import gse_task
+    gselist = [] # queue input, gse-based
+    qstatlist = [] # job status object, also stored at sqlite db
     files_dir = 'recount-methylation-files'
     if os.path.exists(files_dir):
         print(files_dir+" found. Running scheduled_run...")
         gselist = scheduled_run()
-        print(str(len(gselist)))
-        print(str(gselist[0]))
-        # queuerun = run_gsequeue(gse_list = scheduled_run())
-        queuerun = run_gsequeue(gse_list = gselist[0])
     else:    
         print(files_dir+" not found. Creating dir and running firsttime_run...")
         os.makedirs(files_dir)
-        queuerun = run_gsequeue(gse_list = firsttime_run())
+        gselist = firsttime_run()
+    if gselist:
+        gqd = get_queryfilt_dict()
+        for gse in gselist:
+            qstatlist.append(gse_task(gse_id = gse,
+                gsefiltdict = gqd)
+            )
+
+    #queuerun = run_gsequeue(gse_list = gselist)
         
         

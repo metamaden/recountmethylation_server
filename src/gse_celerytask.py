@@ -4,58 +4,53 @@ import glob
 import os
 import sys
 sys.path.insert(0, os.path.join("recount-methylation-server","src"))
-import dl
-import update_rmdb
+from dl import gettime_ntp, soft_mongo_date, idat_mongo_date, dl_idat, dl_soft
 from update_rmdb import update_rmdb
-import edirect_query
-from edirect_query import querydict
 
-""" This is the task script for celery
-	This script defines a task to be executed by celerybeat
-	tasks managed by celeryd and worker
+""" gse_celerytask.py
+    Task script for celery
+	
+    This script defines a task for celerybeat, managed by celeryd and worker.
+
 	Notes:
-		* RabbitMQ-server running (>rabbitmq-server)
-		* Celery installed and running
-		* Celery defaults to using RabbitMQ broker
+        * Check that RabbitMQ and celery are both running
 """
 
 app = Celery()
 app.config_from_object('config')
 
 @app.task
-def gse_task(gse_id, target='equery'):
+def gse_task(gse_id, gsefiltdict):
     """ Define a GSE-based task for celery queue
         Arguments
             * gse_id : a single valid GSE id
-            * target : dir or path to 'gsequery_filt.*' file
+            * gsefiltdict : gse filtered query as dictionary (see 
+                'edirect_query.querydict()' function)
         Returns
             * rl (list) : list of download dictionaries and rmdb update statuses
     """
+    print('Beginning gse_task for id: '+gse_id)
     rl = []
-    # grab the latest gsequery_filt.* file from target
-    gsefiltfiles = glob.glob('.'.join([os.path.join(target, 'gsequery_filt'),
-        '*'])
-    )
-    if gsefiltfiles:
-        if len(gsefiltfiles)>1:
-            gsefiltfiles.sort(key=lambda x: int(x.split('.')[1]))
-            gsefiltfile_mostrecent = gsefiltfiles[-1]
-        else:
-            gsefiltfile_mostrecent = gsefiltfiles[0]
-        # load gse query filt object, get filtered gsm list
-        gsefilt = querydict(query=os.path.join(target,gsefiltfile_mostrecent))
-        gsmlist = gsefilt[gse_id]
+    if gsefiltdict:
+        print('gsefiltdict provided, continuing...')
+        # get gsms to pass to dl_idats
+        gsmlist = gsefiltdict[gse_id]
+        # check for valid gsm ids here...
         rl.append(gsmlist)
-        ddsoft = dl_soft(gse_list=gse_id)
+        print('beginning soft file download...')
+        ddsoft = dl_soft(gse_list=[gse_id])
         rl.append(ddsoft)
+        print('beginning idat download...')
         ddidat = dl_idat(input_list=gsmlist)
         rl.append(ddidat)
+        print('updating rmdb...')
         updateobj = update_rmdb(ddidat=ddidat,ddsoft=ddsoft)
         rl.append(updateobj)
+        print('Task completed! Returning...')
         return rl
     else:
-        print("Error: no gsequery_filt.* files found in target. Returning...")
-        return
+        print("Error: no gse query filt file provided. Returning...")
+        return 0 
 
 """ EXAMPLES
 

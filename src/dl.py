@@ -16,6 +16,32 @@ import tempfile
 import atexit
 import shutil
 
+def getlatest_filepath(filepath,filestr,embeddedpattern=False):
+    """ Get path the latest version of a file, based on timestamp
+        Arguments
+            * filepath (str) : path to dir to search
+            * filestr (str) : pattern of file to search
+            * embeddedpattern (T/F, bool) : whether filestr pattern is embedded
+                in filename (assumes pattern at start of name otherwise)
+        Returns
+            * latest_file_path (str) : path to latest version of file, OR
+            * 0 : search turned up no files at location
+    """
+    if embeddedpattern:
+        filelist = glob.glob(os.path.join(path,str('*.' + filestr + '.*')))
+    else:
+        filelist = glob.glob('.'.join([os.path.join(filepath, filestr), '*']))
+    if filelist:
+        if len(filelist) > 1:
+            # sort on timestamp
+            filelist.sort(key=lambda x: int(x.split('.')[1]))
+            latest_file_path = filelist[-1]
+        else:
+            latest_file_path = filelist[0]
+        return latest_file_path
+    else:
+        return 0 
+
 def gettime_ntp(addr='time.nist.gov'):
     """ Get NTP Timestamp,
         code from:
@@ -83,8 +109,9 @@ def idat_mongo_date(gsm_id,filename,client):
             {'date' : 1}))
     return mongo_date_list
 
-def dl_idat(input_list, dest_dir='idats', temp_dir='temp', 
-    retries_connection=3, retries_files=3, interval=.1, validate=True):
+def dl_idat(input_list, filesdir = 'recount-methylation-files', 
+    targetdir='idats', temp_dir='temp', retries_connection=3, retries_files=3, 
+    nterval=.1, validate=True):
     """ Download idats, 
         Reads in either list of GSM IDs or ftp addresses
     
@@ -102,8 +129,9 @@ def dl_idat(input_list, dest_dir='idats', temp_dir='temp',
             * Dictionary showing records, dates, and exit statuses of ftp calls
             OR error string over connection issues
     """
-    # timestamp = str(gettime_ntp())
-    timestamp = 'timestamp'
+    timestamp = str(gettime_ntp())
+    dest_dir = os.path.join(filesdir,targetdir)
+    temp_dir = os.path.join(filesdir,temp_dir)
     os.makedirs(dest_dir, exist_ok=True)
     os.makedirs(temp_dir, exist_ok=True)
     temp_dir_make = tempfile.mkdtemp(dir=temp_dir)
@@ -267,21 +295,12 @@ def dl_idat(input_list, dest_dir='idats', temp_dir='temp',
         print("Validating downloaded files...")
         for gsm_id, file_written, index in files_written:
             print("file written is "+file_written)
-            gsms = glob.glob('.'.join([
-                        os.path.join(dest_dir, gsm_id), '*', '.'.join(
-                                        file_written.split('.')[2:]
-                                )
-                    ]))
-            gsmstr = "; ".join(str(e) for e in gsms)
-            print("gsms found : "+gsmstr)
-            if gsms:
-                if len(gsms)>1:
-                    gsms.sort(key=lambda x: int(x.split('.')[1]))
-                    most_recent = gsms[-1]
-                else:
-                    most_recent = gsms[0]
-                print('most recent file :'+most_recent)
-                if filecmp.cmp(most_recent, file_written):
+            filestr = str('.'.join(file_written.split('.')[2::]))
+            gsmidat_latest = getlatest_filepath(dest_dir,filestr,
+                embeddedpattern = True
+                )
+            if gsmidat_latest and not gsmidat_latest == 0:
+                if filecmp.cmp(gsmidat_latest, file_written):
                     print("Downloaded file is same as recent file. Removing...")
                     os.remove(file_written)
                     # If filename is false, we found it was the same
@@ -304,9 +323,11 @@ def dl_idat(input_list, dest_dir='idats', temp_dir='temp',
                 dldict[gsm_id][index][2] = os.path.join(
                                 dest_dir, os.path.basename(file_written)
                             )
+    shutil.rmtree(temp_dir_make)
     return dldict
 
-def dl_soft(gse_list, dest_dir='gse_soft', temp_dir='temp', retries_connection=3,
+def dl_soft(gse_list, filesdir = 'recount-methylation-files', 
+    targetdir='gse_soft', temp_dir='temp', retries_connection=3, 
     retries_files=3, interval=.1, validate=True):
     """ Download idats, 
         Reads in either list of GSM IDs or ftp addresses
@@ -326,6 +347,8 @@ def dl_soft(gse_list, dest_dir='gse_soft', temp_dir='temp', retries_connection=3
             OR error string over connection issues
     """
     timestamp = str(gettime_ntp())
+    dest_dir = os.path.join(filesdir,targetdir)
+    temp_dir = os.path.join(filesdir,temp_dir)
     os.makedirs(dest_dir, exist_ok=True)
     os.makedirs(temp_dir, exist_ok=True)
     temp_dir_make = tempfile.mkdtemp(dir=temp_dir)
@@ -424,7 +447,7 @@ def dl_soft(gse_list, dest_dir='gse_soft', temp_dir='temp', retries_connection=3
                                 )
                             if '226 Transfer complete' in filedl_estat:
                                 files_written.append(
-                                        (gse, to_write,len(dldict[gse]) - 1)
+                                        (gse, to_write, len(dldict[gse]) - 1)
                                     )
                             print('total files written = '
                                 +str(len(files_written)))
@@ -484,96 +507,35 @@ def dl_soft(gse_list, dest_dir='gse_soft', temp_dir='temp', retries_connection=3
                     break
     if validate:
         print('commencing file validation...')
-        for file in files_written:
-            gse = file[0]
-            file_written = file[1]
-            print(gse)
-            print(file_written)
-            gses = glob.glob('.'.join([
-                        os.path.join(dest_dir, gse), '*', '.'.join(
-                                        file_written.split('.')[2:]
-                                )
-                    ]))
-            if gses:
-                if len(gses)>1:
-                    most_recent = gses.sort(
-                        key=lambda x: int(x.split('.')[1])
-                    )
-                    most_recent = most_recent[-1]
-                else:
-                    most_recent = gses[0]
-                if filecmp.cmp(most_recent, file_written):
+        for gse, new_filepath, index in files_written:
+            filestr = str(new_filepath.split('.')[0])
+            gsesoft_latest = getlatest_filepath(dest_dir,filestr)
+            if gsesoft_latest and not gsesoft_latest == 0:
+                if filecmp.cmp(gsesoft_latest, new_filepath):
                     print('identical file found in dest_dir, removing...')
-                    os.remove(file_written)
+                    os.remove(new_filepath)
                     # If filename is false, we found it was the same
                     dldict[gse].append(False)
                 else:
                     print('new file detected in temp_dir, moving to '
                         +'dest_dir...')
                     dldict[gse].append(True)
+                    print(str(os.path.basename(new_filepath)))
                     dldict[gse][index][2] = os.path.join(
-                                dest_dir, os.path.basename(file_written)
+                                dest_dir, os.path.basename(new_filepath)
                             )
-                    shutil.move(file_written, os.path.join(
-                            dest_dir, os.path.basename(file_written))
+                    shutil.move(new_filepath, os.path.join(
+                            dest_dir, os.path.basename(new_filepath))
                         )
             else:
                 print('new file detected in temp_dir, moving to dest_dir..')
                 dldict[gse].append(True)
                 dldict[gse][index][2] = os.path.join(
-                                dest_dir, os.path.basename(file_written)
+                                dest_dir, os.path.basename(new_filepath)
                             )
-                shutil.move(file_written, os.path.join(
-                            dest_dir, os.path.basename(file_written))
+                shutil.move(new_filepath, os.path.join(
+                            dest_dir, os.path.basename(new_filepath))
                         )
             continue
+    shutil.rmtree(temp_dir_make)
     return dldict
-
-def update_rmdb(ddidat,ddsoft,host='localhost',port=27017):
-    """ Update recount-methylation database with new docs
-        Arguments
-            * ddidat : download dictionary from dl_idats
-            * ddsoft : download dicitonary from dl_soft
-        Returns
-            * statusdict : result list (1 = new doc added, 0 = no doc added) 
-    """
-    statusdict = {}
-    client = pymongo.MongoClient('localhost', 27017)
-    rmdb = client.recount_methylation
-    if ddidat:
-        statusdict['ddidat'] = ""
-        gsmc = rmdb.gsm
-        idatsc = gsmc.idats
-        for gsmkey in list(ddidat.keys()):
-            lvals = ddidat[gsmkey]
-            for lval in lvals:
-                if lval[-1]==True:
-                    new_idatdoc = {"gsmid":lval[0],
-                        "ftpaddress":lval[1],
-                        "filepath":lval[2],
-                        "exitstatus":lval[3],
-                        "date":lval[4]
-                        }
-                    idatsc.insert_one(new_idatdoc)
-                    statusdict['ddidat'] = 1
-                else:
-                    statusdict['ddidat'] = 0
-    if ddsoft:
-        statusdict['ddsoft'] = ""
-        gsec = rmdb.gse
-        softc = gsec.soft
-        for gsekey in list(ddsoft.keys()):
-            lvals = ddsoft[gsekey]
-            if lvals[-1]==True:
-                lsoft = lvals[1]
-                new_softdoc = {"gseid":lval[0],
-                        "ftpaddress":lval[1],
-                        "filepath":lval[2],
-                        "exitstatus":lval[3],
-                        "date":lval[4]
-                        }
-                softc.insert_one(new_softdoc)
-                statusdict['ddsoft'] = 1
-            else:
-                statusdict['ddsoft'] = 0
-    return statusdict
