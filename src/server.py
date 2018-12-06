@@ -56,27 +56,44 @@ sys.path.insert(0, os.path.join("recount-methylation-server","src"))
 import edirect_query
 from edirect_query import gsm_query, gse_query, querydict, gsequery_filter
 
-
-def getlatest_filepath(filepath,filestr):
+def getlatest_filepath(filepath,filestr,embeddedpattern = False):
     """ Get path the latest version of a file, based on timestamp
         Arguments
             * filepath (str) : path to dir to search
             * filestr (str) : pattern of file to search
+            * embeddedpattern (T/F, bool) : whether filestr pattern is embedded
+                in filename (assumes pattern at start of name otherwise)
         Returns
             * latest_file_path (str) : path to latest version of file, OR
             * 0 : search turned up no files at location
     """
-    filelist = glob.glob('.'.join([os.path.join(filepath, filestr), '*']))
-    if filelist:
-        if len(filelist) > 1:
-            # sort on timestamp
-            filelist.sort(key=lambda x: int(x.split('.')[1]))
-            latest_file_path = filelist[-1]
-        else:
-            latest_file_path = filelist[0]
-        return latest_file_path
+    if embeddedpattern:
+        embedpattern = str('*' + filestr + '*')
+        pathstr = str(os.path.join(filepath,embedpattern))
+        filelist = glob.glob(pathstr)
     else:
-        return 0       
+        filelist = glob.glob('.'.join([os.path.join(filepath, filestr), '*']))
+    if filelist:
+        flfilt = []
+        # filter filelist on possible int/valid timestamp
+        for fp in filelist:
+            try:
+                int(os.path.basename(fp).split('.')[1])
+                flfilt.append(fp)
+            except ValueError:
+                break
+        if flfilt and not len(flfilt)==0:
+            if len(flfilt) > 1:
+                # sort on timestamp
+                flfilt.sort(key=lambda x: int(os.path.basename(x).split('.')[1]))
+                latest_file_path = flfilt[-1]
+            else:
+                latest_file_path = flfilt[0]
+            return latest_file_path
+        else:
+            return 0 
+    else:
+        return 0      
 
 def firsttime_run(filedir = 'recount-methylation-files'):
     """ On first setup, run new equeries and query filter
@@ -193,4 +210,10 @@ if __name__ == "__main__":
 
     #queuerun = run_gsequeue(gse_list = gselist)
         
-        
+"""
+Examples and Tutorial
+
+# small experiment example
+gselist = ['GSE109904']
+
+"""        

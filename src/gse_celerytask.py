@@ -10,7 +10,8 @@ from update_rmdb import update_rmdb
 """ gse_celerytask.py
     Task script for celery
 	
-    This script defines a task for celerybeat, managed by celeryd and worker.
+    This script defines a task for celerybeat, where individual task managed by 
+    celeryd and worker.
 
 	Notes:
         * Check that RabbitMQ and celery are both running
@@ -35,6 +36,7 @@ def gse_task(gse_id, gsefiltdict):
         print('gsefiltdict provided, continuing...')
         # get gsms to pass to dl_idats
         gsmlist = gsefiltdict[gse_id]
+        print('n = '+str(len(gsmlist))+' gsm ids detected...')
         # check for valid gsm ids here...
         rl.append(gsmlist)
         print('beginning soft file download...')

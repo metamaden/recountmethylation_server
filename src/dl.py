@@ -6,6 +6,7 @@ import datetime
 import os
 import subprocess
 import glob
+import fnmatch
 import filecmp
 import pymongo
 import socket
@@ -16,7 +17,7 @@ import tempfile
 import atexit
 import shutil
 
-def getlatest_filepath(filepath,filestr,embeddedpattern=False):
+def getlatest_filepath(filepath,filestr,embeddedpattern = False):
     """ Get path the latest version of a file, based on timestamp
         Arguments
             * filepath (str) : path to dir to search
@@ -28,21 +29,34 @@ def getlatest_filepath(filepath,filestr,embeddedpattern=False):
             * 0 : search turned up no files at location
     """
     if embeddedpattern:
-        filelist = glob.glob(os.path.join(path,str('*.' + filestr + '.*')))
+        embedpattern = str('*' + filestr + '*')
+        pathstr = str(os.path.join(filepath,embedpattern))
+        filelist = glob.glob(pathstr)
     else:
         filelist = glob.glob('.'.join([os.path.join(filepath, filestr), '*']))
     if filelist:
-        if len(filelist) > 1:
-            # sort on timestamp
-            filelist.sort(key=lambda x: int(x.split('.')[1]))
-            latest_file_path = filelist[-1]
+        flfilt = []
+        # filter filelist on possible int/valid timestamp
+        for fp in filelist:
+            try:
+                int(os.path.basename(fp).split('.')[1])
+                flfilt.append(fp)
+            except ValueError:
+                break
+        if flfilt and not len(flfilt)==0:
+            if len(flfilt) > 1:
+                # sort on timestamp
+                flfilt.sort(key=lambda x: int(os.path.basename(x).split('.')[1]))
+                latest_file_path = flfilt[-1]
+            else:
+                latest_file_path = flfilt[0]
+            return latest_file_path
         else:
-            latest_file_path = filelist[0]
-        return latest_file_path
+            return 0 
     else:
         return 0 
 
-def gettime_ntp(addr='time.nist.gov'):
+def gettime_ntp(addr = 'time.nist.gov'):
     """ Get NTP Timestamp,
         code from:
         <https://stackoverflow.com/questions/39466780/simple-sntp-python-script>
@@ -110,8 +124,8 @@ def idat_mongo_date(gsm_id,filename,client):
     return mongo_date_list
 
 def dl_idat(input_list, filesdir = 'recount-methylation-files', 
-    targetdir='idats', temp_dir='temp', retries_connection=3, retries_files=3, 
-    nterval=.1, validate=True):
+    targetdir = 'idats', temp_dir = 'temp', retries_connection = 3, 
+    retries_files = 3, interval_con = .1, interval_file = .01, validate = True):
     """ Download idats, 
         Reads in either list of GSM IDs or ftp addresses
     
@@ -121,7 +135,8 @@ def dl_idat(input_list, filesdir = 'recount-methylation-files',
             * temp_dir : temporary directory to store files
             * retries_connection: num ftp connection retries
             # retries_files : num retry attempts on sample files
-            * interval: time (in sec) before first retry
+            * interval_con (float) : time (in sec) before retrying con.
+            * interval_file (float) : time (in sec) before retrying file con. 
             * validate: compare most recently downloaded version with previous
                 version of file after download and if new file is same, delete
                 it and make note in dictionary
@@ -135,7 +150,7 @@ def dl_idat(input_list, filesdir = 'recount-methylation-files',
     os.makedirs(dest_dir, exist_ok=True)
     os.makedirs(temp_dir, exist_ok=True)
     temp_dir_make = tempfile.mkdtemp(dir=temp_dir)
-    atexit.register(shutil.rmtree, temp_dir_make)
+    # atexit.register(shutil.rmtree, temp_dir_make)
     item = input_list[0]
     if not item.startswith('GSM'):
         raise RuntimeError("GSM IDs must begin with \"GSM\".")
@@ -153,7 +168,7 @@ def dl_idat(input_list, filesdir = 'recount-methylation-files',
                 retries_left_connection -= 1
                 print('continuing with connection retries left = '
                     +str(retries_left_connection))
-                time.sleep(interval)
+                time.sleep(interval_con)
                 continue
             else:
                 print('connection retries exhausted, returning...')
@@ -240,7 +255,7 @@ def dl_idat(input_list, filesdir = 'recount-methylation-files',
                                     retries_left_files -= 1
                                     print('ftp file dl error, retries left = '
                                     +str(retries_left_files))
-                                    time.sleep(interval)
+                                    time.sleep(interval_file)
                                     continue
                                 else:
                                     print('File retries exhausted. Breaking...')
@@ -261,7 +276,7 @@ def dl_idat(input_list, filesdir = 'recount-methylation-files',
                             retries_left_files -= 1
                             print('ftplib file date error, retries left = '
                             +str(retries_left_files))
-                            time.sleep(interval)
+                            time.sleep(interval_file)
                             continue
                         else:
                             print('File retries exhausted. Breaking...')
@@ -285,7 +300,7 @@ def dl_idat(input_list, filesdir = 'recount-methylation-files',
                 retries_left_files -= 1
                 print('ftplib filenames error, retries left = '
                     +str(retries_left_files))
-                time.sleep(interval)
+                time.sleep(interval_file)
                 continue
             else:
                 print('File retries exhausted. Breaking...')
@@ -295,10 +310,16 @@ def dl_idat(input_list, filesdir = 'recount-methylation-files',
         print("Validating downloaded files...")
         for gsm_id, file_written, index in files_written:
             print("file written is "+file_written)
-            filestr = str('.'.join(file_written.split('.')[2::]))
+            filestr = os.path.basename(file_written).split('.')[2::]
+            filestr = str('.'.join(filestr))
+            # filestr = str('.'.join(file_written.split('.')[2::]))
+            print('filestr written : '+filestr)
+            print('dir to search latest: '+dest_dir)
             gsmidat_latest = getlatest_filepath(dest_dir,filestr,
                 embeddedpattern = True
                 )
+            print('gsm latest : '+str(gsmidat_latest))
+            print('cmp result : '+str(filecmp.cmp(gsmidat_latest, file_written)))
             if gsmidat_latest and not gsmidat_latest == 0:
                 if filecmp.cmp(gsmidat_latest, file_written):
                     print("Downloaded file is same as recent file. Removing...")
@@ -327,8 +348,8 @@ def dl_idat(input_list, filesdir = 'recount-methylation-files',
     return dldict
 
 def dl_soft(gse_list, filesdir = 'recount-methylation-files', 
-    targetdir='gse_soft', temp_dir='temp', retries_connection=3, 
-    retries_files=3, interval=.1, validate=True):
+    targetdir = 'gse_soft', temp_dir = 'temp', retries_connection = 3, 
+    retries_files = 3, interval_con = .1, interval_file = .01, validate = True):
     """ Download idats, 
         Reads in either list of GSM IDs or ftp addresses
     
@@ -338,7 +359,8 @@ def dl_soft(gse_list, filesdir = 'recount-methylation-files',
             * temp_dir : temporary directory to store files
             * retries_connection : num retries for connection, on ftp err.
             * retries_files : num retries for given file, on ftp err.
-            * interval: time (in s) before first retry
+            * interval_con (float) : time (in sec) before retrying con.
+            * interval_file (float) : time (in sec) before retrying file con.
             * validate: compare most recently downloaded version with previous
                 version of file after download and if new file is same, delete
                 it and make note in dictionary
@@ -352,7 +374,7 @@ def dl_soft(gse_list, filesdir = 'recount-methylation-files',
     os.makedirs(dest_dir, exist_ok=True)
     os.makedirs(temp_dir, exist_ok=True)
     temp_dir_make = tempfile.mkdtemp(dir=temp_dir)
-    atexit.register(shutil.rmtree, temp_dir_make)
+    # atexit.register(shutil.rmtree, temp_dir_make)
     item = gse_list[0]
     if not item.startswith('GSE'):
         raise RuntimeError("GSE IDs must begin with \"GSE\".")
@@ -370,7 +392,7 @@ def dl_soft(gse_list, filesdir = 'recount-methylation-files',
                 retries_left_connection -= 1
                 print('continuing with connection retries left = '
                     +str(retries_left_connection))
-                time.sleep(interval)
+                time.sleep(interval_con)
                 continue
             else:
                 print('connection retries exhausted, returning...')
@@ -460,7 +482,7 @@ def dl_soft(gse_list, filesdir = 'recount-methylation-files',
                                 retries_left_files -= 1
                                 print('continuing with file retries left ='
                                     +retries_left_files)
-                                time.sleep(interval)
+                                time.sleep(interval_file)
                                 continue
                             else:
                                 print('file retries exhausted, breaking..')
@@ -480,7 +502,7 @@ def dl_soft(gse_list, filesdir = 'recount-methylation-files',
                         retries_left_files -= 1
                         print('continuing with file retries left = '
                             +retries_left_files)
-                        time.sleep(interval)
+                        time.sleep(interval_file)
                         continue
                     else:
                         print('file retries exhausted, breaking..')
@@ -499,7 +521,7 @@ def dl_soft(gse_list, filesdir = 'recount-methylation-files',
                     retries_left_connection -= 1
                     print('ftplib error encountered, file retries left = '
                         +retries_left_files)
-                    time.sleep(interval)
+                    time.sleep(interval_file)
                     continue
                 else:
                     print('file retries exhausted, breaking..')
@@ -508,19 +530,17 @@ def dl_soft(gse_list, filesdir = 'recount-methylation-files',
     if validate:
         print('commencing file validation...')
         for gse, new_filepath, index in files_written:
-            filestr = str(new_filepath.split('.')[0])
+            filestr = os.path.basename(new_filepath).split('.')[0]
             gsesoft_latest = getlatest_filepath(dest_dir,filestr)
             if gsesoft_latest and not gsesoft_latest == 0:
                 if filecmp.cmp(gsesoft_latest, new_filepath):
                     print('identical file found in dest_dir, removing...')
-                    os.remove(new_filepath)
-                    # If filename is false, we found it was the same
                     dldict[gse].append(False)
+                    os.remove(new_filepath)
                 else:
                     print('new file detected in temp_dir, moving to '
                         +'dest_dir...')
                     dldict[gse].append(True)
-                    print(str(os.path.basename(new_filepath)))
                     dldict[gse][index][2] = os.path.join(
                                 dest_dir, os.path.basename(new_filepath)
                             )
