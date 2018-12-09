@@ -21,36 +21,53 @@ app = Celery()
 app.config_from_object('config')
 
 @app.task
-def gse_task(gse_id, gsefiltdict, timestamp = str(gettime_ntp())):
+def gse_task(gse_id, gsefiltdict, timestamp = gettime_ntp()):
     """ Define a GSE-based task for celery queue
         Arguments
             * gse_id : a single valid GSE id
             * gsefiltdict : gse filtered query as dictionary (see 
                 'edirect_query.querydict()' function)
+            * timestamp : NTP timestamp for versioning file downloads
         Returns
             * rl (list) : list of download dictionaries and rmdb update statuses
     """
     if not timestamp:
         run_timestamp = gettime_ntp()
-    print('Beginning gse_task for id: '+gse_id)
-    run_timestamp = gettime_ntp()
+    print('Beginning GSE task, id: '+gse_id)
     rl = []
     if gsefiltdict:
-        print('gsefiltdict provided, continuing...')
+        print('File gsefiltdict provided, continuing...')
         # get gsms to pass to dl_idats
-        gsmlist = gsefiltdict[gse_id]
-        print('n = '+str(len(gsmlist))+' gsm ids detected...')
-        # check for valid gsm ids here...
-        rl.append(gsmlist)
-        print('beginning soft file download...')
-        ddsoft = dl_soft(gse_list=[gse_id], timestamp = run_timestamp)
-        rl.append(ddsoft)
-        print('beginning idat download...')
-        ddidat = dl_idat(input_list = gsmlist, timestamp = run_timestamp)
-        rl.append(ddidat)
+        try:
+            gsmlist = gsefiltdict[gse_id]
+            print("Detected N = "+str(len(gsmlist))+' GSM IDs...')
+            # check for valid gsm ids here...
+            rl.append(gsmlist)
+        except:
+            print("Error attaining gsmlist from gsequery filt object! "
+                +"Continuing...")
+            rl.append(0)
+        print("Beginning soft file download...")
+        try:
+            ddsoft = dl_soft(gse_list=[gse_id], timestamp = run_timestamp)
+            rl.append(ddsoft)
+        except:
+            print("Error with GSE SOFT file download. Continuing...")
+            rl.append(0)
+        print('bBeginning idat download...')
+        try:
+            ddidat = dl_idat(input_list = gsmlist, timestamp = run_timestamp)
+            rl.append(ddidat)
+        except: 
+            print("Error with dl_idat! Continuing...")
+            rl.append(0)
         print('updating rmdb...')
-        updateobj = update_rmdb(ddidat = ddidat, ddsoft = ddsoft)
-        rl.append(updateobj)
+        try:
+            updateobj = update_rmdb(ddidat = ddidat, ddsoft = ddsoft)
+            rl.append(updateobj)
+        except:
+            print("Error updating the MongoDB! Continuing...")
+            rl.append(0)
         print('Task completed! Returning...')
         return rl
     else:
