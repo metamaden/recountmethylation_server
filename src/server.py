@@ -116,7 +116,7 @@ def firsttime_run(filedir = 'recount-methylation-files',
     gsefiltpath = getlatest_filepath(equery_dest,'gsequery_filt')
     if gsefiltpath and not gsefiltpath == 0:
         gsefiltd = querydict(query = gsefiltpath,splitdelim=' ')
-        gseidlist = list(gsefilt.keys())
+        gseidlist = list(gsefiltd.keys())
         print("GSE id list of len "+str(len(gseidlist))+" found. Returning...")
         return gseidlist
     else:
