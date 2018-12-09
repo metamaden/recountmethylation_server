@@ -52,26 +52,26 @@ def gse_task(gse_id, gsefiltdict, timestamp = gettime_ntp()):
             ddsoft = dl_soft(gse_list=[gse_id], timestamp = run_timestamp)
             rl.append(ddsoft)
         except:
-            print("Error with GSE SOFT file download. Continuing...")
+            print("Error with GSE SOFT file download! Continuing...")
             rl.append(0)
-        print('bBeginning idat download...')
+        print('Beginning idat download...')
         try:
             ddidat = dl_idat(input_list = gsmlist, timestamp = run_timestamp)
             rl.append(ddidat)
         except: 
-            print("Error with dl_idat! Continuing...")
+            print("Error downloading idats! Continuing...")
             rl.append(0)
         print('updating rmdb...')
         try:
             updateobj = update_rmdb(ddidat = ddidat, ddsoft = ddsoft)
             rl.append(updateobj)
         except:
-            print("Error updating the MongoDB! Continuing...")
+            print("Error updating MongoDB! Continuing...")
             rl.append(0)
         print('Task completed! Returning...')
         return rl
     else:
-        print("Error: no gse query filt file provided. Returning...")
+        print("Error: no GSE equery filtered file provided. Returning...")
         return 0 
 
 """ EXAMPLES

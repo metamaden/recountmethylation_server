@@ -126,7 +126,7 @@ def idat_mongo_date(gsm_id,filename,client):
 def dl_idat(input_list, filesdir = 'recount-methylation-files', 
     targetdir = 'idats', temp_dir = 'temp', retries_connection = 3, 
     retries_files = 3, interval_con = .1, interval_file = .01, validate = True,
-    timestamp = str(gettime_ntp())):
+    timestamp = gettime_ntp()):
     """ Download idats, 
         Reads in either list of GSM IDs or ftp addresses
     
@@ -141,6 +141,7 @@ def dl_idat(input_list, filesdir = 'recount-methylation-files',
             * validate: compare most recently downloaded version with previous
                 version of file after download and if new file is same, delete
                 it and make note in dictionary
+            * timestamp : NTP timestamp for versioning of downloaded files
         Returns 
             * Dictionary showing records, dates, and exit statuses of ftp calls
             OR error string over connection issues
@@ -350,7 +351,7 @@ def dl_idat(input_list, filesdir = 'recount-methylation-files',
 def dl_soft(gse_list, filesdir = 'recount-methylation-files', 
     targetdir = 'gse_soft', temp_dir = 'temp', retries_connection = 3, 
     retries_files = 3, interval_con = .1, interval_file = .01, validate = True,
-    timestamp = str(gettime_ntp())):
+    timestamp = gettime_ntp()):
     """ Download idats, 
         Reads in either list of GSM IDs or ftp addresses
     
@@ -365,6 +366,7 @@ def dl_soft(gse_list, filesdir = 'recount-methylation-files',
             * validate: compare most recently downloaded version with previous
                 version of file after download and if new file is same, delete
                 it and make note in dictionary
+            * timestamp : NTP timestamp for versioning of downloaded files
         Returns 
             * Dictionary showing records, dates, and exit statuses of ftp calls
             OR error string over connection issues

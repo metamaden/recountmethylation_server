@@ -196,40 +196,41 @@ def main(files_dir='recount-methylation-files'):
     """
 
 if __name__ == "__main__":
+    """ Recount-methylation sever server.py main
+        Code addresses various contingencies precluding generation of GSE ID 
+        list. Once list can be made, it is used to populate a new Celery queue.
+    """
     from gse_celerytask import gse_task
     import argparse
     from random import shuffle
-    
     gselist = [] # queue input, gse-based
     qstatlist = [] # job status object, also stored at sqlite db
-    
+    # If GSE ID provided, immediately parse it for download
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument("--gseid", type=str, required=False,
         default=None, help='Option to enter valid GSE ID for immediate download.')
     args = parser.parse_args()
-    run_timestamp = str(gettime_ntp()) # pass this result to child functions
-    # handle optional gseid
+    run_timestamp = gettime_ntp() # pass this result to child functions
     if args.gseid:
         gqd = get_queryfilt_dict()
         qstatlist.append(gse_task(gse_id = args.gseid,
                         gsefiltdict = gqd, timestamp = run_timestamp)
                     )
-    # automate gselist generation
+    # If this is a first time or standard run, try generating new GSE ID list
     else:
         files_dir = 'recount-methylation-files'
         if os.path.exists(files_dir):
-            print(files_dir+" found. Running scheduled_run...")
+            print("Directory : "+files_dir+" found. Running scheduled_run...")
             gselist = scheduled_run(run_timestamp=run_timestamp)
         else:    
-            print(files_dir+" not found. Creating dir and running firsttime_run...")
+            print("Directory : "+files_dir+" not found. Creating dir and "
+                +"running firsttime_run...")
             os.makedirs(files_dir)
             gselist = firsttime_run(run_timestamp=run_timestamp)
         if gselist:
             gqd = get_queryfilt_dict()
             shuffle(gselist) # randomize GSE ID order
-            print(gselist)
             for gse in gselist:
-                print(gse)
                 qstatlist.append(gse_task(gse_id = gse,
                     gsefiltdict = gqd, timestamp = run_timestamp)
                 )
