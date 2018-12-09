@@ -21,7 +21,7 @@ app = Celery()
 app.config_from_object('config')
 
 @app.task
-def gse_task(gse_id, gsefiltdict):
+def gse_task(gse_id, gsefiltdict, timestamp = str(gettime_ntp())):
     """ Define a GSE-based task for celery queue
         Arguments
             * gse_id : a single valid GSE id
@@ -30,7 +30,10 @@ def gse_task(gse_id, gsefiltdict):
         Returns
             * rl (list) : list of download dictionaries and rmdb update statuses
     """
+    if not timestamp:
+        run_timestamp = gettime_ntp()
     print('Beginning gse_task for id: '+gse_id)
+    run_timestamp = gettime_ntp()
     rl = []
     if gsefiltdict:
         print('gsefiltdict provided, continuing...')
@@ -40,13 +43,13 @@ def gse_task(gse_id, gsefiltdict):
         # check for valid gsm ids here...
         rl.append(gsmlist)
         print('beginning soft file download...')
-        ddsoft = dl_soft(gse_list=[gse_id])
+        ddsoft = dl_soft(gse_list=[gse_id], timestamp = run_timestamp)
         rl.append(ddsoft)
         print('beginning idat download...')
-        ddidat = dl_idat(input_list=gsmlist)
+        ddidat = dl_idat(input_list = gsmlist, timestamp = run_timestamp)
         rl.append(ddidat)
         print('updating rmdb...')
-        updateobj = update_rmdb(ddidat=ddidat,ddsoft=ddsoft)
+        updateobj = update_rmdb(ddidat = ddidat, ddsoft = ddsoft)
         rl.append(updateobj)
         print('Task completed! Returning...')
         return rl

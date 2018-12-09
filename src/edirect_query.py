@@ -71,7 +71,8 @@ def gse_query_diffs(query1,query2,rstat=False):
     else:
         return difflist
 
-def gsm_query(dest = 'equery', temp = 'temp', validate = True):
+def gsm_query(dest = 'equery', temp = 'temp', validate = True, 
+    timestamp = str(gettime_ntp())):
     """ Get GSM-level query object from Edirect
         Arguments
             * dest : destination directory for query object
@@ -80,7 +81,7 @@ def gsm_query(dest = 'equery', temp = 'temp', validate = True):
         Retursn 
             * err or successful download 
     """
-    timestamp = str(gettime_ntp())
+    # timestamp = str(gettime_ntp())
     os.makedirs(dest, exist_ok=True)
     os.makedirs(temp, exist_ok=True)
     temp_make = tempfile.mkdtemp(dir=temp)
@@ -132,7 +133,8 @@ def gsm_query(dest = 'equery', temp = 'temp', validate = True):
             dldict['gsmquery'].append(True)
     return dldict
 
-def gse_query(dest = 'equery', temp = 'temp', validate = True):
+def gse_query(dest = 'equery', temp = 'temp', validate = True, 
+    timestamp = str(gettime_ntp())):
     """ Get GSE-level query object from Edirect
         Arguments
             * dest : destination directory for query object
@@ -141,7 +143,7 @@ def gse_query(dest = 'equery', temp = 'temp', validate = True):
         Retursn 
             * err or successful download 
     """
-    timestamp = str(gettime_ntp())
+    # timestamp = str(gettime_ntp())
     os.makedirs(dest, exist_ok=True)
     os.makedirs(temp, exist_ok=True)
     temp_make = tempfile.mkdtemp(dir=temp)
@@ -198,7 +200,7 @@ def gse_query(dest = 'equery', temp = 'temp', validate = True):
     return dldict
 
 def gsequery_filter(gsequery='gsequery',gsmquery='gsmquery',target='equery',
-    splitdelim = '\t'):
+    splitdelim = '\t', timestamp = str(gettime_ntp())):
     """ Prepare an edirect query file
         Filter GSE query on GSM query membership
         Arguments
@@ -208,30 +210,31 @@ def gsequery_filter(gsequery='gsequery',gsmquery='gsmquery',target='equery',
         Returns
             * gsequeryfiltered (list): filtered GSE query file
     """
-    timestamp = str(gettime_ntp())
-    gsed = querydict(query = gsequery,splitdelim = splitdelim)
+    # timestamp = str(gettime_ntp())
+    gsed = querydict(query = gsequery,splitdelim = '\t')
     gsmlines = [line.rstrip('\n') for line in open(gsmquery)]
     gsmlist = [] # list of valid gsms with idat suppfiles
     for line in gsmlines:
         gsmlist.append(line.split('\t')[1::][0])
-    gsefiltd = gsed
     gsefiltl = []
-    for gsekey in list(gsefiltd.keys()):
-        ival = gsefiltd[gsekey]
+    for gsekey in list(gsed.keys()):
+        ival = gsed[gsekey]
         # print(gsmkey)
         if len(ival)>0:
             for gsm in ival:
                 if not gsm in gsmlist:
-                    gsefiltd[gsekey].remove(gsm)
-            if len(gsefiltd[gsekey])>0:
-                gsefiltl.append(' '.join([gsekey,' '.join(gsefiltd[gsekey])]))
+                    ival.remove(gsm)
+            if len(gsed[gsekey])>0:
+                gsefiltl.append(' '.join([gsekey,' '.join(ival)]))
     print('writing filt file...')
     if target:
         towrite = ".".join(["gsequery_filt",timestamp])
         with open(os.path.join(target,towrite), 'w') as filtfile:
             for item in gsefiltl:
                 filtfile.write("%s\n" % item)
-    return gsefiltd
+    # to read in the gsequery_filt file:
+    # gsefiltd = querydict(query = 'gsequery_filt.t',splitdelim = ' ')
+    return gsefiltl
 
 """
 

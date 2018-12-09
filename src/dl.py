@@ -71,7 +71,7 @@ def gettime_ntp(addr = 'time.nist.gov'):
     client.sendto(data.encode('utf-8'), (addr, 123))
     data, address = client.recvfrom(1024)
     t = struct.unpack('!12I', data)[10] - TIME1970
-    return t
+    return str(t)
 
 def soft_mongo_date(gse,filename,client):
     """ Get date(s) from mongo soft subcollection
@@ -125,7 +125,8 @@ def idat_mongo_date(gsm_id,filename,client):
 
 def dl_idat(input_list, filesdir = 'recount-methylation-files', 
     targetdir = 'idats', temp_dir = 'temp', retries_connection = 3, 
-    retries_files = 3, interval_con = .1, interval_file = .01, validate = True):
+    retries_files = 3, interval_con = .1, interval_file = .01, validate = True,
+    timestamp = str(gettime_ntp())):
     """ Download idats, 
         Reads in either list of GSM IDs or ftp addresses
     
@@ -144,7 +145,6 @@ def dl_idat(input_list, filesdir = 'recount-methylation-files',
             * Dictionary showing records, dates, and exit statuses of ftp calls
             OR error string over connection issues
     """
-    timestamp = str(gettime_ntp())
     dest_dir = os.path.join(filesdir,targetdir)
     temp_dir = os.path.join(filesdir,temp_dir)
     os.makedirs(dest_dir, exist_ok=True)
@@ -175,6 +175,7 @@ def dl_idat(input_list, filesdir = 'recount-methylation-files',
                 return str(e)
     client = pymongo.MongoClient('localhost', 27017) # mongodb connection
     dldict = {}
+    files_written = []
     for gsm_id in input_list:
         print('Starting GSM: '+gsm_id)
         dldict[gsm_id] = []
@@ -183,7 +184,6 @@ def dl_idat(input_list, filesdir = 'recount-methylation-files',
                 gsm_id[:-3] + 'nnn', gsm_id, 'suppl'
             ]
         id_ftpadd = '/'.join(id_ftptokens[1::])+'/'
-        files_written = []
         filenames = []
         retries_left_files = retries_files
         try:
@@ -349,7 +349,8 @@ def dl_idat(input_list, filesdir = 'recount-methylation-files',
 
 def dl_soft(gse_list, filesdir = 'recount-methylation-files', 
     targetdir = 'gse_soft', temp_dir = 'temp', retries_connection = 3, 
-    retries_files = 3, interval_con = .1, interval_file = .01, validate = True):
+    retries_files = 3, interval_con = .1, interval_file = .01, validate = True,
+    timestamp = str(gettime_ntp())):
     """ Download idats, 
         Reads in either list of GSM IDs or ftp addresses
     
@@ -368,7 +369,6 @@ def dl_soft(gse_list, filesdir = 'recount-methylation-files',
             * Dictionary showing records, dates, and exit statuses of ftp calls
             OR error string over connection issues
     """
-    timestamp = str(gettime_ntp())
     dest_dir = os.path.join(filesdir,targetdir)
     temp_dir = os.path.join(filesdir,temp_dir)
     os.makedirs(dest_dir, exist_ok=True)
