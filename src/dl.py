@@ -483,7 +483,7 @@ def dl_soft(gse_list, filesdir = 'recount-methylation-files',
                             if retries_left_files:
                                 retries_left_files -= 1
                                 print('continuing with file retries left ='
-                                    +retries_left_files)
+                                    +str(retries_left_files))
                                 time.sleep(interval_file)
                                 continue
                             else:
@@ -503,7 +503,7 @@ def dl_soft(gse_list, filesdir = 'recount-methylation-files',
                     if retries_left_files:
                         retries_left_files -= 1
                         print('continuing with file retries left = '
-                            +retries_left_files)
+                            +str(retries_left_files))
                         time.sleep(interval_file)
                         continue
                     else:
@@ -522,7 +522,7 @@ def dl_soft(gse_list, filesdir = 'recount-methylation-files',
                 if retries_left_files:
                     retries_left_connection -= 1
                     print('ftplib error encountered, file retries left = '
-                        +retries_left_files)
+                        +str(retries_left_files))
                     time.sleep(interval_file)
                     continue
                 else:
