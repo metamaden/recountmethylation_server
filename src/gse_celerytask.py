@@ -18,7 +18,7 @@ from update_rmdb import update_rmdb
 """
 
 app = Celery()
-app.config_from_object('config')
+app.config_from_object('celeryconfig')
 
 @app.task
 def gse_task(gse_id, gsefiltdict, timestamp = gettime_ntp()):
