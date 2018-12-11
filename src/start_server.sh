@@ -8,7 +8,8 @@
 # start mongodb
 mongodpath = "./usr/local/bin/mongodb-linux-x86_64-4.0.4/bin/mongod"
 dbpath = "./home/metamaden/data/db"
-$mongodpath --dbpath $dbpath
+cmd = $mongodpath+" --dbpath "+$dbpath
+eval $cmd
 
 # start celery task queue manager
 celery worker -A ./recount-methylation-server/src/gse_celerytask -l INFO
