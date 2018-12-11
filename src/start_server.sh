@@ -12,7 +12,9 @@ cmd=$mongodpath+" --dbpath "+$dbpath
 eval $cmd
 
 # start celery task queue manager
-celery worker -A ./recount-methylation-server/src/gse_celerytask -l INFO
+echo 'export PYTHONPATH=$PYTHONPATH:/recount-methylation-server/src' >> .bashrc
+cat .bashrc 
+celery worker -A gse_celerytask -l INFO
 
 # run server.py
 python3 ./recount-methylation-server/src/server.py
