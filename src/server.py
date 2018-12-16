@@ -54,55 +54,17 @@ import sys
 import os
 sys.path.insert(0, os.path.join("recount-methylation-server","src"))
 import edirect_query
-from dl import gettime_ntp
-from edirect_query import gsm_query, gse_query, querydict, gsequery_filter
-
-def getlatest_filepath(filepath,filestr,embeddedpattern = False):
-    """ Get path the latest version of a file, based on timestamp
-        Arguments
-            * filepath (str) : path to dir to search
-            * filestr (str) : pattern of file to search
-            * embeddedpattern (T/F, bool) : whether filestr pattern is embedded
-                in filename (assumes pattern at start of name otherwise)
-        Returns
-            * latest_file_path (str) : path to latest version of file, OR
-            * 0 : search turned up no files at location
-    """
-    if embeddedpattern:
-        embedpattern = str('*' + filestr + '*')
-        pathstr = str(os.path.join(filepath,embedpattern))
-        filelist = glob.glob(pathstr)
-    else:
-        filelist = glob.glob('.'.join([os.path.join(filepath, filestr), '*']))
-    if filelist:
-        flfilt = []
-        # filter filelist on possible int/valid timestamp
-        for fp in filelist:
-            try:
-                int(os.path.basename(fp).split('.')[1])
-                flfilt.append(fp)
-            except ValueError:
-                break
-        if flfilt and not len(flfilt)==0:
-            if len(flfilt) > 1:
-                # sort on timestamp
-                flfilt.sort(key=lambda x: int(os.path.basename(x).split('.')[1]))
-                latest_file_path = flfilt[-1]
-            else:
-                latest_file_path = flfilt[0]
-            return latest_file_path
-        else:
-            return 0 
-    else:
-        return 0      
+from edirect_query import gsm_query, gse_query, gsequery_filter  
+from serverutilities import gettime_ntp, getlatest_filepath, querydict  
 
 def firsttime_run(filedir = 'recount-methylation-files', 
-    run_timestamp = str(gettime_ntp())):
-    """ On first setup, run new equeries and query filter
+    run_timestamp = gettime_ntp()):
+    """ On first setup, run new equeries and query filter.
         Arguments
-            * filedir (str): dir name for db files 
+            * filedir (str): Dir name for db files. 
+            * run_timestamp (str) : NTP timestamp or function to retrieve it.
         Returns
-            * gseidlist (list): list of valid GSE IDs
+            * gseidlist (list): List of valid GSE IDs.
     """
     equery_dest = os.path.join(filedir,'equery')
     temp = os.path.join(filedir,'temp')
@@ -124,13 +86,14 @@ def firsttime_run(filedir = 'recount-methylation-files',
         return 0
 
 def scheduled_run(eqfilt_path=False, filedir = 'recount-methylation-files', 
-    run_timestamp = str(gettime_ntp())):
+    run_timestamp = gettime_ntp()):
     """ Tasks performed on regular schedule, after first setup
         Arguments
-            * filedir : file to search for filtered equery files
-            * eqfilt_path : path to GSE equery filtered file
+            * eqfilt_path (str) : Filepath to edirect query filter file.
+            * filedir (str) : Root name of files directory.
+            * run_timestamp (str) : NTP timestamp or function to retrieve it.
         Returns
-            * 0 (int) : If error encountered, or
+            * 0 (int) : If error encountered, OR
             * gse_list (list) : list of valid GSE IDs
     """
     eqpath = os.path.join(filedir,'equery')
@@ -172,26 +135,19 @@ def scheduled_run(eqfilt_path=False, filedir = 'recount-methylation-files',
             +"gse query filt file and gse/gsm query files.")
         return 0
 
-def get_queryfilt_dict(filesdir='recount-methylation-files',eqtarget='equery'):
-    """
-    """
-    eqpath = os.path.join('recount-methylation-files','equery')
-    gsefilt_latest = getlatest_filepath(eqpath,'gsequery_filt')
-    if gsefilt_latest and not gsefilt_latest == 0:
-        gsefiltd = querydict(query = gsefilt_latest, splitdelim = ' ')
-        return gsefiltd
-    else:
-        print("Error, no gse filtered file found at location.")
-
-def on_restart():
+def on_restart(dbname, dbpath):
     """ Handling server.py restart, inc. interruptions when processing queue
         Arguments
+            * dbname (str): name of database containing job statuses
+            * dbpath (str): path to search for db containing job statuses
         Returns
+            * gselist (list): filtered list of GSE IDs to repop. job queue.
     """
 
-def main(files_dir='recount-methylation-files'):
+def main(filesdir = 'recount-methylation-files'):
     """ Script to run on call from cl.
         Arguments
+            * files_dir (str) : Root name of directory containing files.
         Returns
     """
 

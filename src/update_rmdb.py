@@ -1,19 +1,25 @@
+#!/usr/bin/env python3
+
 import pymongo
 import datetime
 
 def update_rmdb(ddidat,ddsoft,host='localhost',port=27017):
-    """ Update recount-methylation database with new docs
+    """ Update recount-methylation database compilations with new documents.
         Arguments
-            * ddidat : download dictionary from dl_idats
-            * ddsoft : download dicitonary from dl_soft
+            * ddidat : Download dictionary from dl_idats, as returned by 
+                dl_idats().
+            * ddsoft : Download dicitonary from dl_soft, as returned by 
+                dl_soft(). 
         Returns
-            * statusdict : result list (1 = new doc added, 0 = no doc added) 
+            * statusdict object (dictionary): Result list (1 = new doc added, 
+                0 = no doc added) .
     """
     statusdict = {}
     client = pymongo.MongoClient('localhost', 27017)
     rmdb = client.recount_methylation
     if ddidat:
-        statusdict['ddidat'] = ""
+        lvals = []
+        statusdict['ddidat'] = []
         gsmc = rmdb.gsm
         idatsc = gsmc.idats
         for gsmkey in list(ddidat.keys()):
@@ -27,30 +33,40 @@ def update_rmdb(ddidat,ddsoft,host='localhost',port=27017):
                         "date":lval[4]
                         }
                     idatsc.insert_one(new_idatdoc)
-                    statusdict['ddidat'] = 1
+                    statusdict['ddidat'].append(1)
                 else:
-                    statusdict['ddidat'] = 0
+                    statusdict['ddidat'].append(0)
     if ddsoft:
-        statusdict['ddsoft'] = ""
+        svals = []
+        statusdict['ddsoft'] = []
         gsec = rmdb.gse
         softc = gsec.soft
         for gsekey in list(ddsoft.keys()):
-            lvals = ddsoft[gsekey]
-            if lvals[-1]==True:
-                lsoft = lvals[1]
-                new_softdoc = {"gseid":lval[0],
-                        "ftpaddress":lval[1],
-                        "filepath":lval[2],
-                        "exitstatus":lval[3],
-                        "date":lval[4]
+            svals = ddsoft[gsekey]
+            if svals[-1]==True:
+                ssoft = svals[1]
+                new_softdoc = {"gseid":gsekey,
+                        "ftpaddress":ssoft[1],
+                        "filepath":ssoft[2],
+                        "exitstatus":ssoft[3],
+                        "date":ssoft[4]
                         }
                 softc.insert_one(new_softdoc)
-                statusdict['ddsoft'] = 1
+                statusdict['ddsoft'].append(1)
             else:
-                statusdict['ddsoft'] = 0
+                statusdict['ddsoft'].append(0)
     return statusdict
 
 """
+
+# clear the db
+import pymongo 
+client = pymongo.MongoClient('localhost', 27017)
+rmdb = client.recount_methylation
+list(rmdb.list_collections())
+rmdb.drop_collection('gsm.idats')
+rmdb.drop_collection('gse.soft')
+
 # Sample update
 
 import datetime

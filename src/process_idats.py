@@ -8,7 +8,12 @@ import shutil
 sys.path.insert(0, os.path.join("recount-methylation-server","src"))
 
 def expand_idats(filesdir = 'recount-methylation-files', idatsdir = 'idats'):
-    """ Detect and expand available idat files
+    """ Detect and expand available idat files.
+        Arguments:
+            * filesdir (str) : Root name of directory containing files.
+            * idatsdir (str) : Name of directory containing idat files.
+        Returns:
+            * ridatd object (dictionary)
     """
     idatspath = os.path.join(filesdir,idatsdir)
     idats_fnlist = os.listdir(idatspath)

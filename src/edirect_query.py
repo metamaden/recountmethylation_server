@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import subprocess
 import os
 import socket
@@ -11,36 +13,18 @@ import glob
 import filecmp
 from itertools import chain
 sys.path.insert(0, os.path.join("recount-methylation-server","src"))
-from dl import gettime_ntp
+from serverutilities import gettime_ntp, querydict
 
-def querydict(query, splitdelim = '\t'):
-    """ Process edirect query result into dictionary of GSEs
+def gse_query_diffs(query1,query2,rstat = False):
+    """ Compares two GSE query results, returning query file diffs or boolean.
         Arguments
-            * query (file) : filepath of edirect results 
-            (format: 1 GSE per newline)
+            * query1 (str) : first edirect query, filename
+            * query2 (str) : second edirect query, filename
+            * rstat (True/False, bool.) : whether to return boolean only, 
+                or else return list (default)
         Returns
-            * query (dictionary) : dictionary (keys = GSEs, vals = GSM lists)
-    """
-    querylines = [line.rstrip('\n') for line in open(query)]
-    querylist = []
-    querydict = {}
-    for line in querylines:
-        querylist.append(line.split(splitdelim))
-    for idlist in querylist:
-        gsekey = list(filter(lambda x:'GSE' in x, idlist))[0]
-        gsmlist = list(filter(lambda x:'GSM' in x, idlist))
-        querydict[gsekey] = gsmlist
-    return querydict
-
-def gse_query_diffs(query1,query2,rstat=False):
-    """ Compares two GSE query results, returning diffs or boolean
-        Arguments
-            * query1 : first edirect query, filename
-            * query2 : second edirect query, filename
-            * rstat : whether to return boolean only, else return list
-        Returns
-            * boolean (T/F) or diffs object (list of GSEs with diffs)
-            Boolean is 'True' if query objects are the same, 'False' otherwise
+            * boolean (T/F) or query diffs (list of GSE IDs). Boolean is 'True' 
+                if query objects are the same, 'False' otherwise
     """
     difflist = []
     qd1 = querydict(query1) # eg. for first value: qd1[list(qd1.keys())[0]]
@@ -73,13 +57,14 @@ def gse_query_diffs(query1,query2,rstat=False):
 
 def gsm_query(dest = 'equery', temp = 'temp', validate = True, 
     timestamp = str(gettime_ntp())):
-    """ Get GSM-level query object from Edirect
+    """ Get GSM level query object, from edirect query.
         Arguments
-            * dest : destination directory for query object
-            * temp : temporary dir becfore validation
-            * validate : (T/F) whether to validate the file after download
+            * dest (str) : Destination directory for query object
+            * temp (str) : Temporary directory becfore validation.
+            * validate (True/False, bool.) : whether to validate the file after 
+                ownload.
         Retursn 
-            * err or successful download 
+            * Error (str) or download object (dictionary). 
     """
     # timestamp = str(gettime_ntp())
     os.makedirs(dest, exist_ok=True)
@@ -135,13 +120,14 @@ def gsm_query(dest = 'equery', temp = 'temp', validate = True,
 
 def gse_query(dest = 'equery', temp = 'temp', validate = True, 
     timestamp = str(gettime_ntp())):
-    """ Get GSE-level query object from Edirect
+    """ Get GSE level query object from edirect query.
         Arguments
-            * dest : destination directory for query object
-            * temp : temporary dir becfore validation
-            * validate : (T/F) whether to validate the file after download
+            * dest (str) : Destination directory for query object.
+            * temp  (str) : Temporary dir becfore validation. 
+            * validate (True/False, bool) : Whether to validate the file after 
+                download.
         Retursn 
-            * err or successful download 
+            * Error (str) or download object (dictionary).
     """
     # timestamp = str(gettime_ntp())
     os.makedirs(dest, exist_ok=True)
@@ -201,14 +187,15 @@ def gse_query(dest = 'equery', temp = 'temp', validate = True,
 
 def gsequery_filter(gsequery='gsequery',gsmquery='gsmquery',target='equery',
     splitdelim = '\t', timestamp = str(gettime_ntp())):
-    """ Prepare an edirect query file
-        Filter GSE query on GSM query membership
+    """ Prepare an edirect query file.
+        Filter a GSE query file on its GSM membership. 
         Arguments
-            * gsequery (str): path to GSE query file from edirect.sh
-            * gsmqeury (str): path to GSM query file from edirect.sh
-            * splitdelim (str) : delimiter to split ids in querydict
+            * gsequery (str) : Path to GSE equery file.
+            * gsmqeury (str) : Path to GSM equery file.
+            * splitdelim (str) : Delimiter to split ids in querydict() call.
         Returns
-            * gsequeryfiltered (list): filtered GSE query file
+            * gsequeryfiltered (list): Filtered GSE query object (list), writes
+                filtered query file as side effect.
     """
     # timestamp = str(gettime_ntp())
     gsed = querydict(query = gsequery,splitdelim = '\t')
@@ -236,7 +223,7 @@ def gsequery_filter(gsequery='gsequery',gsmquery='gsmquery',target='equery',
     # gsefiltd = querydict(query = 'gsequery_filt.t',splitdelim = ' ')
     return gsefiltl
 
-"""
+""" Notes and Tutorial
 
 import subprocess
 import os
@@ -259,167 +246,5 @@ gse_query()
 gse_query_diffs(query1='./equery/gse_edirectquery.timestamp2',
     query2='./temp/tmpavadzdzh/gse_edirectquery.sometime',
     rstat=True)
-
-
-#from edirect_query import equery_gse
-#form edirect_query import equery_gsm
-
-dest_dir = 'equery'
-temp_dir = 'temp'
-dest = dest_dir
-temp = temp_dir
-
-os.makedirs(dest, exist_ok=True)
-os.makedirs(temp, exist_ok=True)
-temp_make = tempfile.mkdtemp(dir=temp)
-atexit.register(shutil.rmtree, temp_make)
-
-# dlfilename = ".".join(['gse_edirectquery',timestamp])
-dlfilename = "gsefile"
-
-#---------------
-# pipes testing
-#---------------
-# refs
-# 1. <https://security.openstack.org/guidelines/dg_avoid-shell-true.html>
-
-
-subp_strlist1 = ["esearch","-db","gds","-query",
-    "'GPL13534[ACCN] AND idat[suppFile] AND gse[ETYP]'"
-    ]
-subp_strlist2 = ["efetch","-format","docsum"]
-subp_strlist3 = ["xtract","-pattern","DocumentSummary",
-    "-element","Id Accession",">",
-    os.path.join(temp_make,dlfilename)
-    ]
-
-pipe1 = subprocess.Popen(subp_strlist1, stdout=subprocess.PIPE, shell=False,
-    stderr=subprocess.PIPE
-    )
-pipe2 = subprocess.Popen(subp_strlist2, stdin=pipe1.stdout, 
-    stdout=subprocess.PIPE, shell=False, stderr=subprocess.PIPE
-    )
-pipe3 = subprocess.Popen(subp_strlist3, stdin=pipe2.stdout, 
-    stdout=subprocess.PIPE, shell=False, stderr=subprocess.PIPE
-    )
-pipe1.stdout.close()
-output = pipe3.communicate()[0]
-
-# try 2
-subp_strlist1 = ["esearch","-db","gds","-query",
-    "'GPL13534[ACCN] AND idat[suppFile] AND gse[ETYP]'"
-    ]
-subp_strlist2 = ["efetch","-format","docsum"]
-subp_strlist3 = ["xtract","-pattern","DocumentSummary",
-    "-element","Id Accession",">",
-    os.path.join(temp_make,dlfilename)
-    ]
-args = " | ".join([" ".join(subp_strlist1),
-    " ".join(subp_strlist2),
-    " ".join(subp_strlist3)])
-output=subprocess.check_output(args, shell=True)
-
-
-equery_gse(dest=dest_dir,temp=temp_dir,vlaidate=True)
-equery_gse(dest=dest_dir,temp=temp_dir,vlaidate=True)
-
-#---------
-# validate test
-#---------
-dest = 'equery'
-if validate:
-    gsequery_filewritten = os.path.join(temp_make,dlfilename)
-    gseqeury_old = glob.glob('.'.join([os.path.join(dest, 'gse_edirectquery'), '*',]))
-    if gsequery_old:
-        if len(gsequery_old)>1:
-            gseqeury_old.sort(key=lambda x: int(x.split('.')[1]))
-            gsequery_old_mostrecent = gseqeury_old[-1]
-        else:
-            gsequery_old_mostrecent = gseqeury_old
-        if filecmp.cmp(gsequery_filewritten, gsequery_old_mostrecent):
-            print("Downloaded gse query file same as most recent stored."+
-                " Removing..."
-                )
-            os.remove(gsequery_filewritten)
-            dldict[index][1] = False
-        else:
-            print("Downloaded file is new, moving to dest...")
-            shutil.move(gsequery_filewritten, os.path.join(
-                            dest, os.path.basename(gsequery_filewritten))
-                        )
-            dldict[index][1] = True
-    else:
-        print("Downloaded file is new, moving...")
-        shutil.move(gsequery_filewritten, os.path.join(
-            dest, os.path.basename(gsequery_filewritten))
-            )
-        dldict[index][1] = True
-
-
-
-
-if validate:
-        print("Validating downloaded files...")
-        for gsm_id, file_written, index in files_written:
-            print("file written is "+file_written)
-            gsms = glob.glob('.'.join([
-                        os.path.join(dest_dir, gsm_id), '*', '.'.join(
-                                        file_written.split('.')[2:]
-                                )
-                    ]))
-            gsmstr = "; ".join(str(e) for e in gsms)
-            print("gsms found : "+gsmstr)
-            if gsms:
-                if len(gsms)>1:
-                    gsms.sort(key=lambda x: int(x.split('.')[1]))
-                    most_recent = gsms[-1]
-                else:
-                    most_recent = gsms[0]
-                print('most recent file :'+most_recent)
-                if filecmp.cmp(most_recent, file_written):
-                    print("Downloaded file is same as recent file. Removing...")
-                    os.remove(file_written)
-                    # If filename is false, we found it was the same
-                    dldict[gsm_id][index][1] = False
-                else:
-                    print("Downloaded file is new, moving to dest_dir...")
-                    shutil.move(file_written, os.path.join(
-                            dest_dir, os.path.basename(file_written))
-                        )
-                    dldict[gsm_id][index][1] = True
-            else:
-                print("Downloaded file is new, moving...")
-                shutil.move(file_written, os.path.join(
-                            dest_dir, os.path.basename(file_written))
-                        )
-                dldict[gsm_id][index][1] = True
-
-
-# example from SO
-from subprocess import Popen
-from subprocess import PIPE
-p1 = Popen(["dmesg"], stdout=PIPE)
-p2 = Popen(["grep", "hda"], stdin=p1.stdout, stdout=PIPE)
-p1.stdout.close()  # Allow p1 to receive a SIGPIPE if p2 exits.
-output = p2.communicate()[0]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 """

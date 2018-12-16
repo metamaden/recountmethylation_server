@@ -1,77 +1,20 @@
+#!/usr/bin/env python3
+
 import ftplib
 import datetime
 import os
-import ftplib
-import datetime
-import os
+import sys
 import subprocess
 import glob
 import fnmatch
 import filecmp
 import pymongo
-import socket
-import struct
-import sys
 import time
 import tempfile
-import atexit
 import shutil
-
-def getlatest_filepath(filepath,filestr,embeddedpattern = False):
-    """ Get path the latest version of a file, based on timestamp
-        Arguments
-            * filepath (str) : path to dir to search
-            * filestr (str) : pattern of file to search
-            * embeddedpattern (T/F, bool) : whether filestr pattern is embedded
-                in filename (assumes pattern at start of name otherwise)
-        Returns
-            * latest_file_path (str) : path to latest version of file, OR
-            * 0 : search turned up no files at location
-    """
-    if embeddedpattern:
-        embedpattern = str('*' + filestr + '*')
-        pathstr = str(os.path.join(filepath,embedpattern))
-        filelist = glob.glob(pathstr)
-    else:
-        filelist = glob.glob('.'.join([os.path.join(filepath, filestr), '*']))
-    if filelist:
-        flfilt = []
-        # filter filelist on possible int/valid timestamp
-        for fp in filelist:
-            try:
-                int(os.path.basename(fp).split('.')[1])
-                flfilt.append(fp)
-            except ValueError:
-                break
-        if flfilt and not len(flfilt)==0:
-            if len(flfilt) > 1:
-                # sort on timestamp
-                flfilt.sort(key=lambda x: int(os.path.basename(x).split('.')[1]))
-                latest_file_path = flfilt[-1]
-            else:
-                latest_file_path = flfilt[0]
-            return latest_file_path
-        else:
-            return 0 
-    else:
-        return 0 
-
-def gettime_ntp(addr = 'time.nist.gov'):
-    """ Get NTP Timestamp,
-        code from:
-        <https://stackoverflow.com/questions/39466780/simple-sntp-python-script>
-        Arguments
-            * addr : valid NTP address ('0.uk.pool.ntp.org','time.nist.gov' etc)
-        Returns
-            * timestamp : NTP seconds timestamp of type 'int'
-    """
-    TIME1970 = 2208988800
-    client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    data = '\x1b' + 47 * '\0'
-    client.sendto(data.encode('utf-8'), (addr, 123))
-    data, address = client.recvfrom(1024)
-    t = struct.unpack('!12I', data)[10] - TIME1970
-    return str(t)
+sys.path.insert(0, os.path.join("recount-methylation-server","src"))
+from serverutilities import gettime_ntp, getlatest_filepath
+# import atexit
 
 def soft_mongo_date(gse,filename,client):
     """ Get date(s) from mongo soft subcollection
@@ -345,7 +288,7 @@ def dl_idat(input_list, filesdir = 'recount-methylation-files',
                 dldict[gsm_id][index][2] = os.path.join(
                                 dest_dir, os.path.basename(file_written)
                             )
-    shutil.rmtree(temp_dir_make)
+        shutil.rmtree(temp_dir_make)
     return dldict
 
 def dl_soft(gse_list, filesdir = 'recount-methylation-files', 
@@ -559,5 +502,5 @@ def dl_soft(gse_list, filesdir = 'recount-methylation-files',
                             dest_dir, os.path.basename(new_filepath))
                         )
             continue
-    shutil.rmtree(temp_dir_make)
+        shutil.rmtree(temp_dir_make)
     return dldict
