@@ -115,7 +115,7 @@ def extract_gsm_soft(gse_softdir = 'gse_soft',gsm_softdir = 'gsm_soft',
                     for line in gsm_softlines:
                         gsmfile.write(line)
                     gsmfile.close()
-            else:
+            except:
                 continue
     if validate:
         print(list(newfilesd.keys()))
