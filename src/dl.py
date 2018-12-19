@@ -13,7 +13,7 @@ import time
 import tempfile
 import shutil
 sys.path.insert(0, os.path.join("recount-methylation-server","src"))
-from serverutilities import gettime_ntp, getlatest_filepath
+from utilities import gettime_ntp, getlatest_filepath
 # import atexit
 
 def soft_mongo_date(gse,filename,client):

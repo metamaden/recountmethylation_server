@@ -9,22 +9,23 @@
 #       * broker: messaging program for celery
 #       * celery queue management software for python
 
-# start mongodb
+# 1. Start MongoDB
 conpath="/home/metamaden/usr/local/bin/mongodb-linux-x86_64-4.0.4/bin/mongod"
 dbpath="/home/metamaden/data/db"
 dbconcmd=$conpath" --dbpath "$dbpath
 eval $dbconcmd & # execute as background process
 
-# start broker
-brokerpath="/home/metamaden/usr/local/src/..."
-eval $brokerpath &
+# 2. Start Broker
+# brokerpath="/home/metamaden/usr/local/src/..."
+# eval $brokerpath &
+rabbitmq-server start
 
-# Start celery task queue manager
+# 3. Start celery task queue manager
 cd './recount-methylation-server/src'
 celery worker -A gse_celerytask -l INFO & # execute as background process
 cd -
 
-# Start the server
+# 4. Start Recount Methylation server
 python3 ./recount-methylation-server/src/server.py & # execute as bg process
 
 # Notes and How-To's

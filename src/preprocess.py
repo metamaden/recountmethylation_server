@@ -11,8 +11,8 @@ sys.path.insert(0, os.path.join("recount-methylation-server","src"))
 from process_soft import expand_soft, extract_gsm_soft, gsm_soft2json
 from process_soft import msrap_prepare_json, run_metasrapipeline
 from process_idats import expand_idats
-from serverutilities import gettime_ntp, getlatest_filepath, get_queryfilt_dict
-from serverutilities import querydict
+from utilities import gettime_ntp, getlatest_filepath, get_queryfilt_dict
+from utilities import querydict
 
 """ preprocess.py
     Wrapper functions for preprocessing idats and soft files, and functions to
@@ -177,6 +177,7 @@ def process_gsesoft(filesdir = 'recount-methylation-files',
             if not gsmfn in gsmsoft_currentdirlist
         ]
         print(gsmsoft_difdirlist)
+        # if new files extracted, continue with MetaSRA-pipeline prep/analysis
         if gsmsoft_difdirlist and len(gsmsoft_difdirlist)>0:
             # convert gsm soft to json
             gsm_softlist = gsmsoft_difdirlist

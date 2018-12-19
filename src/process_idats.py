@@ -5,7 +5,7 @@ import sys
 import re
 import gzip
 import shutil
-sys.path.insert(0, os.path.join("recount-methylation-server","src"))
+# sys.path.insert(0, os.path.join("recount-methylation-server","src"))
 
 def expand_idats(filesdir = 'recount-methylation-files', idatsdir = 'idats'):
     """ Detect and expand available idat files.

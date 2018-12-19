@@ -22,3 +22,8 @@ import pymongo
 
 # recount methylation scripts
 
+# clone vital repositories
+# git clone https://github.com/metamaden/MetaSRA-pipeline
+# cd MetaSRA-pipeline
+# git clone https://github.com/metamaden/bktree
+# cd -

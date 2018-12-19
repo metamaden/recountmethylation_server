@@ -55,8 +55,8 @@ import os
 sys.path.insert(0, os.path.join("recount-methylation-server","src"))
 import edirect_query
 from edirect_query import gsm_query, gse_query, gsequery_filter  
-from serverutilities import gettime_ntp, getlatest_filepath, querydict
-from serverutilities import get_queryfilt_dict  
+from utilities import gettime_ntp, getlatest_filepath, querydict
+from utilities import get_queryfilt_dict  
 
 def firsttime_run(filedir = 'recount-methylation-files', 
     run_timestamp = gettime_ntp()):

@@ -8,7 +8,7 @@ import shutil
 import subprocess
 import filecmp
 sys.path.insert(0, os.path.join("recount-methylation-server","src"))
-from serverutilities import gettime_ntp, getlatest_filepath, get_queryfilt_dict
+from utilities import gettime_ntp, getlatest_filepath, get_queryfilt_dict
 
 def expand_soft(gse_softdir = 'gse_soft', rmcompressed = False, 
     files_dir = 'recount-methylation-files'):
@@ -119,38 +119,40 @@ def extract_gsm_soft(gse_softdir = 'gse_soft',gsm_softdir = 'gsm_soft',
                 continue
     if validate:
         print(list(newfilesd.keys()))
-        for gsmfile in list(newfilesd.keys()):
-            gsm_oldfile_path = ""
-            gsm_newfile_path = ""
-            gsm_softfn = newfilesd[gsmfile][0]
-            gsmstr = gsm_softfn.split(".")[1]
-            print("gsmstr : "+gsmstr)
-            gsm_newfile_path = os.path.join(gsmsoft_tempdir, 
-                gsm_softfn
-                )
-            gsm_oldfile_path = getlatest_filepath(filepath = gsmsoft_destpath,
-                filestr = gsmstr, embeddedpattern = True, tslocindex = 0)
-            print("gsm_oldfile_path : "+str(gsm_oldfile_path))
-            print("gsm_newfile_path : "+str(gsm_newfile_path))
-            if gsm_oldfile_path and not gsm_oldfile_path == 0:
-                if filecmp.cmp(gsm_oldfile_path, gsm_newfile_path):
-                    print("Redundant GSM soft file detected, removing...")
-                    os.remove(gsm_newfile_path)
-                    newfilesd[gsmfile].append(False)
-                else:
+        for gse_softfn in list(newfilesd.keys()):
+            gsmfilelist = newfilesd[gse_softfn]
+            for gsmfile in gsmfilelist:
+                gsm_oldfile_path = ""
+                gsm_newfile_path = ""
+                gsm_softfn = gsmfile
+                gsmstr = gsm_softfn.split(".")[1]
+                print("gsmstr : "+gsmstr)
+                gsm_newfile_path = os.path.join(gsmsoft_tempdir, 
+                    gsm_softfn
+                    )
+                gsm_oldfile_path = getlatest_filepath(filepath = gsmsoft_destpath,
+                    filestr = gsmstr, embeddedpattern = True, tslocindex = 0)
+                print("gsm_oldfile_path : "+str(gsm_oldfile_path))
+                print("gsm_newfile_path : "+str(gsm_newfile_path))
+                if gsm_oldfile_path and not gsm_oldfile_path == 0:
+                    if filecmp.cmp(gsm_oldfile_path, gsm_newfile_path):
+                        print("Redundant GSM soft file detected, removing...")
+                        os.remove(gsm_newfile_path)
+                        newfilesd[gsmfile].append(False)
+                    else:
+                        print("New GSM soft file detected, moving from temp...")
+                        shutil.move(gsm_newfile_path, os.path.join(
+                                gsmsoft_destpath, 
+                                os.path.basename(gsm_newfile_path))
+                            )
+                        newfilesd[gsmfile].append(True)
+                else: 
                     print("New GSM soft file detected, moving from temp...")
                     shutil.move(gsm_newfile_path, os.path.join(
-                            gsmsoft_destpath, 
-                            os.path.basename(gsm_newfile_path))
-                        )
+                                gsmsoft_destpath, 
+                                os.path.basename(gsm_newfile_path))
+                            )
                     newfilesd[gsmfile].append(True)
-            else: 
-                print("New GSM soft file detected, moving from temp...")
-                shutil.move(gsm_newfile_path, os.path.join(
-                            gsmsoft_destpath, 
-                            os.path.basename(gsm_newfile_path))
-                        )
-                newfilesd[gsmfile].append(True)
         shutil.rmtree(gsmsoft_tempdir) # remove tempdir if validate true
     # return dict, keys GSE soft files, vals are new GSM soft files
     return newfilesd 

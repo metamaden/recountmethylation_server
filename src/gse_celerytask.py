@@ -15,7 +15,7 @@ from celery import Celery
 import os
 import sys
 sys.path.insert(0, os.path.join("recount-methylation-server","src"))
-from serverutilities import gettime_ntp, get_queryfilt_dict
+from utilities import gettime_ntp, get_queryfilt_dict
 from dl import soft_mongo_date, idat_mongo_date, dl_idat, dl_soft
 from update_rmdb import update_rmdb
 
