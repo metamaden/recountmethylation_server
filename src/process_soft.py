@@ -178,20 +178,20 @@ def gsm_soft2json(gsm_softlist = [], gsm_softdir = 'gsm_soft',
             * rlist object (list) of converted files and statuses, or error, 
                 generates GSM JSON files as a side effect.
     """
+    print(scriptpath)
     gsm_jsonpath = os.path.join(filesdir, gsm_jsondir)
     os.makedirs(gsm_jsonpath, exist_ok = True)
     rjsonlist_current = os.listdir(gsm_jsonpath) # get current json dir contents
     gsm_softpath = os.path.join(filesdir, gsm_softdir)
-    # form list of gsm soft filenames
+    # form list of gsm soft filenames, as gsm
     if len(gsm_softlist)>0:
-        gsm_softfn_list = [os.path.splitext(gsmname)[0] for gsmname 
-            in gsm_softlist
-        ]
+        gsm_softfn_list = gsm_softlist
     else:
-        gsm_fn_list = os.listdir(gsm_softpath)
-        gsm_softfn_list = [os.path.splitext(gsmname)[0] for gsmname 
-            in gsm_fn_list
-        ]
+        gsm_softfn_list = os.listdir(gsm_softpath)
+        #gsm_fn_list = os.listdir(gsm_softpath)
+        #gsm_softfn_list = [os.path.splitext(gsmname)[1] for gsmname 
+        #    in gsm_fn_list
+        #]
     statd = {} # return status dictionary from attempts at json conversion
     for gsm_softfn in gsm_softfn_list:
         # run R script from provided path or present directory
@@ -199,6 +199,7 @@ def gsm_soft2json(gsm_softlist = [], gsm_softdir = 'gsm_soft',
         # and 3. gsm json path
         statd[gsm_softfn] = []
         try:
+            # gsmid = os.splitext(gsm_softfn)[1]
             if scriptpath:
                 cmdlist = ['Rscript', scriptpath, gsm_softfn, gsm_softpath, 
                 gsm_jsonpath
