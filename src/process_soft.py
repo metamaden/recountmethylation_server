@@ -83,6 +83,7 @@ def extract_gsm_soft(gse_softdir = 'gse_soft',gsm_softdir = 'gsm_soft',
     gsmsoft_tempdir = os.path.join(filesdir,temp_dir)
     os.makedirs(gsmsoft_tempdir, exist_ok=True)
     temp_dir_make = tempfile.mkdtemp(dir=temp_dir)
+    print(temp_dir_make)
     # gsm soft dest path
     gsmsoft_destpath = os.path.join(filesdir, gsm_softdir)
     newfilesd = {}
