@@ -140,21 +140,21 @@ def extract_gsm_soft(gse_softdir = 'gse_soft',gsm_softdir = 'gsm_soft',
                     if filecmp.cmp(gsm_oldfile_path, gsm_newfile_path):
                         print("Redundant GSM soft file detected, removing...")
                         os.remove(gsm_newfile_path)
-                        newfilesd[gsmfile].append(False)
+                        newfilesd[gse_softfn].append(False)
                     else:
                         print("New GSM soft file detected, moving from temp...")
                         shutil.move(gsm_newfile_path, os.path.join(
                                 gsmsoft_destpath, 
                                 os.path.basename(gsm_newfile_path))
                             )
-                        newfilesd[gsmfile].append(True)
+                        newfilesd[gse_softfn].append(True)
                 else: 
                     print("New GSM soft file detected, moving from temp...")
                     shutil.move(gsm_newfile_path, os.path.join(
                                 gsmsoft_destpath, 
                                 os.path.basename(gsm_newfile_path))
                             )
-                    newfilesd[gsmfile].append(True)
+                    newfilesd[gse_softfn].append(True)
         shutil.rmtree(temp_dir_make) # remove tempdir if validate true
     # return dict, keys GSE soft files, vals are new GSM soft files
     return newfilesd 
