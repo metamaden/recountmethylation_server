@@ -7,6 +7,7 @@ import gzip
 import shutil
 import subprocess
 import filecmp
+import tempfile
 sys.path.insert(0, os.path.join("recount-methylation-server","src"))
 from utilities import gettime_ntp, getlatest_filepath, get_queryfilt_dict
 
@@ -81,6 +82,7 @@ def extract_gsm_soft(gse_softdir = 'gse_soft',gsm_softdir = 'gsm_soft',
     # temp dir
     gsmsoft_tempdir = os.path.join(filesdir,temp_dir)
     os.makedirs(gsmsoft_tempdir, exist_ok=True)
+    temp_dir_make = tempfile.mkdtemp(dir=temp_dir)
     # gsm soft dest path
     gsmsoft_destpath = os.path.join(filesdir, gsm_softdir)
     newfilesd = {}
@@ -110,7 +112,7 @@ def extract_gsm_soft(gse_softdir = 'gse_soft',gsm_softdir = 'gsm_soft',
                     'soft'])
                 newfilesd[gse_softfile].append(gsm_softfn)
                 # first write new files to temp dir
-                gsm_newfile_path = os.path.join(gsmsoft_tempdir, gsm_softfn)
+                gsm_newfile_path = os.path.join(temp_dir_make, gsm_softfn)
                 with open(gsm_newfile_path,"w+") as gsmfile:
                     for line in gsm_softlines:
                         gsmfile.write(line)
@@ -127,7 +129,7 @@ def extract_gsm_soft(gse_softdir = 'gse_soft',gsm_softdir = 'gsm_soft',
                 gsm_softfn = gsmfile
                 gsmstr = gsm_softfn.split(".")[1]
                 print("gsmstr : "+gsmstr)
-                gsm_newfile_path = os.path.join(gsmsoft_tempdir, 
+                gsm_newfile_path = os.path.join(temp_dir_make, 
                     gsm_softfn
                     )
                 gsm_oldfile_path = getlatest_filepath(filepath = gsmsoft_destpath,
@@ -153,7 +155,7 @@ def extract_gsm_soft(gse_softdir = 'gse_soft',gsm_softdir = 'gsm_soft',
                                 os.path.basename(gsm_newfile_path))
                             )
                     newfilesd[gsmfile].append(True)
-        shutil.rmtree(gsmsoft_tempdir) # remove tempdir if validate true
+        shutil.rmtree(temp_dir_make) # remove tempdir if validate true
     # return dict, keys GSE soft files, vals are new GSM soft files
     return newfilesd 
 
