@@ -259,7 +259,7 @@ def msrap_prepare_json(gsm_json_filelist, gsm_jsondir = 'gsm_json',
 def run_metasrapipeline(json_flist = [], gsm_jsondir = 'gsm_json',
     filesdir = 'recount-methylation-files', msrap_fn = 'msrapout', 
     msrap_destdir = 'gsm_msrap_outfiles', msrap_dir = '.',
-    timestamp = gettime_ntp()):
+    timestamp = gettime_ntp(), gsmsoftindex = 1, gsmsoftindexdenom = 5):
     """ Run MetaSRA-pipeline on available GSM JSON files.
         Arguments
             * json_flist (list) : List of JSON filename(s) to process. If not 
@@ -268,6 +268,7 @@ def run_metasrapipeline(json_flist = [], gsm_jsondir = 'gsm_json',
             * msrap_fn (str): Stem name of new files written.
             * msrap_destdir (str): Destination directory of final mapped output.
             * msrap_path (str): Path to MetaSRA-pipeline app, defaults to pwd
+            * gsmsoftindex (int, 1-5) : index of gsmsoft files list to start.
         Returns
             * msrap_statlist (list), Int (1) or error: Whether MetaSRA-pipeline 
                 uccessfully ran, generating a new MetaSRA file as side effect. 
@@ -283,7 +284,9 @@ def run_metasrapipeline(json_flist = [], gsm_jsondir = 'gsm_json',
     else:
         gsm_json_fn_list = os.listdir(gsm_jsonpath)
         rjson = re.compile(".*json$")
-        gsm_json_fn_list = list(filter(rjson.match, gsm_json_fn_list)) 
+        gsmfnpre = list(filter(rjson.match, gsm_json_fn_list))
+        fnstartindex = round((len(gsmfnpre)/gsmsoftindexdenom)*gsmsoftindex)
+        gsm_json_fn_list = gsmfnpre[fnstartindex::]
     # path to write output files to
     msrap_destpath = os.path.join(filesdir, msrap_destdir)
     os.makedirs(msrap_destpath, exist_ok=True)
