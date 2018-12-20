@@ -208,7 +208,7 @@ def compile_rsheet(eqfiltd = get_queryfilt_dict(), sheetsdir = 'sheetfiles',
     sheetfn_ext = 'rsheet',msrapdir = 'gsm_msrap_outfiles',
     msrapfn_ext = '.soft', idatsfn_ext = 'idat',
     idatsdir = 'idats', filesdir = 'recount-methylation-files',
-    timestamp = gettime_ntp()):
+    timestamp = gettime_ntp(), msrapfn = 'msrapout'):
     """ Knits poised file data together into a sheet to be read into R using 
         minfi.
         Steps taken include: 
@@ -228,10 +228,11 @@ def compile_rsheet(eqfiltd = get_queryfilt_dict(), sheetsdir = 'sheetfiles',
             * idatsdir (str) : Name of directory containing GSM idat files.
             * filesdir (str) : Root name of directory containing database files.
             * timestamp (str) : NTP timestamp for file versioning.
+            * msrapfn (str) : File name stem for MetaSRA-pipeline files
         Returns:
             * null, produces sheet files as a side effect.
     """
-    rxmsrap = re.compile(".*soft$") # expanded soft file filter
+    rxmsrap = re.compile(".*"+msrapfn+"$") # expanded msrap out file filter
     rxidat = re.compile(".*idat$") # expanded idat file filter
     msrap_path = os.path.join(filesdir, msrapdir)
     msrap_fnlist = os.listdir(msrap_path)
