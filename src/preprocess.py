@@ -204,11 +204,11 @@ def process_gsesoft(filesdir = 'recount-methylation-files',
                     run_metasrapipeline(json_flist = gsm_json_fnlist)
     return 
     
-def compile_rsheet(eqfiltd = get_queryfilt_dict(), sheetsdir = 'sheetfiles',
-    sheetfn_ext = 'rsheet',msrapdir = 'gsm_msrap_outfiles',
-    msrapfn_ext = '.soft', idatsfn_ext = 'idat',
-    idatsdir = 'idats', filesdir = 'recount-methylation-files',
-    timestamp = gettime_ntp(), msrapfn = 'msrapout'):
+def compile_rsheet(eqfiltd=get_queryfilt_dict(), sheetsdir='sheetfiles',
+    sheetfn_ext='rsheet', msrapdir='gsm_msrap_outfiles',
+    msrapfn_ext='msrapout', idatsfn_ext='idat',
+    idatsdir='idats', filesdir='recount-methylation-files',
+    timestamp=gettime_ntp(), msrapfn='msrapout'):
     """ Knits poised file data together into a sheet to be read into R using 
         minfi.
         Steps taken include: 
@@ -232,138 +232,111 @@ def compile_rsheet(eqfiltd = get_queryfilt_dict(), sheetsdir = 'sheetfiles',
         Returns:
             * null, produces sheet files as a side effect.
     """
-    rxmsrap = re.compile(".*"+msrapfn+"$") # expanded msrap out file filter
-    rxidat = re.compile(".*idat$") # expanded idat file filter
+    # form the sheet path and make dir as needed
+    sheetspath = os.path.join(filesdir, sheetsdir)
+    os.makedirs(sheetspath, exist_ok = True)
+    sheets_fpath = os.path.join(sheetspath,
+        ".".join([timestamp, sheetfn_ext])
+        )
+    # form msrap and idat paths and get filenames
     msrap_path = os.path.join(filesdir, msrapdir)
-    msrap_fnlist = os.listdir(msrap_path)
+    rxmsrap = re.compile(".*"+msrapfn_ext+"$")
+    msrap_fnlist = list(filter(rxmsrap.match, os.listdir(msrap_path)))
+    print("msrap_fnlist : "+str(msrap_fnlist))
+    # idats fn
     idats_path = os.path.join(filesdir, idatsdir)
-    idats_fnlist = os.listdir(idats_path)
-    msrap_fnlist = list(filter(rxmsrap.match, msrap_fnlist))
-    idats_fnlist = list(filter(rxidat.match, idats_fnlist))
-    # extract gsm id from arbitrary filename position
-    rxgsmall = re.compile(".*GSM.*")
-    gsmid_idatfn = [str(list(filter(rxgsmall.match,fn.split('.')))) 
-        for fn in idats_fnlist
-        ] 
-    gsmid_msrapfn = [str(list(filter(rxgsmall.match,fn.split('.')))) 
-        for fn in msrap_fnlist
-        ] 
-    # get the final validated gsm ids
-    gsmvalid = []
-    rxgrn = re.compile(".*Grn.idat$")
-    rxred = re.compile(".*Red.idat$")
-    for gsmid in gsmid_idatfn:
-        print(gsmid)
-        # check that valid grn and red channel files exist
-        # check that gsm has available mapped metadata
-        rxgsm = re.compile("".join([".*",gsmid,".*"]))
-        lgsmid_idat = list(filter(rxgsm.match, idats_fnlist))
-        lgsmid_msrap = list(filter(rxgsm.match, msrap_fnlist))
-        # add filter on latest file versions
-        lgrn = list(filter(rxgrn.match, lgsmid_idat))
-        lred = list(filter(rxred.match, lgsmid_idat))
-        if len(lgrn) == 1 and len(lred) == 1 and len(lgsmid_msrap) == 1:
-            gsmvalid.append(gsmid)
-    if gsmvalid:
-        # form the rsheets with valid gsm ids
+    rxidat = re.compile(".*"+idatsfn_ext+"$")
+    idats_fnlist = list(filter(rxidat.match, os.listdir(idats_path)))
+    # extract gsm ids
+    rxgsm = re.compile(".*GSM[0-9]")
+    idats_splitlist = [idatfn.split(".")[0]
+        for idatfn in idats_fnlist
+        if len(idatfn.split("."))>1
+    ]
+    idats_gsmlist_filt = list(set(filter(rxgsm.match,idats_splitlist))) # unique gsm ids
+    msrap_splitlist = [msrapfn.split(".")[1]
+        for msrapfn in msrap_fnlist
+        if len(msrapfn.split("."))>1
+    ]
+    msrap_gsmlist_filt = list(set(filter(rxgsm.match,msrap_splitlist))) # unique gsm ids
+    print("idats_gsmlist_filt : "+str(idats_gsmlist_filt))
+    print("msrap_gsmlist_filt : "+str(msrap_gsmlist_filt))
+    gsmvalid = [gsmid for gsmid in msrap_gsmlist_filt if gsmid in idats_gsmlist_filt]
+    if len(gsmvalid)>0:
+        rxgrn = re.compile(".*Grn.idat$")
+        rxred = re.compile(".*Red.idat$")
         lsheet = [] # list object to write rsheet, one row per gsmid
-        lsheet_idats = [] # list obj, one row per idat chan
         # append colnames
         lsheet.append(" ".join(["gsmid",
             "gseid",
             "idats_fn",
-            "metadata_fn",
-            "msrap_metadata_flatjson"]))
-        lsheet_idats.append(" ".join([lsheet[0],
-            "idat_fpaths",
-            "Sentrix_Position",
-            "Sentrix_ID"]
-            )
-        )
+            "msrapmd_fn",
+            "msrapmd_flatjson",
+            "SENTRIX_ID",
+            "ARRAY_ID",
+            "Basename"]))
         lsheet[0] = lsheet[0]+"\n"
-        lsheet_idats[0] = lsheet_idats[0]+"\n"
         for gsmid in gsmvalid:
-            lgsm = ""
-            rxgsm = re.compile("".join([".*",gsmid,".*"]))
-            lgsmid_idat = list(filter(rxgsm.match, gsmid_idatfn))
-            lgsmid_idat_fn = list(filter(rxgsm.match, idats_fnlist))
-            lgsmid_msrap = list(filter(rxgsm.match, gsmid_msrapfn))[0]
-            lgsmid_msrap_fn = list(filter(rxgsm.match, msrap_fnlist))[0]
-            print("lgsmid_idat : ",lgsmid_idat)
-            print("lgsmid_idat_fn : ",lgsmid_idat_fn)
-            print("lgsmid_msrap : ",lgsmid_msrap)
-            print("lgsmid_msrap_fn : ",lgsmid_msrap_fn)
-            # extract the gse id from eqfiltd
-            gseid = list(key for key in eqfiltd.keys() 
-                if gsmid in eqfiltd[key]
-                )[0]
-            # grab the flattened metadata
-            gsm_msrap_filepath = os.path.join(msrap_path,lgsmid_msrap_fn)
-            with open(gsm_msrap_filepath) as f:
-                gsm_metadata_dict = json.load(f)
-            gsm_metadata_dict = gsm_metadata_dict[0] # weird dictionary
-            dd = gsm_metadata_dict
-            grows = []
-            for key in list(dd.keys()):
-                kval = dd[key]
-                if type(kval) is list:
-                    grows.append(";".join(kval))
-                else:
-                    grows.append(":".join([str(key),str(dd[key])]))
-            gsm_mdat = "'"+";".join(grows)+"'"
-            # one entry per gsm
-            lgsm = " ".join([gsmid, # gsm id
-                gseid, # gse id
-                ";".join(lgsmid_idat_fn), # idat filenames
-                lgsmid_msrap_fn, # metadata filename
-                gsm_mdat # flattened json file
-            ])
-            print("lgsm : ",lgsm)
-            # one entry per idat channel file
-            print("grnmatch : ",str(list(filter(rxgrn.match, lgsmid_idat_fn))[0]))
-            print("redmatch : ",str(list(filter(rxred.match, lgsmid_idat_fn))[0]))
-            idatgrnfn = str(list(filter(rxgrn.match, lgsmid_idat_fn))[0])
-            idatgrn_idatfn = idatgrnfn.split(".")[-2] # get the array full name
-            idatgrn_pos = idatgrn_idatfn.split("_")[-2] # sentrix id
-            idatgrn_id = idatgrn_idatfn.split("_")[-3] # array id
-            idatredfn = str(list(filter(rxred.match, lgsmid_idat_fn))[0])
-            idatred_idatfn = idatredfn.split(".")[-2] # get the array full name
-            idatred_pos = idatred_idatfn.split("_")[-2] # sentrix id
-            idatred_id = idatred_idatfn.split("_")[-3] # array id
-            lgsm_grn = " ".join([lgsm, 
-                os.path.join(idats_path, idatgrnfn),
-                idatgrn_pos,
-                idatgrn_id
-                ]
-            )
-            lgsm_red = " ".join([lgsm, 
-                os.path.join(idats_path, idatredfn),
-                idatred_pos,
-                idatred_id
-                ]
-            )
-            lsheet.append(lgsm+"\n")
-            lsheet_idats.append(lgsm_grn+"\n")
-            lsheet_idats.append(lgsm_red+"\n")
-        # write the final sheet files
-        sheetspath = os.path.join(filesdir, sheetsdir)
-        sheets_fpath = os.path.join(sheetspath,
-            ".".join([timestamp, sheetfn_ext])
-            )
-        sheets_fidatpath = os.path.join(sheetspath,
-            ".".join([timestamp, sheetfn_ext, "idats"])
-            )
-        os.makedirs(sheetspath, exist_ok = True)
-        with open(sheets_fpath, 'w') as fsheet:
-            for item in lsheet:
-                fsheet.write(item)
-        with open(sheets_fidatpath, 'w') as fsheet:
-            for item in lsheet_idats:
-                fsheet.write(item)
+            # compile the file info for this gsm
+            rxgsmi = re.compile(".*"+gsmid+".*")
+            gsmi_idats = list(filter(rxgsmi.match,idats_fnlist))
+            gsmi_red_idats = list(filter(rxred.match,gsmi_idats))
+            gsmi_grn_idats = list(filter(rxgrn.match,gsmi_idats))
+            # get the latest file versions
+            gsmi_red_pattern = gsmi_red_idats[0].split(".")[2]
+            gsmi_grn_pattern = gsmi_grn_idats[0].split(".")[2]
+            gsmi_red_latest = getlatest_filepath(idats_path,gsmi_red_pattern,embeddedpattern=True)
+            gsmi_grn_latest = getlatest_filepath(idats_path,gsmi_grn_pattern,embeddedpattern=True)
+            # get the latest msrap file
+            gsmi_msrap_latest = getlatest_filepath(msrap_path,gsmid,embeddedpattern=True)
+            print(gsmi_msrap_latest)
+            if (gsmi_red_latest and not gsmi_red_latest == 0 and gsmi_grn_latest 
+                and not gsmi_grn_latest == 0 and gsmi_msrap_latest 
+                and not gsmi_msrap_latest == 0):    
+                # form the rsheets with valid gsm ids
+                with open(gsmi_msrap_latest, 'r') as msrapmd:
+                    gsmi_metadata_dict = json.load(msrapmd)
+                gsmi_md = gsmi_metadata_dict[0] # weird dictionary
+                grows = []
+                for key in list(gsmi_md.keys()):
+                    kval = gsmi_md[key]
+                    if type(kval) is list:
+                        grows.append(";".join(kval))
+                    else:
+                        grows.append(":".join([str(key),str(gsmi_md[key])]))
+                gsmi_mdvar = "'"+";".join(grows)+"'"
+                # grab the gse id for this gsm
+                gseid = str([gsek for gsek in list(eqfiltd.keys()) 
+                            if gsmid in eqfiltd[gsek]
+                            ][0]
+                        )
+                # make the gsm arrays path Basename for minfi
+                gsmi_bn = "_".join(gsmi_red_latest.split("_")[0:3])
+                # one entry per gsm
+                lgsmi = " ".join([gsmid, # gsm id
+                    gseid, # gse id
+                    ";".join([os.path.basename(gsmi_red_latest),
+                        os.path.basename(gsmi_grn_latest)
+                        ]
+                    ), # idat filenames
+                    os.path.basename(gsmi_msrap_latest), # metadata filename
+                    gsmi_mdvar, # flattened json file
+                    os.path.basename(gsmi_red_latest).split("_")[-2], # sentrix id
+                    os.path.basename(gsmi_red_latest).split("_")[-3], # array id
+                    gsmi_bn # minfi path Basename, for arrays
+                ])
+                lgsmi = lgsmi+"\n"
+                lsheet.append(lgsmi)
     else:
         print("No valid GSM IDs detected. Check idats and MetaSRA-pipeline GSM "
             +"files directories.")
-        return
+        return 0
+    # write the final sheet files
+    with open(sheets_fpath,'w') as fsheet:
+        for item in lsheet:
+            fsheet.write(item)
+    
+    return lsheet     
 
 if __name__ == "__main__":
     idir = os.path.join('recount-methylation-files','idats')
@@ -372,29 +345,3 @@ if __name__ == "__main__":
         softdir = sdir)
     process_gsesoft() # processes all soft files
     gse_soft_records = pfd['soft'] # select valid soft files
-
-""" Notes and Tutorial
-
-import pymongo
-
-client = pymongo.MongoClient('localhost', 27017)
-cidats = client.recount_methylation.gsm.idats
-csoft = client.recount_methylation.gse.soft
-softlist = list(client.recount_methylation.gse.soft.find())
-softlist = [record for record in softlist if 'gseid' in record.keys()]
-gseindex = set([record['gseid'] for record in softlist])
-
-#
-
-import sys
-import os
-sys.path.insert(0, os.path.join("recount-methylation-server","src"))
-import preprocess
-
-preprocess.process_gsesoft()
-
-process_idats.expand_idats()
-preprocess.compile_rsheet()
-
-
-"""
