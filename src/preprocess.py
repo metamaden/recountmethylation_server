@@ -240,9 +240,14 @@ def compile_rsheet(eqfiltd = get_queryfilt_dict(), sheetsdir = 'sheetfiles',
     idats_fnlist = os.listdir(idats_path)
     msrap_fnlist = list(filter(rxmsrap.match, msrap_fnlist))
     idats_fnlist = list(filter(rxidat.match, idats_fnlist))
-    # extract gsm id
-    gsmid_idatfn = [fn.split('.')[0] for fn in idats_fnlist] 
-    gsmid_msrapfn = [fn.split('.')[1] for fn in msrap_fnlist] 
+    # extract gsm id from arbitrary filename position
+    rxgsmall = re.compile(".*GSM.*")
+    gsmid_idatfn = [str(list(filter(rxgsmall.match,fn.split('.')))) 
+        for fn in idats_fnlist
+        ] 
+    gsmid_msrapfn = [str(list(filter(rxgsmall.match,fn.split('.')))) 
+        for fn in msrap_fnlist
+        ] 
     # get the final validated gsm ids
     gsmvalid = []
     rxgrn = re.compile(".*Grn.idat$")
@@ -254,6 +259,7 @@ def compile_rsheet(eqfiltd = get_queryfilt_dict(), sheetsdir = 'sheetfiles',
         rxgsm = re.compile("".join([".*",gsmid,".*"]))
         lgsmid_idat = list(filter(rxgsm.match, idats_fnlist))
         lgsmid_msrap = list(filter(rxgsm.match, msrap_fnlist))
+        # add filter on latest file versions
         lgrn = list(filter(rxgrn.match, lgsmid_idat))
         lred = list(filter(rxred.match, lgsmid_idat))
         if len(lgrn) == 1 and len(lred) == 1 and len(lgsmid_msrap) == 1:
