@@ -40,25 +40,27 @@ def gse_task(gse_id, gsefiltdict = get_queryfilt_dict(), timestamp = gettime_ntp
         run_timestamp = timestamp
     print('Beginning GSE task, id: '+gse_id)
     rl = []
+    rl.append(gse_id)
     if gsefiltdict:
         print('File gsefiltdict provided, continuing...')
         gsmlist = gsefiltdict[gse_id]
         print("Detected N = "+str(len(gsmlist))+' GSM IDs...')
-        rl.append(gsmlist)
+        rl.append(1)
         print("Beginning soft file download...")
         ddsoft = dl_soft(gse_list=[gse_id], timestamp = run_timestamp)
-        rl.append(ddsoft)
+        rl.append(1)
         print('Beginning idat download...')
         ddidat = dl_idat(input_list = gsmlist, timestamp = run_timestamp)
-        rl.append(ddidat)
+        rl.append(1)
         print('updating rmdb...')
         updateobj = update_rmdb(ddidat = ddidat, ddsoft = ddsoft)
-        rl.append(updateobj)
+        rl.append(1)
         print('Task completed! Returning...')
         return rl
     else:
         print("Error: no gse query filt file provided. Returning...")
-        return 0 
+        rl.append(0)
+        return rl
 
 """ Notes and Tutorial
 

@@ -203,6 +203,18 @@ def process_gsesoft(filesdir = 'recount-methylation-files',
                 if run_msrap_opt:
                     run_metasrapipeline(json_flist = gsm_json_fnlist)
     return 
+
+def gse_soft2msrap(filesdir='recount-methylation-files',gsmsoftdir='gsm_soft',
+    gsesoftdir='gse_soft'):
+    """ Expand and validate GSM soft data, and run on MetaSRA-pipeline
+    """
+
+def gsm_soft2msrap_scan(filesdir='recount-methylation-files',gsmsoftdir='gsm_soft',
+    gsesoftdir='gse_soft'):
+    """ Scan gsm_soft for unprocessed samples, and run on MetaSRA-pipeline 
+    """
+
+
     
 def compile_rsheet(eqfiltd=get_queryfilt_dict(), sheetsdir='sheetfiles',
     sheetfn_ext='rsheet', msrapdir='gsm_msrap_outfiles',

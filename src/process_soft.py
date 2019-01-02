@@ -259,7 +259,8 @@ def msrap_prepare_json(gsm_json_filelist, gsm_jsondir = 'gsm_json',
 def run_metasrapipeline(json_flist = [], gsm_jsondir = 'gsm_json',
     filesdir = 'recount-methylation-files', msrap_fn = 'msrapout', 
     msrap_destdir = 'gsm_msrap_outfiles', msrap_dir = '.',
-    timestamp = gettime_ntp(), gsmsoftindex = 1, gsmsoftindexdenom = 5):
+    timestamp = gettime_ntp(), gsmsoftindex = 1, gsmsoftindexdenom = 5,
+    deployscreens = False):
     """ Run MetaSRA-pipeline on available GSM JSON files.
         Arguments
             * json_flist (list) : List of JSON filename(s) to process. If not 
