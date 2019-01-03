@@ -327,7 +327,7 @@ def run_metasrapipeline(json_flist = [], gsm_jsondir = 'gsm_json',
             msrap_statlist.append(e)
     return msrap_statlist
 
-def msrap_screens(json_flist=[], nscreensi=10, srcdir='src', 
+def msrap_screens(json_flist=[], nscreensi=50, srcdir='src', 
     filesdir='recount-methylation-files', gsmjsondir='gsm_json',
     gsmsoftdir='gsm_soft', serverfilesdir='recount-methylation-server', 
     psoftfn='process_soft.py', gsmmsrapoutdir='gsm_msrap_outfiles',
@@ -336,15 +336,14 @@ def msrap_screens(json_flist=[], nscreensi=10, srcdir='src',
         Only process GSMs for which no MetaSRA-pipeline outfiles already exist.
         Notes:
             * Deployed screens should automatically quit once process is finished
-            * Arg 'nscreensi' relates to indexing on files list, actual count of
-                screens deployed may equal nscreensi+1.
+            * Arg 'nscreensi' is number of samples to process, per screen. The
+                corresponding number of screens launched depends on the files 
+                list processed.
         Arguments:
             json_flist (list) : List of GSM JSON filenames to process. If not 
                 provided, function automatically detects any new GSM JSON files
                 without available MetaSRA-pipeline outfiles.
-            nscreensi (int) : Number of screens to deploy. This informs the 
-                indices of the data, and list of GSM ID lists processed to 
-                MetaSRA-pipeline across multiple screens.
+            nscreensi (int) : Number of samples to process per screen deployed.
             srcdir (str) : Source files (e.g. scripts) directory name.
             filesdir (str) : Recount methylation files based directory name.
             gsmjsondir (str) : Files directory name containing GSM JSON files.
