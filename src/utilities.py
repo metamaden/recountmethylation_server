@@ -41,6 +41,7 @@ def getlatest_filepath(filepath, filestr, embeddedpattern=False, tslocindex=1,
             * latest_file_path (str) or status (0, int) : Path to latest version 
                 of file, or else 0 if search turned up no files at location
     """
+    # print("start getlatest")
     if embeddedpattern:
         embedpattern = str('*' + filestr + '*')
         pathstr = str(os.path.join(filepath, embedpattern))
@@ -70,10 +71,13 @@ def getlatest_filepath(filepath, filestr, embeddedpattern=False, tslocindex=1,
                 ]
             else:
                 lfr = [flfilt[0]]
+            # print("getlatest end")
             if returntype=='returnstr':
                 return str(lfr)
             if returntype=='returnlist':
                 return lfr
+            else:
+                return None
         else:
             return None
     else:

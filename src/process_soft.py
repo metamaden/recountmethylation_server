@@ -381,7 +381,7 @@ def run_metasrapipeline(json_flist = [], gsm_jsondir = 'gsm_json',
             msrap_statlist.append(e)
     return msrap_statlist
 
-def msrap_screens(json_flist=[], nscreensi=50, srcdir='src', 
+def msrap_screens(json_flist=[], nscreensi=50, nmaxscreens=20, srcdir='src', 
     filesdir='recount-methylation-files', gsmjsondir='gsm_json',
     gsmsoftdir='gsm_soft', serverfilesdir='recount-methylation-server', 
     psoftfn='process_soft.py', gsmmsrapoutdir='gsm_msrap_outfiles',
@@ -393,11 +393,16 @@ def msrap_screens(json_flist=[], nscreensi=50, srcdir='src',
             * Arg 'nscreensi' is number of samples to process, per screen. The
                 corresponding number of screens launched depends on the files 
                 list processed.
+            * Arg 'nmaxscreens' should be informed by the memory resources of 
+                the individual system, to avoid resource overuse and diminishing
+                compute spped (e.g. for slower systems a lower total nmaxscreens 
+                should be used).
         Arguments:
             json_flist (list) : List of GSM JSON filenames to process. If not 
                 provided, function automatically detects any new GSM JSON files
                 without available MetaSRA-pipeline outfiles.
             nscreensi (int) : Number of samples to process per screen deployed.
+            nmaxscreens (int) : Limit to total screen session deployed. 
             srcdir (str) : Source files (e.g. scripts) directory name.
             filesdir (str) : Recount methylation files based directory name.
             gsmjsondir (str) : Files directory name containing GSM JSON files.
@@ -409,75 +414,54 @@ def msrap_screens(json_flist=[], nscreensi=50, srcdir='src',
             (Null) Generates >=1 screens for preprocessing files list(s), as a 
                 side effect.
     """
-    # path to preprocess soft script
+    # define filepaths
     psoftpath = os.path.join(serverfilesdir, srcdir, psoftfn)
-    # path to gsm soft files
     gsmsoftpath = os.path.join(filesdir, gsmsoftdir)
-    # path to gsm json files
     gsmjsonpath = os.path.join(filesdir, gsmjsondir)
-    # path to gsm msrap outfiles
     gsmmsrapoutpath = os.path.join(filesdir, gsmmsrapoutdir)
     # define the file patterns for filtering
     rjson = re.compile(jsonfnpattern)
     rmsrapout = re.compile(msrapoutfnpattern)
-    # code to form list of filelists for processing
-    # returns fl fn list for further processing
+    # generate fl list of valid json files (haven't been processed yet)
     fl = []
     if json_flist and len(json_flist>0):
         # filter on valid json filenames
         jsonfnlist = list(filter(rjson.match, json_flist)) 
         # extract gsm ids from json files list
         jsongsmlist = [x.split('.')[1] for x in jsonfnlist]
-        # grab all existant msrapout files
-        msrapoutfnlist = os.listdir(gsmmsrapoutpath) 
-        # filter on valid msrapout filenames
-        msrapoutfnlist = list(filter(rmsrapout.match, msrapoutfnlist))
-        # extract gsm ids from filtered msrap outfiles list
-        msrapgsmlist = [x.split('.')[2] for x in msrapoutfnlist]
-        # grab valid gsms not in msrapoutfiles
-        gsmprocess = [g for g in jsongsmlist 
-            if g[0:3]=='GSM' and
-            not g in msrapgsmlist
-            ]
-        # grab json filenames from json dir for gsm ids in process list
-        fl = []
-        for g in gsmprocess:
-            gjsonfn = os.path.basename(getlatest_filepath(filepath=gsmjsonpath,
-                    filestr=g, embeddedpattern=True, tslocindex = 0)
-                )
-            fl.append(gjsonfn)
     else:
-        # grab all gsm json filenames
+        # all gsm json filenames
         json_flist = os.listdir(gsmjsonpath)
-        # filter on valid json filenames
+        # filter valid json filenames
         jsonfnlist = list(filter(rjson.match, json_flist)) 
         # extract gsm ids from json files list
         jsongsmlist = [x.split('.')[1] for x in jsonfnlist]
-        # grab all existant msrapout files
-        msrapoutfnlist = os.listdir(gsmmsrapoutpath) 
-        # filter on valid msrapout filenames
-        msrapoutfnlist = list(filter(rmsrapout.match, msrapoutfnlist))
-        # extract gsm ids from filtered msrap outfiles list
-        msrapgsmlist = [x.split('.')[2] for x in msrapoutfnlist]
-        # grab valid gsms not in msrapoutfiles
-        gsmprocess = [g for g in jsongsmlist 
+    # list all msrapout files, filtering on valid filenames
+    msrapoutfnlist = os.listdir(gsmmsrapoutpath) 
+    msrapoutfnlist = list(filter(rmsrapout.match, msrapoutfnlist))
+    # list msrap outfiles gsm ids, and filter json gsm ids
+    msrapgsmlist = [x.split('.')[2] for x in msrapoutfnlist]
+    gsmprocess = [g for g in jsongsmlist 
             if not g in msrapgsmlist and
             g[0:3]=='GSM'
-            ]
-        # grab json filenames from json dir for gsm ids in process list
-        for g in gsmprocess:
-            print(g)
-            print(gsmjsonpath)
-            gjsonfn = os.path.basename(getlatest_filepath(filepath=gsmjsonpath,
-                    filestr=g, embeddedpattern=True, tslocindex = 0)
-                )
-            fl.append(gjsonfn)
+        ]
+    # grab json filenames from json dir for gsm ids in process list
+    for gsmid in gsmprocess:
+        gjsonfn = getlatest_filepath(filepath=gsmjsonpath,
+                filestr=gsmid, embeddedpattern=True, tslocindex=0,
+                returntype='returnlist'
+            )
+        if gjsonfn and len(gjsonfn)==1:
+            gjsonfn = [os.path.basename(gjsonfn[0])]
+        else:
+            gjsonfn = [os.path.basename(fn) for fn in gjsonfn]
+        gjsonfn = gjsonfn[0]
+        fl.append(gjsonfn)
     # form list of fn lists based on nscreensi and indices/slices
     if fl:
         ll = []
         rangelist = [i for i in range(0, len(fl), nscreensi)]
         for enum, i in enumerate(rangelist[:-1]):
-            print(enum)
             ll.append(fl[i:rangelist[enum+1]])
         if len(fl[rangelist[-1]::]) > 0:
             ll.append(fl[rangelist[-1]::])
@@ -485,22 +469,23 @@ def msrap_screens(json_flist=[], nscreensi=50, srcdir='src',
         print("Error, no files list object to process. Returning...")
         return None
     # deploy screen(s) running MetaSRA-pipeline
-    print('ll len = ' + str(len(ll)))
+    # print('ll len = ' + str(len(ll)))
     timestampi = gettime_ntp() # make single timestamp call, for all indices
     if len(ll)>1:
         for loc, sublist in enumerate(ll):
-            print("loc = " + str(loc))
-            print("fn list = " + str(ll[loc]))
-            strid = str(loc)
-            cmdlist0 = ['screen', '-S', 'MetaSRApipeline'+strid, '-dm', 'python3',
-                psoftpath, '--msraplist', ' '.join(str(item) for item in sublist),
-                '--ntptime', timestampi
-                ]
+            # each loc in ll represents a new screen index, check vs. screen max
+            if loc <= nmaxscreens:
+                strid = str(loc)
+                cmdlist0 = ['screen', '-S', 'MetaSRApipeline'+strid, '-dm', 'python3',
+                        psoftpath, '--msraplist', 
+                        ' '.join(str(item) for item in sublist), '--ntptime', 
+                        timestampi
+                    ]
             subprocess.call(cmdlist0,shell=False)
     else:
         cmdlist0 = ['screen', '-S', 'MetaSRApipeline'+str(0), '-dm', 'python3',
-            psoftpath, '--msraplist', ' '.join(str(item) for item in ll[0]),
-            '--ntptime', timestampi
+                psoftpath, '--msraplist', ' '.join(str(item) for item in ll[0]),
+                '--ntptime', timestampi
             ]
         subprocess.call(cmdlist0,shell=False)
 
