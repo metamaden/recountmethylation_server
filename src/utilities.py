@@ -73,7 +73,7 @@ def getlatest_filepath(filepath, filestr, embeddedpattern=False, tslocindex=1,
                 lfr = [flfilt[0]]
             # print("getlatest end")
             if returntype=='returnstr':
-                return str(lfr)
+                return ' '.join(i for i in lfr)
             if returntype=='returnlist':
                 return lfr
             else:
@@ -115,7 +115,7 @@ def get_queryfilt_dict(filesdir = 'recount-methylation-files',
     eqpath = os.path.join('recount-methylation-files','equery')
     gsefilt_latest = getlatest_filepath(eqpath,'gsequery_filt')
     if gsefilt_latest and not gsefilt_latest == 0:
-        gsefiltd = querydict(query = gsefilt_latest, splitdelim = ' ')
+        gsefiltd = querydict(query=gsefilt_latest, splitdelim=' ')
         return gsefiltd
     else:
         print("Error, no gse filtered file found at location.")
