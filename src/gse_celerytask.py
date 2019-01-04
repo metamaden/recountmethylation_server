@@ -45,21 +45,21 @@ def gse_task(gse_id, gsefiltdict = get_queryfilt_dict(), timestamp = gettime_ntp
         print('File gsefiltdict provided, continuing...')
         gsmlist = gsefiltdict[gse_id]
         print("Detected N = "+str(len(gsmlist))+' GSM IDs...')
-        rl.append(1)
+        rl.append(True)
         print("Beginning soft file download...")
         ddsoft = dl_soft(gse_list=[gse_id], timestamp = run_timestamp)
-        rl.append(1)
+        rl.append(True)
         print('Beginning idat download...')
         ddidat = dl_idat(input_list = gsmlist, timestamp = run_timestamp)
-        rl.append(1)
+        rl.append(True)
         print('updating rmdb...')
         updateobj = update_rmdb(ddidat = ddidat, ddsoft = ddsoft)
-        rl.append(1)
+        rl.append(True)
         print('Task completed! Returning...')
         return rl
     else:
         print("Error: no gse query filt file provided. Returning...")
-        rl.append(0)
+        rl.append(None)
         return rl
 
 """ Notes and Tutorial

@@ -32,9 +32,10 @@ from utilities import gettime_ntp, getlatest_filepath, get_queryfilt_dict
 """
 
 
-def expand_soft(gse_softdir = 'gse_soft', rmcompressed = False, 
-    files_dir = 'recount-methylation-files'):
-    """ Automatically expand detected GSE soft files.
+def expand_soft(gse_softdir='gse_soft', softpatt='.*\.soft.*', comppatt='.*\.gz$', 
+    expsoftpatt='.*\.soft$', rmcompressed=False, gsepatt='^GSE.*',
+    files_dir='recount-methylation-files'):
+    """ Expand GSE soft files that aren't expanded yet.
         Arguments
             * gse_softdir (str) : Directory to search for GSE soft files.
             * rmcompressed (T/F,Bool.) : Remove compressed files after expanded?
@@ -42,35 +43,72 @@ def expand_soft(gse_softdir = 'gse_soft', rmcompressed = False,
         Returns
             * rsoftd (list) : Compressed filenames and statuslist.
     """
-    gse_softpath = os.path.join(files_dir, gse_softdir)
-    r1 = re.compile(".*soft.*")
-    dirlist = os.listdir(gse_softpath)
-    soft_list = list(filter(r1.match, dirlist)) 
-    r2 = re.compile(".*\.gz$")
+    # get all gse ids in gse soft directory
+    gsesoft_fpath = os.path.join(files_dir, gse_softdir)
+    gsesoft_fnlist = os.listdir(gsesoft_fpath)  
+    gseidlist =  [fn.split('.')[0] for fn in gsesoft_fnlist]
+    rgse = re.compile(gsepatt)
+    gseidlist = list(filter(rgse.match, gseidlist)) # valid GSE IDs
+    print(str(gseidlist))
+    # filter terms
+    rsoft = re.compile(softpatt)
+    rcompsoft = re.compile(comppatt)
+    rexpsoft = re.compile(expsoftpatt)
+    gsesoft_compflist = [] # filtered fn list of compressed soft files
+    for gseid in gseidlist:
+        gse_filtfn = []
+        flatest = getlatest_filepath(
+            filepath=os.path.join(files_dir, gse_softdir), filestr=str(gseid), 
+            tslocindex=1, returntype='returnlist'
+            )
+        if flatest:
+            if len(flatest)==1:
+                gsesoft_latestfn = [os.path.basename(flatest[0])]
+            else:
+                gsesoft_latestfn = [os.path.basename(fpath) for fpath in 
+                    flatest
+                ]
+        else:
+            print("Error getting latest files list for gseid : "+gseid)
+            break
+        # valid expanded soft
+        gse_expsoftfn = []
+        gse_expsoftfn = list(filter(rexpsoft.match, gsesoft_latestfn))
+        # if no latest expanded soft file, search for valid compsoft file
+        if len(gse_expsoftfn)==0:
+            # valid soft
+            gse_filtfn = list(filter(rsoft.match, gsesoft_latestfn)) 
+            # valid cmpsoft
+            gse_filtfn = list(filter(rcompsoft.match, gse_filtfn))
+            if gse_filtfn and len(gse_filtfn)==1:
+                gsesoft_compflist.append(gse_filtfn[0])
+    # form the soft files dictionary
     rsoftd = {}
-    softl_compressed = list(filter(r2.match, soft_list))
+    softl_compressed = gsesoft_compflist
     if len(softl_compressed)>0:
-        statuslist = []
         for softcompfile in softl_compressed:
             rsoftd[softcompfile] = [] # instantiate new dict val as list 
-            with gzip.open(os.path.join(gse_softpath, softcompfile), 'rb') as f_in:
-                with open(os.path.join(gse_softpath, softcompfile[:-3]), 'wb') as f_out:
+            with gzip.open(os.path.join(gsesoft_fpath, softcompfile), 'rb') as f_in:
+                with open(os.path.join(gsesoft_fpath, softcompfile[:-3]), 'wb') as f_out:
                     try:
                         shutil.copyfileobj(f_in, f_out)
-                        rsoftd[softcompfile].append(1)
+                        # if file successfully 
+                        rsoftd[softcompfile].append(True)
                     except shutil.Error as se:
                         rsoftd[softcompfile].append(se)
         statusindices = [i for i, x in enumerate(rsoftd[softcompfile]) 
-            if x == 1
+                if x == True
             ]
         rmsuccess = [softl_compressed[i] for i in statusindices]
         if rmcompressed and len(rmsuccess) > 0:
             for compfilename in rmsuccess:
                 os.remove(os.path.join(gse_softpath,compfilename))
-                rsoftd[compfilename].append('removedcompressedfile')
+                # if compressed file removed, append True
+                rsoftd[compfilename].append(True) 
     else: 
-        print("Error: no compressed soft files found at specified gse_softpath.")
-        return 
+        print("No valid compressed soft files found at specified gse_softpath. "
+            +"Are all valid soft files already expanded?")
+        return None
     # return dictionary of compressed GSE soft files and statuses
     return rsoftd
 
@@ -153,8 +191,8 @@ def extract_gsm_soft(gse_softdir = 'gse_soft',gsm_softdir = 'gsm_soft',
                 gsm_newfile_path = os.path.join(temp_dir_make, 
                     gsm_softfn
                     )
-                gsm_oldfile_path = getlatest_filepath(filepath = gsmsoft_destpath,
-                    filestr = gsmstr, embeddedpattern = True, tslocindex = 0)
+                gsm_oldfile_path = getlatest_filepath(filepath=gsmsoft_destpath,
+                    filestr=gsmstr, embeddedpattern=True, tslocindex=0)
                 print("gsm_oldfile_path : "+str(gsm_oldfile_path))
                 print("gsm_newfile_path : "+str(gsm_newfile_path))
                 if gsm_oldfile_path and not gsm_oldfile_path == 0:
@@ -180,9 +218,9 @@ def extract_gsm_soft(gse_softdir = 'gse_soft',gsm_softdir = 'gsm_soft',
     # return dict, keys GSE soft files, vals are new GSM soft files
     return newfilesd 
 
-def gsm_soft2json(gsm_softlist = [], gsm_softdir = 'gsm_soft', 
-    gsm_jsondir = 'gsm_json', filesdir = 'recount-methylation-files',
-    scriptpath = os.path.join('recount-methylation-server','src','soft2json.R')
+def gsm_soft2json(gsm_softlist=[], gsm_softdir='gsm_soft', 
+    gsm_jsondir='gsm_json', filesdir='recount-methylation-files',
+    scriptpath=os.path.join('recount-methylation-server','src','soft2json.R')
     ):
     """ Convert GSM soft file to JSON format
         Call R script to process GSM soft (XML) to JSON format
@@ -199,43 +237,59 @@ def gsm_soft2json(gsm_softlist = [], gsm_softdir = 'gsm_soft',
             * rlist object (list) of converted files and statuses, or error, 
                 generates GSM JSON files as a side effect.
     """
-    print(scriptpath)
+    if not os.path.exists(scriptpath):
+        print("Error: JSON conversion script not detected at path. Returning.")
+        return None
     gsm_jsonpath = os.path.join(filesdir, gsm_jsondir)
-    os.makedirs(gsm_jsonpath, exist_ok = True)
-    rjsonlist_current = os.listdir(gsm_jsonpath) # get current json dir contents
     gsm_softpath = os.path.join(filesdir, gsm_softdir)
+    os.makedirs(gsm_jsonpath, exist_ok = True)
+    rjsonlist_current = os.listdir(gsm_jsonpath) # current json dir contents
     # form list of gsm soft filenames, as gsm
-    if len(gsm_softlist)>0:
+    if gsm_softlist and len(gsm_softlist)>0:
         gsm_softfn_list = gsm_softlist
     else:
         gsm_softfn_list = os.listdir(gsm_softpath)
-        #gsm_fn_list = os.listdir(gsm_softpath)
-        #gsm_softfn_list = [os.path.splitext(gsmname)[1] for gsmname 
-        #    in gsm_fn_list
-        #]
-    statd = {} # return status dictionary from attempts at json conversion
-    for gsm_softfn in gsm_softfn_list:
-        # run R script from provided path or present directory
-        # R function takes 3 args: 1. gsm soft filename; 2. gsm soft path,
-        # and 3. gsm json path
-        statd[gsm_softfn] = []
-        try:
-            # gsmid = os.splitext(gsm_softfn)[1]
-            if scriptpath:
-                cmdlist = ['Rscript', scriptpath, gsm_softfn, gsm_softpath, 
-                gsm_jsonpath
-                ]
+    # status dict, to return
+    statd = {}
+    if gsm_softfn_list and len(gsm_softfn_list)>0:
+        # check existant json files before attempting conversion
+        for gsm_softfn in gsm_softfn_list:
+            statd[gsm_softfn] = []
+            softts = gsm_softfn.split('.')[0] # soft file timestamp
+            gsmid = gsm_softfn.split('.')[1]
+            rgsm = re.compile('.*GSM.*')
+            gsmid = str(filter(rgsm.match, gsmid)) # valid gsm id
+            gsmjson_latestfpath = os.path.basename(getlatest_filepath(
+                    filepath=gsm_jsonpath, filestr=gsmid, embeddedpattern=True, 
+                    tslocindex=0
+                    )
+            )
+            if gsmjson_latestfpath: 
+                jsonlatestts = gsmjson_latestfpath.split('.')[0] # json timestamp
+                if int(softts)>int(jsonlatestts):
+                    try:
+                        cmdlist = ['Rscript', scriptpath, gsm_softfn, 
+                            gsm_softpath, gsm_jsonpath
+                        ]
+                        subprocess.call(cmdlist,shell=False)
+                        statd[gsm_softfn].append(True)
+                    except subprocess.CalledProcessError as e:
+                        statd[gsm_softfn].append(None)
+                        statd[gsm_softfn].append(e)
             else:
-                cmdlist = ['Rscript', 'soft2json.R', gsm_softfn, gsm_softpath, 
-                gsm_jsonpath
-                ]
-            subprocess.call(cmdlist,shell=False)
-            statd[gsm_softfn].append(1)
-            #subprocess.check_call(cmdlist,executable='/bin/bash')
-        except subprocess.CalledProcessError as e:
-            statd[gsm_softfn].append(0)
-            statd[gsm_softfn].append(e)
-    # double check gsm json dir for new files
+                try:
+                    cmdlist = ['Rscript', scriptpath, gsm_softfn, 
+                        gsm_softpath, gsm_jsonpath
+                    ]
+                    subprocess.call(cmdlist,shell=False)
+                    statd[gsm_softfn].append(True)
+                except subprocess.CalledProcessError as e:
+                    statd[gsm_softfn].append(None)
+                    statd[gsm_softfn].append(e)
+    else:
+        print("Error: No valid GSM Soft files to process from list. Returning.")
+        return None
+    # tally new json files generated
     rjsonlist_new = os.listdir(gsm_jsonpath)
     rjsonlist_return = [jfile for jfile in rjsonlist_new
         if not jfile in rjsonlist_current
