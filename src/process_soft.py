@@ -308,12 +308,14 @@ def gsm_soft2json(gsm_softlist=[], gsm_softdir='gsm_soft',
                 gsmid = gsm_softfn.split('.')[1]
                 rgsm = re.compile('.*GSM.*')
                 gsmid = str(filter(rgsm.match, gsmid)) # valid gsm id
-                gsmjson_latestfpath = os.path.basename(getlatest_filepath(
-                        filepath=gsm_jsonpath, filestr=gsmid, embeddedpattern=True, 
-                        tslocindex=0
+                gsmjson_latestfpath = getlatest_filepath(
+                        filepath=gsm_jsonpath, filestr=gsmid, tslocindex=0,  
+                        returntype='returnlist', embeddedpattern=True,
+                    )
+                if gsmjson_latestfpath and len(gsmjson_latestfpath)==1:
+                    gsmjson_latestfpath = os.path.basename(
+                            gsmjson_latestfpath[0]
                         )
-                )
-                if gsmjson_latestfpath: 
                     jsonlatestts = gsmjson_latestfpath.split('.')[0] # json timestamp
                     if int(softts)>int(jsonlatestts):
                         try:
@@ -326,6 +328,8 @@ def gsm_soft2json(gsm_softlist=[], gsm_softdir='gsm_soft',
                             statd[gsm_softfn].append(None)
                             statd[gsm_softfn].append(e)
                 else:
+                    print("No latest JSON files found for GSM id: "+gsmid
+                        +". Continuing...")
                     try:
                         cmdlist = ['Rscript', scriptpath, gsm_softfn, 
                             gsm_softpath, gsm_jsonpath
