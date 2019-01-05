@@ -385,7 +385,7 @@ def msrap_screens(json_flist=[], nscreensi=50, nmaxscreens=20, srcdir='src',
     filesdir='recount-methylation-files', gsmjsondir='gsm_json',
     gsmsoftdir='gsm_soft', serverfilesdir='recount-methylation-server', 
     psoftfn='process_soft.py', gsmmsrapoutdir='gsm_msrap_outfiles',
-    jsonfnpattern='.*json$', msrapoutfnpattern='.*msrapout$'):
+    jsonfnpattern='.*json$', msrapoutfnpattern='.*msrapout$', printflist=True):
     """ Deploy multiple screens processing GSM JSON files with MetaSRA-pipeline.
         Only process GSMs for which no MetaSRA-pipeline outfiles already exist.
         Notes:
@@ -470,6 +470,8 @@ def msrap_screens(json_flist=[], nscreensi=50, nmaxscreens=20, srcdir='src',
         return None
     # deploy screen(s) running MetaSRA-pipeline
     # print('ll len = ' + str(len(ll)))
+    if printflist:
+        print('Files list to process : ' + str(ll))
     timestampi = gettime_ntp() # make single timestamp call, for all indices
     if len(ll)>1:
         for loc, sublist in enumerate(ll):
