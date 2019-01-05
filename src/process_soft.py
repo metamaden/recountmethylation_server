@@ -17,6 +17,9 @@ from utilities import gettime_ntp, getlatest_filepath, get_queryfilt_dict
     samples in MetaSRA-pipeline.
     
     Notes:
+    * To avoid propagating invalid (non-HM450k) experiments or samples, an 
+        equeryfiltdict dictionary object is called, with valid GSE ids as keys
+        and valid/filtered GSM ids listed as values.
     
     Functions:
         * expand_soft : Expand/extract a compressed GSE Soft file from GEO.
@@ -34,7 +37,7 @@ from utilities import gettime_ntp, getlatest_filepath, get_queryfilt_dict
 
 def expand_soft(gse_softdir='gse_soft', softpatt='.*\.soft.*', comppatt='.*\.gz$', 
     expsoftpatt='.*\.soft$', rmcompressed=False, gsepatt='^GSE.*',
-    files_dir='recount-methylation-files'):
+    files_dir='recount-methylation-files', eqfiltdict=get_queryfilt_dict()):
     """ Expand GSE soft files that aren't expanded yet.
         Arguments
             * gse_softdir (str) : Directory to search for GSE soft files.
@@ -43,45 +46,50 @@ def expand_soft(gse_softdir='gse_soft', softpatt='.*\.soft.*', comppatt='.*\.gz$
         Returns
             * rsoftd (list) : Compressed filenames and statuslist.
     """
+    validgselist = list(eqfiltdict.keys())
     # get all gse ids in gse soft directory
     gsesoft_fpath = os.path.join(files_dir, gse_softdir)
     gsesoft_fnlist = os.listdir(gsesoft_fpath)  
     gseidlist =  [fn.split('.')[0] for fn in gsesoft_fnlist]
     rgse = re.compile(gsepatt)
     gseidlist = list(filter(rgse.match, gseidlist)) # valid GSE IDs
-    print(str(gseidlist))
+    # print(str(gseidlist))
     # filter terms
     rsoft = re.compile(softpatt)
     rcompsoft = re.compile(comppatt)
     rexpsoft = re.compile(expsoftpatt)
     gsesoft_compflist = [] # filtered fn list of compressed soft files
     for gseid in gseidlist:
-        gse_filtfn = []
-        flatest = getlatest_filepath(
-            filepath=os.path.join(files_dir, gse_softdir), filestr=str(gseid), 
-            tslocindex=1, returntype='returnlist'
-            )
-        if flatest:
-            if len(flatest)==1:
-                gsesoft_latestfn = [os.path.basename(flatest[0])]
+        if gseid in validgselist:
+            gse_filtfn = []
+            flatest = getlatest_filepath(
+                    filepath=os.path.join(files_dir, gse_softdir), 
+                    filestr=str(gseid), tslocindex=1, returntype='returnlist'
+                )
+            if flatest:
+                if len(flatest)==1:
+                    gsesoft_latestfn = [os.path.basename(flatest[0])]
+                else:
+                    gsesoft_latestfn = [os.path.basename(fpath) for fpath in 
+                        flatest
+                    ]
             else:
-                gsesoft_latestfn = [os.path.basename(fpath) for fpath in 
-                    flatest
-                ]
+                print("Error getting latest files list for gseid : "+gseid)
+                break
+            # valid expanded soft
+            gse_expsoftfn = []
+            gse_expsoftfn = list(filter(rexpsoft.match, gsesoft_latestfn))
+            # if no latest expanded soft file, search for valid compsoft file
+            if len(gse_expsoftfn)==0:
+                # valid soft
+                gse_filtfn = list(filter(rsoft.match, gsesoft_latestfn)) 
+                # valid cmpsoft
+                gse_filtfn = list(filter(rcompsoft.match, gse_filtfn))
+                if gse_filtfn and len(gse_filtfn)==1:
+                    gsesoft_compflist.append(gse_filtfn[0])
         else:
-            print("Error getting latest files list for gseid : "+gseid)
-            break
-        # valid expanded soft
-        gse_expsoftfn = []
-        gse_expsoftfn = list(filter(rexpsoft.match, gsesoft_latestfn))
-        # if no latest expanded soft file, search for valid compsoft file
-        if len(gse_expsoftfn)==0:
-            # valid soft
-            gse_filtfn = list(filter(rsoft.match, gsesoft_latestfn)) 
-            # valid cmpsoft
-            gse_filtfn = list(filter(rcompsoft.match, gse_filtfn))
-            if gse_filtfn and len(gse_filtfn)==1:
-                gsesoft_compflist.append(gse_filtfn[0])
+            print("GSE id :"+gseid+" is not a valid HM450k experiment. "
+                +"Continuing...")
     # form the soft files dictionary
     rsoftd = {}
     softl_compressed = gsesoft_compflist
@@ -115,7 +123,7 @@ def expand_soft(gse_softdir='gse_soft', softpatt='.*\.soft.*', comppatt='.*\.gz$
 def extract_gsm_soft(gse_softdir = 'gse_soft',gsm_softdir = 'gsm_soft',
     filesdir = 'recount-methylation-files', temp_dir = 'temp', 
     timestamp = gettime_ntp(), softcloseindex = '!sample_table_begin',
-    validate = True, tempdir = 'temp'):
+    validate = True, tempdir = 'temp', eqfiltdict = get_queryfilt_dict()):
     """ Extract GSM soft file sections from GSE soft files.
         Arguments 
             * gse_softdir (str) : Directory to search for GSE soft files.
@@ -127,10 +135,16 @@ def extract_gsm_soft(gse_softdir = 'gse_soft',gsm_softdir = 'gsm_soft',
                 to just before possible by-CpG methylation table. To include 
                 this possible methylation data from the soft file, change to 
                 '!sample_table_end'.
+            * eqfiltdict (dict) : Dictionary from equery filter, where keys are
+                valid HM450k experiment ids (GSE ids) and values are lists of 
+                valid/filtered HM450k samples (GSM ids). 
         Returns
             * newfilesd (dictionary), or error (null), generates GSM soft files 
                 as a side effect.
     """
+    validgsmlist = [gsmid for gselist in list(eqfiltdict.values()) 
+        for gsmid in gselist
+    ]
     r1 = re.compile(".*soft$") # identify expanded GSE soft files
     # gse_soft files path
     gse_softpath = os.path.join(filesdir, gse_softdir)
@@ -169,59 +183,75 @@ def extract_gsm_soft(gse_softdir = 'gse_soft',gsm_softdir = 'gsm_soft',
                 gsm_softfn = ".".join([timestamp, 
                     str(rxgsm.findall(gsm_softlines[1])[0]),
                     'soft'])
-                newfilesd[gse_softfile].append(gsm_softfn)
-                # first write new files to temp dir
-                gsm_newfile_path = os.path.join(temp_dir_make, gsm_softfn)
-                with open(gsm_newfile_path,"w+") as gsmfile:
-                    for line in gsm_softlines:
-                        gsmfile.write(line)
-                    gsmfile.close()
+                gsmid = gsm_softfn.split('.')[1]
+                if gsmid in validgsmlist:
+                    newfilesd[gse_softfile].append(gsm_softfn)
+                    # first write new files to temp dir
+                    gsm_newfile_path = os.path.join(temp_dir_make, gsm_softfn)
+                    with open(gsm_newfile_path,"w+") as gsmfile:
+                        for line in gsm_softlines:
+                            gsmfile.write(line)
+                        gsmfile.close()
+                else: 
+                    newfilesd[gse_softfile].append(None)
+                    print("GSM id :"+gsmid+" is not a valid HM450k sample. "
+                        +"Continuing...")
             except:
                 continue
     if validate:
         print(list(newfilesd.keys()))
         for gse_softfn in list(newfilesd.keys()):
+            gseid = gse_softfn.split('.')[0]
+            # get valid gsm ids from eqfiltdict
+            validgsmlist = eqfiltdict[gseid]
             gsmfilelist = newfilesd[gse_softfn]
             for gsmfile in gsmfilelist:
-                gsm_oldfile_path = ""
-                gsm_newfile_path = ""
-                gsm_softfn = gsmfile
-                gsmstr = gsm_softfn.split(".")[1]
-                print("gsmstr : "+gsmstr)
-                gsm_newfile_path = os.path.join(temp_dir_make, 
-                    gsm_softfn
-                    )
-                gsm_oldfile_path = getlatest_filepath(filepath=gsmsoft_destpath,
-                    filestr=gsmstr, embeddedpattern=True, tslocindex=0)
-                print("gsm_oldfile_path : "+str(gsm_oldfile_path))
-                print("gsm_newfile_path : "+str(gsm_newfile_path))
-                if gsm_oldfile_path and not gsm_oldfile_path == 0:
-                    if filecmp.cmp(gsm_oldfile_path, gsm_newfile_path):
-                        print("Redundant GSM soft file detected, removing...")
-                        os.remove(gsm_newfile_path)
-                        newfilesd[gse_softfn].append(False)
-                    else:
+                gsmid = gsmfile.split('.')[1]
+                # filter on valid gsm ids from eqfiltdict
+                if gsmid in validgsmlist:
+                    gsm_oldfile_path = ""
+                    gsm_newfile_path = ""
+                    gsm_softfn = gsmfile
+                    gsmstr = gsm_softfn.split(".")[1]
+                    print("gsmstr : "+gsmstr)
+                    gsm_newfile_path = os.path.join(temp_dir_make, 
+                        gsm_softfn
+                        )
+                    gsm_oldfile_path = getlatest_filepath(filepath=gsmsoft_destpath,
+                        filestr=gsmstr, embeddedpattern=True, tslocindex=0)
+                    print("gsm_oldfile_path : "+str(gsm_oldfile_path))
+                    print("gsm_newfile_path : "+str(gsm_newfile_path))
+                    if gsm_oldfile_path and not gsm_oldfile_path == 0:
+                        if filecmp.cmp(gsm_oldfile_path, gsm_newfile_path):
+                            print("Redundant GSM soft file detected, removing...")
+                            os.remove(gsm_newfile_path)
+                            newfilesd[gse_softfn].append(False)
+                        else:
+                            print("New GSM soft file detected, moving from temp...")
+                            shutil.move(gsm_newfile_path, os.path.join(
+                                    gsmsoft_destpath, 
+                                    os.path.basename(gsm_newfile_path))
+                                )
+                            newfilesd[gse_softfn].append(True)
+                    else: 
                         print("New GSM soft file detected, moving from temp...")
                         shutil.move(gsm_newfile_path, os.path.join(
-                                gsmsoft_destpath, 
-                                os.path.basename(gsm_newfile_path))
-                            )
+                                    gsmsoft_destpath, 
+                                    os.path.basename(gsm_newfile_path))
+                                )
                         newfilesd[gse_softfn].append(True)
-                else: 
-                    print("New GSM soft file detected, moving from temp...")
-                    shutil.move(gsm_newfile_path, os.path.join(
-                                gsmsoft_destpath, 
-                                os.path.basename(gsm_newfile_path))
-                            )
-                    newfilesd[gse_softfn].append(True)
+                else:
+                    newfilesd[gse_softfn].append(None)
+                    print("GSM id : "+gsmid+" is not a valid HM450 file. "
+                        +"Continuing...")
         shutil.rmtree(temp_dir_make) # remove tempdir if validate true
     # return dict, keys GSE soft files, vals are new GSM soft files
     return newfilesd 
 
 def gsm_soft2json(gsm_softlist=[], gsm_softdir='gsm_soft', 
     gsm_jsondir='gsm_json', filesdir='recount-methylation-files',
-    scriptpath=os.path.join('recount-methylation-server','src','soft2json.R')
-    ):
+    scriptpath=os.path.join('recount-methylation-server','src','soft2json.R'),
+    eqfiltdict = get_queryfilt_dict()):
     """ Convert GSM soft file to JSON format
         Call R script to process GSM soft (XML) to JSON format
         Arguments
@@ -233,10 +263,16 @@ def gsm_soft2json(gsm_softlist=[], gsm_softdir='gsm_soft',
                 provided, automatically checks current working directory.
             * gsm_json_destdir (str) : Name of destination directory for new 
                 JSON files.
+            * eqfiltdict (dict) : Dictionary from equery filter, where keys are
+                valid HM450k experiment ids (GSE ids) and values are lists of 
+                valid/filtered HM450k samples (GSM ids). 
         Returns
             * rlist object (list) of converted files and statuses, or error, 
                 generates GSM JSON files as a side effect.
     """
+    validgsmlist = [gsmid for gselist in list(eqfiltdict.values()) 
+        for gsmid in gselist
+    ]
     if not os.path.exists(scriptpath):
         print("Error: JSON conversion script not detected at path. Returning.")
         return None
@@ -254,19 +290,31 @@ def gsm_soft2json(gsm_softlist=[], gsm_softdir='gsm_soft',
     if gsm_softfn_list and len(gsm_softfn_list)>0:
         # check existant json files before attempting conversion
         for gsm_softfn in gsm_softfn_list:
-            statd[gsm_softfn] = []
-            softts = gsm_softfn.split('.')[0] # soft file timestamp
             gsmid = gsm_softfn.split('.')[1]
-            rgsm = re.compile('.*GSM.*')
-            gsmid = str(filter(rgsm.match, gsmid)) # valid gsm id
-            gsmjson_latestfpath = os.path.basename(getlatest_filepath(
-                    filepath=gsm_jsonpath, filestr=gsmid, embeddedpattern=True, 
-                    tslocindex=0
-                    )
-            )
-            if gsmjson_latestfpath: 
-                jsonlatestts = gsmjson_latestfpath.split('.')[0] # json timestamp
-                if int(softts)>int(jsonlatestts):
+            if gsmid in validgsmlist:
+                statd[gsm_softfn] = []
+                softts = gsm_softfn.split('.')[0] # soft file timestamp
+                gsmid = gsm_softfn.split('.')[1]
+                rgsm = re.compile('.*GSM.*')
+                gsmid = str(filter(rgsm.match, gsmid)) # valid gsm id
+                gsmjson_latestfpath = os.path.basename(getlatest_filepath(
+                        filepath=gsm_jsonpath, filestr=gsmid, embeddedpattern=True, 
+                        tslocindex=0
+                        )
+                )
+                if gsmjson_latestfpath: 
+                    jsonlatestts = gsmjson_latestfpath.split('.')[0] # json timestamp
+                    if int(softts)>int(jsonlatestts):
+                        try:
+                            cmdlist = ['Rscript', scriptpath, gsm_softfn, 
+                                gsm_softpath, gsm_jsonpath
+                            ]
+                            subprocess.call(cmdlist,shell=False)
+                            statd[gsm_softfn].append(True)
+                        except subprocess.CalledProcessError as e:
+                            statd[gsm_softfn].append(None)
+                            statd[gsm_softfn].append(e)
+                else:
                     try:
                         cmdlist = ['Rscript', scriptpath, gsm_softfn, 
                             gsm_softpath, gsm_jsonpath
@@ -277,15 +325,9 @@ def gsm_soft2json(gsm_softlist=[], gsm_softdir='gsm_soft',
                         statd[gsm_softfn].append(None)
                         statd[gsm_softfn].append(e)
             else:
-                try:
-                    cmdlist = ['Rscript', scriptpath, gsm_softfn, 
-                        gsm_softpath, gsm_jsonpath
-                    ]
-                    subprocess.call(cmdlist,shell=False)
-                    statd[gsm_softfn].append(True)
-                except subprocess.CalledProcessError as e:
-                    statd[gsm_softfn].append(None)
-                    statd[gsm_softfn].append(e)
+                statd[gsm_softfn].append(None)
+                print("GSM id : "+gsmid+" is not a valid HM450 sample. "
+                    +"Continuing...")
     else:
         print("Error: No valid GSM Soft files to process from list. Returning.")
         return None
@@ -331,10 +373,10 @@ def msrap_prepare_json(gsm_json_filelist, gsm_jsondir = 'gsm_json',
                             preparedfile.write(line)
         preparedfile.write("]")
 
-def run_metasrapipeline(json_flist = [], gsm_jsondir = 'gsm_json',
-    filesdir = 'recount-methylation-files', msrap_fn = 'msrapout', 
-    msrap_destdir = 'gsm_msrap_outfiles', msrap_dir = '.',
-    timestamp = gettime_ntp()):
+def run_metasrapipeline(json_flist=[], gsm_jsondir='gsm_json',
+    filesdir='recount-methylation-files', msrap_fn='msrapout', 
+    msrap_destdir='gsm_msrap_outfiles', msrap_dir='.',
+    timestamp=gettime_ntp(), eqfiltdict=get_queryfilt_dict()):
     """ Run MetaSRA-pipeline on available GSM JSON files.
         Arguments
             * json_flist (list) : List of JSON filename(s) to process. If not 
@@ -347,6 +389,9 @@ def run_metasrapipeline(json_flist = [], gsm_jsondir = 'gsm_json',
             * msrap_statlist (list), Int (1) or error: Whether MetaSRA-pipeline 
                 uccessfully ran, generating a new MetaSRA file as side effect. 
     """
+    validgsmlist = [gsmid for gselist in list(eqfiltdict.values()) 
+        for gsmid in gselist
+    ]
     # path to run_pipeline file
     msrap_path = os.path.join(msrap_dir, 'MetaSRA-pipeline', 'run_pipeline.py')
     # path to read valid gsm json files from
@@ -365,27 +410,33 @@ def run_metasrapipeline(json_flist = [], gsm_jsondir = 'gsm_json',
     msrap_statlist = []
     # iterate over valid filenames at gsm json dir
     for gsm_json_fn in gsm_json_fn_list:
-        outfn = os.path.splitext(gsm_json_fn)[0] # fn without extension
-        gsmjson_readpath = os.path.join(gsm_jsonpath, gsm_json_fn)
-        gsm_msrapout_writepath = os.path.join(msrap_destpath,
-            ".".join([timestamp,outfn,msrap_fn]))
-        try:
-            cmdlist = ['python2',
-                msrap_path,
-                gsmjson_readpath,
-                gsm_msrapout_writepath
-                ]
-            subprocess.call(cmdlist,shell=False)
-            msrap_statlist.append(1)
-        except subprocess.CalledProcessError as e:
-            msrap_statlist.append(e)
+        gsmid = gsm_json_fn.split('.')[1]
+        if gsmid in validgsmlist:
+            outfn = os.path.splitext(gsm_json_fn)[0] # fn without extension
+            gsmjson_readpath = os.path.join(gsm_jsonpath, gsm_json_fn)
+            gsm_msrapout_writepath = os.path.join(msrap_destpath,
+                ".".join([timestamp,outfn,msrap_fn]))
+            try:
+                cmdlist = ['python2',
+                    msrap_path,
+                    gsmjson_readpath,
+                    gsm_msrapout_writepath
+                    ]
+                subprocess.call(cmdlist,shell=False)
+                msrap_statlist.append(True)
+            except subprocess.CalledProcessError as e:
+                msrap_statlist.append(e)
+        else:
+            msrap_statlist.append(None)
+            print("GSM id : "+gsmid+" is not a valid HM450 sample. "
+                +"Continuing...")
     return msrap_statlist
 
 def msrap_screens(json_flist=[], nscreensi=50, nmaxscreens=20, srcdir='src', 
     filesdir='recount-methylation-files', gsmjsondir='gsm_json',
     gsmsoftdir='gsm_soft', serverfilesdir='recount-methylation-server', 
     psoftfn='process_soft.py', gsmmsrapoutdir='gsm_msrap_outfiles',
-    jsonfnpattern='.*json$', msrapoutfnpattern='.*msrapout$', printflist=True):
+    jsonfnpattern='.*json$', msrapoutfnpattern='.*msrapout$'):
     """ Deploy multiple screens processing GSM JSON files with MetaSRA-pipeline.
         Only process GSMs for which no MetaSRA-pipeline outfiles already exist.
         Notes:
@@ -470,8 +521,6 @@ def msrap_screens(json_flist=[], nscreensi=50, nmaxscreens=20, srcdir='src',
         return None
     # deploy screen(s) running MetaSRA-pipeline
     # print('ll len = ' + str(len(ll)))
-    if printflist:
-        print('Files list to process : ' + str(ll))
     timestampi = gettime_ntp() # make single timestamp call, for all indices
     if len(ll)>1:
         for loc, sublist in enumerate(ll):
