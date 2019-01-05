@@ -177,13 +177,13 @@ def extract_gsm_soft(gse_softdir = 'gse_soft',gsm_softdir = 'gsm_soft',
         rxgsm = re.compile('GSM[0-9]*')
         # may add filter here, using edirect query file
         for num, openi in enumerate(openindex,0):
+            gsm_softfn = ""
             try:
                 # read gsm lines
                 gsm_softlines = lsoft[openi:closeindex[num]]
-                gsm_softfn = ".".join([timestamp, 
-                    str(rxgsm.findall(gsm_softlines[1])[0]),
-                    'soft'])
-                gsmid = gsm_softfn.split('.')[1]
+                # str(rxgsm.findall(gsm_softlines[1])[0])
+                gsmid = str(list(filter(rxgsm.match, gsm_softlines[1]))[0])
+                gsm_softfn = ".".join([timestamp, gsmid, 'soft'])
                 if gsmid in validgsmlist:
                     newfilesd[gse_softfile].append(gsm_softfn)
                     # first write new files to temp dir
