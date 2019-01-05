@@ -122,7 +122,7 @@ def expand_soft(gse_softdir='gse_soft', softpatt='.*\.soft.*', comppatt='.*\.gz$
 
 def extract_gsm_soft(gse_softdir = 'gse_soft',gsm_softdir = 'gsm_soft',
     filesdir = 'recount-methylation-files', temp_dir = 'temp', 
-    timestamp = gettime_ntp(), softcloseindex = '!sample_table_begin',
+    timestamp = gettime_ntp(), softcloseindex = '!Sample_data_row_count',
     validate = True, tempdir = 'temp', eqfiltdict = get_queryfilt_dict()):
     """ Extract GSM soft file sections from GSE soft files.
         Arguments 
