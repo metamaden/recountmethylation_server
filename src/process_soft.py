@@ -120,7 +120,7 @@ def expand_soft(gse_softdir='gse_soft', softpatt='.*\.soft.*', comppatt='.*\.gz$
     # return dictionary of compressed GSE soft files and statuses
     return rsoftd
 
-def extract_gsm_soft(gsesoft_flist = [], gse_softdir='gse_soft',
+def extract_gsm_soft(gsesoft_flist=[], gse_softdir='gse_soft',
     gsm_softdir='gsm_soft', filesdir='recount-methylation-files', 
     temp_dir='temp', timestamp=gettime_ntp(), softopenindex='.*!Sample_title.*', 
     softcloseindex='.*!Sample_data_row_count.*', validate=True, 
@@ -202,7 +202,7 @@ def extract_gsm_soft(gsesoft_flist = [], gse_softdir='gse_soft',
                 if '!Sample_geo_accession' in line
             ]
             if len(gsmid_lines)==1:
-                gsmid = str(rxgsm.findall(gsmid_lines)[0])
+                gsmid = str(rxgsm.findall(gsmid_lines[0])[0])
                 print("Found GSM id : "+gsmid)
                 gsm_softfn = ".".join([timestamp, gsmid, 'soft'])
                 if qcprint:
