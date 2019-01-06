@@ -103,8 +103,8 @@ def querydict(querypath, splitdelim='\t'):
         querydict[gsekey] = gsmlist
     return querydict
 
-def get_queryfilt_dict(filesdir = 'recount-methylation-files',
-    eqtarget = 'equery'):
+def get_queryfilt_dict(filesdir='recount-methylation-files',
+    eqtarget='equery'):
     """ Grab the latest filtered GSE query file as a dictionary
         Arguments
             * filesdir: Root name of directory containing database files.
@@ -113,12 +113,16 @@ def get_queryfilt_dict(filesdir = 'recount-methylation-files',
             * gsefiltd (dict): GSE filtered query, as a dictionary object.
     """
     eqpath = os.path.join('recount-methylation-files','equery')
-    gsefilt_latest = getlatest_filepath(eqpath,'gsequery_filt')
-    if gsefilt_latest and not gsefilt_latest == 0:
-        gsefiltd = querydict(query=gsefilt_latest, splitdelim=' ')
+    gsefilt_latest = getlatest_filepath(eqpath,'gsequery_filt', 
+            embeddedpattern=True, tslocindex=1, returntype='returnlist'
+        )
+    if gsefilt_latest and len(gsefilt_latest)==1:
+        gsefiltd = querydict(querypath=gsefilt_latest[0], splitdelim=' ')
         return gsefiltd
     else:
-        print("Error, no gse filtered file found at location.")
+        print("Error: could not retrieve latest equery filt filepath! "
+            +"Are there more than one latest file at the search directory?")
+        return
 
 """ Notes and Tutorial
 """
