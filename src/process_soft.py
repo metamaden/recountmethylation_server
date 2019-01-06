@@ -319,8 +319,8 @@ def gsm_soft2json(gsm_softlist=[], gsm_softdir='gsm_soft',
         # check existant json files before attempting conversion
         for gsm_softfn in gsm_softfn_list:
             gsmid = gsm_softfn.split('.')[1]
+            statd[gsm_softfn] = []
             if gsmid in validgsmlist:
-                statd[gsm_softfn] = []
                 softts = gsm_softfn.split('.')[0] # soft file timestamp
                 rgsm = re.compile('.*GSM.*')
                 gsmid = gsm_softfn.split('.')[1]
