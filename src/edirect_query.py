@@ -203,6 +203,11 @@ def gsequery_filter(gsequerystr='gsequery',gsmquerystr='gsmquery',
     gsmquery_fnlatest = getlatest_filepath(filepath=eqpath,filestr=gsmquerystr,
             embeddedpattern=True, tslocindex=1, returntype='returnlist'
         )
+    if gsmquery_fnlatest:
+        print("Latest gsmquery file detected: "+str(gsmquery_fnlatest))
+    else:
+        print("Error detecting latest gsmquery file! Returning...")
+        return
     gsmq_latestpath = os.path.join(eqpath, gsmquery_fnlatest[0])
     gsmlines = [line.rstrip('\n') for line in open(gsmq_latestpath)]
     gsmlist = [gsmlist.append(line.split('\t')[1::][0]) for line in gsmlines] 
@@ -210,6 +215,11 @@ def gsequery_filter(gsequerystr='gsequery',gsmquerystr='gsmquery',
     gsequery_fnlatest = getlatest_filepath(filepath=eqpath, filestr=gsequerystr,
             embeddedpattern=True, tslocindex=1, returntype='returnlist'
         )
+    if gsequery_fnlatest:
+        print("Latest gsequery file detected: "+str(gsequery_fnlatest))
+    else:
+        print("Error detecting latest gsequery file! Returning...")
+        return
     gseq_latestpath = os.path.join(eqpath, gsequery_fnlatest[0])
     gsed_obj = querydict(query=gseq_latestpath, splitdelim='\t')
     # for line in gsmlines:
