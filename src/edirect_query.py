@@ -230,7 +230,7 @@ def gsequery_filter(gsequerystr='gse_edirectquery', eqdir='equery',
             if sample in gsmlist
         ]
         if samplelist_filt and len(samplelist_filt)>0:
-            gsefiltl.append(' '.join([gsekey,' '.join(ival)]))
+            gsefiltl.append(' '.join([gsekey,' '.join(samplelist_filt)]))
         #if len(samplelist_original)>0:
         #    for sample in samplelist_original:
         #        if not sample in gsmlist:
