@@ -210,7 +210,7 @@ def gsequery_filter(gsequerystr='gse_edirectquery', eqdir='equery',
         print("Error detecting latest gsmquery file! Returning...")
         return
     gsmlines = [line.rstrip('\n') for line in open(gsmqueryf_latestpath[0])]
-    gsmlist = [gsmlist.append(line.split('\t')[1::][0]) for line in gsmlines] 
+    gsmlist = [line.split('\t')[1::][0] for line in gsmlines] 
     # get GSE dictionary object
     gsequeryf_latestpath = getlatest_filepath(filepath=eqpath, filestr=gsequerystr,
             embeddedpattern=True, tslocindex=1, returntype='returnlist'
