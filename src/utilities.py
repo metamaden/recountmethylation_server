@@ -83,16 +83,16 @@ def getlatest_filepath(filepath, filestr, embeddedpattern=False, tslocindex=1,
     else:
         return None 
 
-def querydict(query, splitdelim = '\t'):
+def querydict(querypath, splitdelim='\t'):
     """ Ingest edirect query results file into a dictionary object.
         Arguments
-            * query (str) : Filepath of edirect results (format: 1 GSE per 
+            * querypath (str) : Filepath of edirect results (format: 1 GSE per 
                 newline).
         Returns
             * query (dictionary) : Dictionary (format : keys = GSEs, vals = GSM 
                 lists)
     """
-    querylines = [line.rstrip('\n') for line in open(query)]
+    querylines = [line.rstrip('\n') for line in open(querypath)]
     querylist = []
     querydict = {}
     for line in querylines:
