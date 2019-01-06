@@ -197,22 +197,28 @@ def extract_gsm_soft(gsesoft_flist = [], gse_softdir='gse_soft',
                 print("num : "+str(num))
                 print("openi : "+str(openi))
             gsm_softlines = lsoft[openi:closeindex[num]] # read gsm lines
-            gsmid = str(rxgsm.findall(gsm_softlines[1])[0])
-            gsm_softfn = ".".join([timestamp, gsmid, 'soft'])
-            if qcprint:
-                print("GSM id found : "+gsmid)
-                print(gsmid+" in valid list... "+str(gsmid in validgsmlist))
-            if gsmid in validgsmlist:
-                newfilesd[gse_softfile].append(gsm_softfn)
-                # first write new files to temp dir
-                gsm_newfile_path = os.path.join(temp_dir_make, gsm_softfn)
-                with open(gsm_newfile_path,"w+") as gsmfile:
-                    for line in gsm_softlines:
-                        gsmfile.write(line)
-                    gsmfile.close()
-            else: 
-                print("GSM id :"+gsmid+" is not a valid HM450k sample. "
-                    +"Continuing...")
+            
+            gsmid_lines = [line for line in gsm_softlines
+                if '!Sample_geo_accession' in line
+            ]
+            if len(gsmid_lines)==1:
+                gsmid = str(rxgsm.findall(gsmid_lines))
+                print("Found GSM id : "+gsmid)
+                gsm_softfn = ".".join([timestamp, gsmid, 'soft'])
+                if qcprint:
+                    print("GSM id found : "+gsmid)
+                    print(gsmid+" in valid list... "+str(gsmid in validgsmlist))
+                if gsmid in validgsmlist:
+                    newfilesd[gse_softfile].append(gsm_softfn)
+                    gsm_newfile_path = os.path.join(temp_dir_make, gsm_softfn)
+                    write = [gsmfile.write(line) for line in open(gsm_newfile_path,"w+")]
+                    with open(gsm_newfile_path,"w+") as gsmfile:
+                        writeobj =  [gsmfile.write(line) for line in gsmfile]
+                else: 
+                    print("GSM id :"+gsmid+" is not a valid HM450k sample. "
+                        +"Continuing...")
+            else:
+                print("GSM soft file :"++" is malformed! Continuing...")
     if qcprint:
         print("newfilesd : "+str(newfilesd))
     if validate:
