@@ -13,7 +13,7 @@ import glob
 import filecmp
 from itertools import chain
 sys.path.insert(0, os.path.join("recount-methylation-server","src"))
-from utilities import gettime_ntp, querydict
+from utilities import gettime_ntp, querydict, getlatest_filepath
 
 def gse_query_diffs(query1, query2, rstat=False):
     """ Compares two GSE query results, returning query file diffs or boolean.
