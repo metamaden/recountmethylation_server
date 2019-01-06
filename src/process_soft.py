@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import filecmp
 import tempfile
+from random import shuffle
 sys.path.insert(0, os.path.join("recount-methylation-server","src"))
 from utilities import gettime_ntp, getlatest_filepath, get_queryfilt_dict
 
@@ -153,7 +154,6 @@ def extract_gsm_soft(gsesoft_flist=[], gse_softdir='gse_soft',
         print("length validgsmlist : "+str(len(validgsmlist)))
     rvalidsoft = re.compile(".*soft$") # identify expanded GSE soft files
     gse_softpath = os.path.join(filesdir, gse_softdir)
-    gsm_softpath = os.path.join(filesdir, gsm_softdir)
     gsmsoft_tempdir = os.path.join(filesdir,temp_dir)
     os.makedirs(gsm_softpath, exist_ok=True)
     os.makedirs(gsmsoft_tempdir, exist_ok=True)
@@ -166,6 +166,7 @@ def extract_gsm_soft(gsesoft_flist=[], gse_softdir='gse_soft',
             if os.path.exists(os.path.join(gse_softpath), gsefile)
         ]
     gse_softlist = list(filter(rvalidsoft.match, gse_soft_dirlist))
+    shuffle(gse_softlist)
     gsmsoft_destpath = os.path.join(filesdir, gsm_softdir) # file dest path
     newfilesd = {} # new files, status dictionary to return
     if qcprint:
