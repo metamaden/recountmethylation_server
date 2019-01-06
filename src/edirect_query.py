@@ -185,8 +185,8 @@ def gse_query(dest='equery', temp='temp', validate=True,
             dldict['gsequery'].append(True)
     return dldict
 
-def gsequery_filter(gsequerystr='gsequery',gsmquerystr='gsmquery',
-    eqdir='equery', splitdelim='\t', timestamp=gettime_ntp(), 
+def gsequery_filter(gsequerystr='gse_edirectquery', eqdir='equery', 
+    splitdelim='\t', gsmquerystr='gsm_edirectquery', timestamp=gettime_ntp(), 
     filesdir='recount-methylation-files'):
     """ Prepare an edirect query file.
         Filter a GSE query file on its GSM membership. 
@@ -200,28 +200,27 @@ def gsequery_filter(gsequerystr='gsequery',gsmquerystr='gsmquery',
     """
     eqpath = os.path.join(filesdir,eqdir)
     # get GSM list from gsm query file
-    gsmquery_fnlatest = getlatest_filepath(filepath=eqpath,filestr=gsmquerystr,
-            embeddedpattern=True, tslocindex=1, returntype='returnlist'
+    gsmqueryf_latestpath = getlatest_filepath(filepath=eqpath,
+            filestr=gsmquerystr, embeddedpattern=True, tslocindex=1, 
+            returntype='returnlist'
         )
-    if gsmquery_fnlatest:
-        print("Latest gsmquery file detected: "+str(gsmquery_fnlatest))
+    if gsmqueryf_latestpath:
+        print("Latest gsmquery file detected: "+str(gsmqueryf_latestpath))
     else:
         print("Error detecting latest gsmquery file! Returning...")
         return
-    gsmq_latestpath = os.path.join(eqpath, gsmquery_fnlatest[0])
-    gsmlines = [line.rstrip('\n') for line in open(gsmq_latestpath)]
+    gsmlines = [line.rstrip('\n') for line in open(gsmqueryf_latestpath[0])]
     gsmlist = [gsmlist.append(line.split('\t')[1::][0]) for line in gsmlines] 
     # get GSE dictionary object
-    gsequery_fnlatest = getlatest_filepath(filepath=eqpath, filestr=gsequerystr,
+    gsequeryf_latestpath = getlatest_filepath(filepath=eqpath, filestr=gsequerystr,
             embeddedpattern=True, tslocindex=1, returntype='returnlist'
         )
-    if gsequery_fnlatest:
-        print("Latest gsequery file detected: "+str(gsequery_fnlatest))
+    if gsequeryf_latestpath:
+        print("Latest gsequery file detected: "+str(gsequeryf_latestpath))
     else:
         print("Error detecting latest gsequery file! Returning...")
         return
-    gseq_latestpath = os.path.join(eqpath, gsequery_fnlatest[0])
-    gsed_obj = querydict(query=gseq_latestpath, splitdelim='\t')
+    gsed_obj = querydict(query=gsequeryf_latestpath, splitdelim='\t')
     # for line in gsmlines:
     #     gsmlist.append(line.split('\t')[1::][0])
     gsefiltl = []
