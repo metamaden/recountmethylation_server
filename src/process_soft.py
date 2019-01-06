@@ -322,9 +322,9 @@ def gsm_soft2json(gsm_softlist=[], gsm_softdir='gsm_soft',
             if gsmid in validgsmlist:
                 statd[gsm_softfn] = []
                 softts = gsm_softfn.split('.')[0] # soft file timestamp
-                gsmid = gsm_softfn.split('.')[1]
                 rgsm = re.compile('.*GSM.*')
-                gsmid = str(filter(rgsm.match, gsmid)) # valid gsm id
+                gsmid = gsm_softfn.split('.')[1]
+                gsmid = str(rgsm.findall(gsmid)[0])
                 gsmjson_latestfpath = getlatest_filepath(
                         filepath=gsm_jsonpath, filestr=gsmid, tslocindex=0,  
                         returntype='returnlist', embeddedpattern=True,
