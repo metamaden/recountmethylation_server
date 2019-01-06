@@ -171,6 +171,7 @@ def extract_gsm_soft(gsesoft_flist=[], gse_softdir='gse_soft',
     gsmsoft_destpath = os.path.join(filesdir, gsm_softdir) # file dest path
     newfilesd = {} # new files, status dictionary to return
     if qcprint:
+        print("new tempdir for writing soft files : "+str(temp_dir_make))
         print("length gse_softlist: "+str(len(gse_softlist)))
     rxopen = re.compile(softopenindex)
     rxclose = re.compile(softcloseindex)
