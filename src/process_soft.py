@@ -153,7 +153,8 @@ def extract_gsm_soft(gsesoft_flist=[], gse_softdir='gse_soft',
     if qcprint:
         print("length validgsmlist : "+str(len(validgsmlist)))
     rvalidsoft = re.compile(".*soft$") # identify expanded GSE soft files
-    gse_softpath = os.path.join(filesdir, gse_softdir)
+    gse_softpath = os.path.join(filesdir, gse_softdir) # GSE softpath
+    gsm_softpath = os.path.join(filesdir, gsm_softdir) # GSM softpath
     gsmsoft_tempdir = os.path.join(filesdir,temp_dir)
     os.makedirs(gsm_softpath, exist_ok=True)
     os.makedirs(gsmsoft_tempdir, exist_ok=True)
