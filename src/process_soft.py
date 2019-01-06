@@ -507,7 +507,7 @@ def msrap_screens(json_flist=[], nscreensi=50, nmaxscreens=20, srcdir='src',
     rmsrapout = re.compile(msrapoutfnpattern)
     # generate fl list of valid json files (haven't been processed yet)
     fl = []
-    if json_flist and len(json_flist>0):
+    if json_flist and len(json_flist)>0:
         # filter on valid json filenames
         jsonfnlist = list(filter(rjson.match, json_flist)) 
         # extract gsm ids from json files list
