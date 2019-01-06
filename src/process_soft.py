@@ -176,7 +176,7 @@ def extract_gsm_soft(gsesoft_flist=[], gse_softdir='gse_soft',
     rxgsmfile = re.compile('.*GSM.*')
     for gse_softfile in gse_softlist:
         if qcprint:
-            print("Beginning gse softfile : "+gsesoftfile)
+            print("Beginning gse softfile : "+gse_softfile)
         newfilesd[gse_softfile] = []
         openindex = []
         closeindex = []
