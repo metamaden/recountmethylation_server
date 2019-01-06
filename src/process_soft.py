@@ -202,7 +202,7 @@ def extract_gsm_soft(gsesoft_flist = [], gse_softdir='gse_soft',
                 if '!Sample_geo_accession' in line
             ]
             if len(gsmid_lines)==1:
-                gsmid = str(rxgsm.findall(gsmid_lines))
+                gsmid = str(list(filter(rxgsm.match,gsmid_lines))[0])
                 print("Found GSM id : "+gsmid)
                 gsm_softfn = ".".join([timestamp, gsmid, 'soft'])
                 if qcprint:
