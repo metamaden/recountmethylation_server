@@ -175,6 +175,8 @@ def extract_gsm_soft(gsesoft_flist=[], gse_softdir='gse_soft',
     rxgsm = re.compile('GSM[0-9]*')
     rxgsmfile = re.compile('.*GSM.*')
     for gse_softfile in gse_softlist:
+        if qcprint:
+            print("Beginning gse softfile : "+gsesoftfile)
         newfilesd[gse_softfile] = []
         openindex = []
         closeindex = []
@@ -196,8 +198,8 @@ def extract_gsm_soft(gsesoft_flist=[], gse_softdir='gse_soft',
             if qcprint:
                 print("num : "+str(num))
                 print("openi : "+str(openi))
+                print("closei : "+str(closeindex[num]))
             gsm_softlines = lsoft[openi:closeindex[num]] # read gsm lines
-            
             gsmid_lines = [line for line in gsm_softlines
                 if '!Sample_geo_accession' in line
             ]
@@ -212,13 +214,16 @@ def extract_gsm_soft(gsesoft_flist=[], gse_softdir='gse_soft',
                     newfilesd[gse_softfile].append(gsm_softfn)
                     gsm_newfile_path = os.path.join(temp_dir_make, gsm_softfn)
                     write = [gsmfile.write(line) for line in open(gsm_newfile_path,"w+")]
-                    with open(gsm_newfile_path,"w+") as gsmfile:
-                        writeobj =  [gsmfile.write(line) for line in gsmfile]
+                    open(gsm_newfile_path,"w+").write("\n".join(gsm_softlines))
+                    #with open(gsm_newfile_path,"w+") as gsmfile:
+                    #    for line in gsm_softlines:
+                    #        gsmfile.write(line)
+                    #    writeobj =  [gsmfile.write(line) for line in gsmfile]
                 else: 
                     print("GSM id :"+gsmid+" is not a valid HM450k sample. "
                         +"Continuing...")
             else:
-                print("GSM soft file :"++" is malformed! Continuing...")
+                print("GSM soft lines malformed! Continuing...")
     if qcprint:
         print("newfilesd : "+str(newfilesd))
     if validate:
