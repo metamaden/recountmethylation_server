@@ -15,7 +15,7 @@ from itertools import chain
 sys.path.insert(0, os.path.join("recount-methylation-server","src"))
 from utilities import gettime_ntp, querydict
 
-def gse_query_diffs(query1,query2,rstat = False):
+def gse_query_diffs(query1, query2, rstat=False):
     """ Compares two GSE query results, returning query file diffs or boolean.
         Arguments
             * query1 (str) : first edirect query, filename
@@ -36,13 +36,13 @@ def gse_query_diffs(query1,query2,rstat = False):
             if not qd1[key]==qd2[key]:
                 for item in qd1[key]:
                     if not item in qd2[key]:
-                        evalkey = 'notalike'
+                        evalkey = False
                 for item in qd2[key]:
                     if not item in qd1[key]:
-                        evalkey = 'notalike'
+                        evalkey = False
         else:
-            evalkey = 'notpresent'
-        if (evalkey == 'notalike') or (evalkey == 'notpresent'):
+            evalkey = None
+        if not evalkey:
             difflist.append(key)
     for key in qd2:
         if not key in list(qd1.keys()):
@@ -55,8 +55,8 @@ def gse_query_diffs(query1,query2,rstat = False):
     else:
         return difflist
 
-def gsm_query(dest = 'equery', temp = 'temp', validate = True, 
-    timestamp = str(gettime_ntp())):
+def gsm_query(dest='equery', temp='temp', validate=True, 
+    timestamp=gettime_ntp()):
     """ Get GSM level query object, from edirect query.
         Arguments
             * dest (str) : Destination directory for query object
@@ -118,8 +118,8 @@ def gsm_query(dest = 'equery', temp = 'temp', validate = True,
             dldict['gsmquery'].append(True)
     return dldict
 
-def gse_query(dest = 'equery', temp = 'temp', validate = True, 
-    timestamp = str(gettime_ntp())):
+def gse_query(dest='equery', temp='temp', validate=True, 
+    timestamp=gettime_ntp()):
     """ Get GSE level query object from edirect query.
         Arguments
             * dest (str) : Destination directory for query object.
@@ -185,8 +185,9 @@ def gse_query(dest = 'equery', temp = 'temp', validate = True,
             dldict['gsequery'].append(True)
     return dldict
 
-def gsequery_filter(gsequery='gsequery',gsmquery='gsmquery',target='equery',
-    splitdelim = '\t', timestamp = str(gettime_ntp())):
+def gsequery_filter(gsequerystr='gsequery',gsmquerystr='gsmquery',
+    eqdir='equery', splitdelim='\t', timestamp=gettime_ntp(), 
+    filesdir='recount-methylation-files'):
     """ Prepare an edirect query file.
         Filter a GSE query file on its GSM membership. 
         Arguments
@@ -197,30 +198,41 @@ def gsequery_filter(gsequery='gsequery',gsmquery='gsmquery',target='equery',
             * gsequeryfiltered (list): Filtered GSE query object (list), writes
                 filtered query file as side effect.
     """
-    # timestamp = str(gettime_ntp())
-    gsed = querydict(query = gsequery,splitdelim = '\t')
-    gsmlines = [line.rstrip('\n') for line in open(gsmquery)]
-    gsmlist = [] # list of valid gsms with idat suppfiles
-    for line in gsmlines:
-        gsmlist.append(line.split('\t')[1::][0])
+    eqpath = os.path.join(filesdir,eqdir)
+    # get GSM list from gsm query file
+    gsmquery_fnlatest = getlatest_filepath(filepath=eqpath,filestr=gsmquerystr,
+            embeddedpattern=True, tslocindex=1, returntype='returnlist'
+        )
+    gsmq_latestpath = os.path.join(eqpath, gsmquery_fnlatest[0])
+    gsmlines = [line.rstrip('\n') for line in open(gsmq_latestpath)]
+    gsmlist = [gsmlist.append(line.split('\t')[1::][0]) for line in gsmlines] 
+    # get GSE dictionary object
+    gsequery_fnlatest = getlatest_filepath(filepath=eqpath, filestr=gsequerystr,
+            embeddedpattern=True, tslocindex=1, returntype='returnlist'
+        )
+    gseq_latestpath = os.path.join(eqpath, gsequery_fnlatest[0])
+    gsed_obj = querydict(query=gseq_latestpath, splitdelim='\t')
+    # for line in gsmlines:
+    #     gsmlist.append(line.split('\t')[1::][0])
     gsefiltl = []
-    for gsekey in list(gsed.keys()):
-        ival = gsed[gsekey]
-        # print(gsmkey)
-        if len(ival)>0:
-            for gsm in ival:
-                if not gsm in gsmlist:
-                    ival.remove(gsm)
-            if len(gsed[gsekey])>0:
-                gsefiltl.append(' '.join([gsekey,' '.join(ival)]))
+    for gsekey in list(gsed_obj.keys()):
+        samplelist_original = gsed_obj[gsekey]
+        samplelist_filt = [sample for sample in samplelist_original
+            if sample in gsmlist
+        ]
+        if samplelist_filt and len(samplelist_filt)>0:
+            gsefiltl.append(' '.join([gsekey,' '.join(ival)]))
+        #if len(samplelist_original)>0:
+        #    for sample in samplelist_original:
+        #        if not sample in gsmlist:
+        #            ival.remove(gsm)
+        #    if len(gsed[gsekey])>0:        
     print('writing filt file...')
-    if target:
-        towrite = ".".join(["gsequery_filt",timestamp])
-        with open(os.path.join(target,towrite), 'w') as filtfile:
+    if eqpath:
+        filtfn = ".".join(["gsequery_filt",timestamp])
+        with open(os.path.join(eqpath, filtfn), 'w') as filtfile:
             for item in gsefiltl:
                 filtfile.write("%s\n" % item)
-    # to read in the gsequery_filt file:
-    # gsefiltd = querydict(query = 'gsequery_filt.t',splitdelim = ' ')
     return gsefiltl
 
 """ Notes and Tutorial
