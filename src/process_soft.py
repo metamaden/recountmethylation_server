@@ -120,10 +120,10 @@ def expand_soft(gse_softdir='gse_soft', softpatt='.*\.soft.*', comppatt='.*\.gz$
     # return dictionary of compressed GSE soft files and statuses
     return rsoftd
 
-def extract_gsm_soft(gse_softdir='gse_soft',gsm_softdir='gsm_soft',
-    filesdir='recount-methylation-files', temp_dir='temp', 
-    timestamp=gettime_ntp(), softopenindex='!Sample_title', 
-    softcloseindex='!Sample_data_row_count', validate=True, 
+def extract_gsm_soft(gsesoft_flist = [], gse_softdir='gse_soft',
+    gsm_softdir='gsm_soft', filesdir='recount-methylation-files', 
+    temp_dir='temp', timestamp=gettime_ntp(), softopenindex='.*!Sample_title.*', 
+    softcloseindex='.*!Sample_data_row_count.*', validate=True, 
     tempdir='temp', eqfiltdict=get_queryfilt_dict(), qcprint=False):
     """ Extract GSM soft file sections from GSE soft files.
         Arguments 
@@ -151,20 +151,23 @@ def extract_gsm_soft(gse_softdir='gse_soft',gsm_softdir='gsm_soft',
     ]
     if qcprint:
         print("length validgsmlist : "+str(len(validgsmlist)))
-    r1 = re.compile(".*soft$") # identify expanded GSE soft files
-    # gse_soft files path
+    rvalidsoft = re.compile(".*soft$") # identify expanded GSE soft files
     gse_softpath = os.path.join(filesdir, gse_softdir)
-    gse_soft_dirlist = os.listdir(gse_softpath)
-    gse_softlist = list(filter(r1.match, gse_soft_dirlist))
     gsm_softpath = os.path.join(filesdir, gsm_softdir)
-    os.makedirs(gsm_softpath, exist_ok=True)
-    # temp dir
     gsmsoft_tempdir = os.path.join(filesdir,temp_dir)
+    os.makedirs(gsm_softpath, exist_ok=True)
     os.makedirs(gsmsoft_tempdir, exist_ok=True)
     temp_dir_make = tempfile.mkdtemp(dir=gsmsoft_tempdir)
-    # gsm soft dest path
-    gsmsoft_destpath = os.path.join(filesdir, gsm_softdir)
-    newfilesd = {}
+    if not gsesoft_flist or len(gsesoft_flist)==0:
+        gse_soft_dirlist = os.listdir(gse_softpath)
+    else:
+        gse_soft_dirlist = gsesoft_flist
+        gse_soft_dirlist = [gsefile for gsefile in gse_soft_dirlist
+            if os.path.exists(os.path.join(gse_softpath), gsefile)
+        ]
+    gse_softlist = list(filter(rvalidsoft.match, gse_soft_dirlist))
+    gsmsoft_destpath = os.path.join(filesdir, gsm_softdir) # file dest path
+    newfilesd = {} # new files, status dictionary to return
     if qcprint:
         print("length gse_softlist: "+str(len(gse_softlist)))
     rxopen = re.compile(softopenindex)
