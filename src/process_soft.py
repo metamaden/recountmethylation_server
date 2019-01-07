@@ -560,6 +560,8 @@ def msrap_screens(json_flist=[], nscreensi=50, nmaxscreens=20, srcdir='src',
         return None
     if qcprint:
         print('screens ll list, len = ' + str(len(ll)))
+        print('nmax screens = '+str(nmaxscreens))
+    ll = ll[0:nmaxscreens] # slice ll based on screen count max
     timestampi = gettime_ntp() # make single timestamp call, for all indices
     # deploy screen(s) running MetaSRA-pipeline
     if len(ll)>1:
