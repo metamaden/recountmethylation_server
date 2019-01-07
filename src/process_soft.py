@@ -468,7 +468,7 @@ def msrap_screens(json_flist=[], nscreensi=50, nmaxscreens=20, srcdir='src',
     filesdir='recount-methylation-files', gsmjsondir='gsm_json',
     gsmsoftdir='gsm_soft', serverfilesdir='recount-methylation-server', 
     psoftfn='process_soft.py', gsmmsrapoutdir='gsm_msrap_outfiles',
-    jsonfnpattern='.*json$', msrapoutfnpattern='.*msrapout$'):
+    jsonfnpattern='.*json$', msrapoutfnpattern='.*\.msrapout$', qcprint=False):
     """ Deploy multiple screens processing GSM JSON files with MetaSRA-pipeline.
         Only process GSMs for which no MetaSRA-pipeline outfiles already exist.
         Notes:
@@ -481,18 +481,19 @@ def msrap_screens(json_flist=[], nscreensi=50, nmaxscreens=20, srcdir='src',
                 compute spped (e.g. for slower systems a lower total nmaxscreens 
                 should be used).
         Arguments:
-            json_flist (list) : List of GSM JSON filenames to process. If not 
+            * json_flist (list) : List of GSM JSON filenames to process. If not 
                 provided, function automatically detects any new GSM JSON files
                 without available MetaSRA-pipeline outfiles.
-            nscreensi (int) : Number of samples to process per screen deployed.
-            nmaxscreens (int) : Limit to total screen session deployed. 
-            srcdir (str) : Source files (e.g. scripts) directory name.
-            filesdir (str) : Recount methylation files based directory name.
-            gsmjsondir (str) : Files directory name containing GSM JSON files.
-            gsmsoftdir (str) : Files directory name containing GSM Soft files.
-            serverfilesdir (str) : Recount methylation server directory name.
-            psoftfn (str) : Name of script for preprocessing soft files.
-            gsmmsrapoutdir (str) : MetaSRA-pipeline outfiles directory name.
+            * nscreensi (int) : Number of samples to process per screen deployed.
+            * nmaxscreens (int) : Limit to total screen session deployed. 
+            * srcdir (str) : Source files (e.g. scripts) directory name.
+            * filesdir (str) : Recount methylation files based directory name.
+            * gsmjsondir (str) : Files directory name containing GSM JSON files.
+            * gsmsoftdir (str) : Files directory name containing GSM Soft files.
+            * serverfilesdir (str) : Recount methylation server directory name.
+            * psoftfn (str) : Name of script for preprocessing soft files.
+            * gsmmsrapoutdir (str) : MetaSRA-pipeline outfiles directory name.
+            * qcprint (Bool) : Whether to print QC texts.
         Returns:
             (Null) Generates >=1 screens for preprocessing files list(s), as a 
                 side effect.
@@ -508,20 +509,18 @@ def msrap_screens(json_flist=[], nscreensi=50, nmaxscreens=20, srcdir='src',
     # generate fl list of valid json files (haven't been processed yet)
     fl = []
     if json_flist and len(json_flist)>0:
-        # filter on valid json filenames
         jsonfnlist = list(filter(rjson.match, json_flist)) 
-        # extract gsm ids from json files list
         jsongsmlist = [x.split('.')[1] for x in jsonfnlist]
     else:
-        # all gsm json filenames
         json_flist = os.listdir(gsmjsonpath)
-        # filter valid json filenames
         jsonfnlist = list(filter(rjson.match, json_flist)) 
-        # extract gsm ids from json files list
         jsongsmlist = [x.split('.')[1] for x in jsonfnlist]
     # list all msrapout files, filtering on valid filenames
     msrapoutfnlist = os.listdir(gsmmsrapoutpath) 
     msrapoutfnlist = list(filter(rmsrapout.match, msrapoutfnlist))
+    if qcprint:
+        print("Found "+str(len(msrapoutfnlist))+" files with pattern "
+            +msrapoutfnpattern+". Continuing...")
     # list msrap outfiles gsm ids, and filter json gsm ids
     msrapgsmlist = [x.split('.')[2] for x in msrapoutfnlist]
     gsmprocess = [g for g in jsongsmlist 
@@ -530,18 +529,23 @@ def msrap_screens(json_flist=[], nscreensi=50, nmaxscreens=20, srcdir='src',
         ]
     # grab json filenames from json dir for gsm ids in process list
     for gsmid in gsmprocess:
-        gjsonfn = getlatest_filepath(filepath=gsmjsonpath,
+        gjsonfpath = getlatest_filepath(filepath=gsmjsonpath,
                 filestr=gsmid, embeddedpattern=True, tslocindex=0,
                 returntype='returnlist'
             )
-        if gjsonfn and len(gjsonfn)==1:
-            gjsonfn = [os.path.basename(gjsonfn[0])]
+        if gjsonfpath and len(gjsonfpath)==1:
+            gjsonfn = [os.path.basename(gjsonfpath[0])]
         else:
-            gjsonfn = [os.path.basename(fn) for fn in gjsonfn]
+            gjsonfn = [os.path.basename(fn) for fn in gjsonfpath]
         gjsonfn = gjsonfn[0]
         fl.append(gjsonfn)
+        if qcprint:
+            print("Appended file "+gjsonfn+" to files list to process. "
+                +"Continuing...")
     # form list of fn lists based on nscreensi and indices/slices
     if fl:
+        if qcprint:
+            print("Forming list of fn lists for screen deployment...")
         ll = []
         rangelist = [i for i in range(0, len(fl), nscreensi)]
         for enum, i in enumerate(rangelist[:-1]):
@@ -551,9 +555,10 @@ def msrap_screens(json_flist=[], nscreensi=50, nmaxscreens=20, srcdir='src',
     else:
         print("Error, no files list object to process. Returning...")
         return None
-    # deploy screen(s) running MetaSRA-pipeline
-    # print('ll len = ' + str(len(ll)))
+    if qcprint:
+        print('screens ll list, len = ' + str(len(ll)))
     timestampi = gettime_ntp() # make single timestamp call, for all indices
+    # deploy screen(s) running MetaSRA-pipeline
     if len(ll)>1:
         for loc, sublist in enumerate(ll):
             # each loc in ll represents a new screen index, check vs. screen max
