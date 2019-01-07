@@ -58,8 +58,8 @@ from edirect_query import gsm_query, gse_query, gsequery_filter
 from utilities import gettime_ntp, getlatest_filepath, querydict
 from utilities import get_queryfilt_dict  
 
-def firsttime_run(filedir = 'recount-methylation-files', 
-    run_timestamp = gettime_ntp()):
+def firsttime_run(filedir='recount-methylation-files', 
+    run_timestamp=gettime_ntp()):
     """ On first setup, run new equeries and query filter.
         Arguments
             * filedir (str): Dir name for db files. 
@@ -69,16 +69,16 @@ def firsttime_run(filedir = 'recount-methylation-files',
     """
     equery_dest = os.path.join(filedir,'equery')
     temp = os.path.join(filedir,'temp')
-    gse_query(dest = equery_dest, temp = temp, timestamp = run_timestamp)
-    gsm_query(dest = equery_dest, temp = temp, timestamp = run_timestamp)
+    gse_query(dest=equery_dest, temp=temp, timestamp=run_timestamp)
+    gsm_query(dest=equery_dest, temp=temp, timestamp=run_timestamp)
     gseqfile = getlatest_filepath(equery_dest,'gse_edirectquery') 
     gsmqfile = getlatest_filepath(equery_dest,'gsm_edirectquery')
-    gsequery_filter(gsequery = gseqfile,gsmquery = gsmqfile,
+    gsequery_filter(gsequery=gseqfile,gsmquery = gsmqfile,
         target = equery_dest,splitdelim = ' ', timestamp = run_timestamp
         )
     gsefiltpath = getlatest_filepath(equery_dest,'gsequery_filt')
     if gsefiltpath and not gsefiltpath == 0:
-        gsefiltd = querydict(query = gsefiltpath,splitdelim=' ')
+        gsefiltd = querydict(querypath=gsefiltpath,splitdelim=' ')
         gseidlist = list(gsefiltd.keys())
         print("GSE id list of len "+str(len(gseidlist))+" found. Returning...")
         return gseidlist
@@ -86,8 +86,8 @@ def firsttime_run(filedir = 'recount-methylation-files',
         print("Error retrieving gse query filtered file. Returning...")
         return 0
 
-def scheduled_run(eqfilt_path=False, filedir = 'recount-methylation-files', 
-    run_timestamp = gettime_ntp()):
+def scheduled_run(eqfilt_path=False, filedir='recount-methylation-files', 
+    run_timestamp=gettime_ntp()):
     """ Tasks performed on regular schedule, after first setup
         Arguments
             * eqfilt_path (str) : Filepath to edirect query filter file.
@@ -105,29 +105,27 @@ def scheduled_run(eqfilt_path=False, filedir = 'recount-methylation-files',
         # run fresh gse/gsm queries if not found
         gsequery_latest = getlatest_filepath(eqpath,'gse_edirectquery')
         if not gsequery_latest or gsequery_latest == 0:
-            gse_query(dest = eqpath,
-                temp = os.path.join(filedir,'temp'),
-                timestamp = run_timestamp
+            gse_query(dest=eqpath, temp=os.path.join(filedir,'temp'),
+                    timestamp=run_timestamp
                 )
         gsmquery_latest = getlatest_filepath(eqpath,'gsm_edirectquery')
         if not gsmquery_latest or gsmquery_latest == 0:
-            gsm_query(dest = eqpath,
-                temp = os.path.join(filedir,'temp'),
-                timestamp = run_timestamp
+            gsm_query(dest=eqpath, temp=os.path.join(filedir,'temp'),
+                timestamp=run_timestamp
                 )
         # run new gse filt
         print("Running filter on gse query...")
         gsequery_filter(gsequery=gsequery_latest,
-                gsmquery = gsmquery_latest,
-                target = eqpath, splitdelim = ' ',
-                timestamp = run_timestamp
+                gsmquery=gsmquery_latest,
+                target=eqpath, splitdelim=' ',
+                timestamp=run_timestamp
                 )
         gsefilt_latest = getlatest_filepath(eqpath,'gsequery_filt')
     else:
         print("Gse query filt file found. Continuing...")
     if gsefilt_latest:
         print("Getting dictionary from gse filt file...")
-        gsefiltd = querydict(query = gsefilt_latest, splitdelim = ' ')
+        gsefiltd = querydict(querypath=gsefilt_latest, splitdelim=' ')
         gseidlist = list(gsefiltd.keys())
         print("GSE id list of len "+str(len(gseidlist)) + " found. Returning..")
         return gseidlist
