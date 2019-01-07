@@ -528,7 +528,7 @@ def msrap_screens(json_flist=[], nscreensi=50, nmaxscreens=20, srcdir='src',
             g[0:3]=='GSM'
         ]
     # grab json filenames from json dir for gsm ids in process list
-    for gsmid in gsmprocess:
+    for index, gsmid in enumerate(gsmprocess):
         gjsonfpath = getlatest_filepath(filepath=gsmjsonpath,
                 filestr=gsmid, embeddedpattern=True, tslocindex=0,
                 returntype='returnlist'
@@ -541,7 +541,8 @@ def msrap_screens(json_flist=[], nscreensi=50, nmaxscreens=20, srcdir='src',
         fl.append(gjsonfn)
         if qcprint:
             print("Appended file "+gjsonfn+" to files list to process. "
-                +"Continuing...")
+                +"Progress: "+str(index)+"/"+str(len(gsmprocess))+"="+
+                +str(100*round(index/len(gsmprocess),3))+"%. Continuing...")
     # form list of fn lists based on nscreensi and indices/slices
     if fl:
         if qcprint:
