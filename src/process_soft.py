@@ -540,7 +540,8 @@ def msrap_screens(json_flist=[], nscreensi=50, nmaxscreens=20, srcdir='src',
         gjsonfn = gjsonfn[0]
         fl.append(gjsonfn)
         if qcprint:
-            perci = str(round(100*(index/len(gsmprocess),2)))
+            numi = 100*(index/len(gsmprocess))
+            perci = str(round(numi,2))
             print("Appended file "+gjsonfn+" to files list to process. "
                 +"Progress: "+str(index)+"/"+str(len(gsmprocess))+"="
                 +perci+"%. Continuing...")
