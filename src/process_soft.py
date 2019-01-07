@@ -542,7 +542,7 @@ def msrap_screens(json_flist=[], nscreensi=50, nmaxscreens=20, srcdir='src',
         if qcprint:
             print("Appended file "+gjsonfn+" to files list to process. "
                 +"Progress: "+str(index)+"/"+str(len(gsmprocess))+"="+
-                +str(100*round(index/len(gsmprocess),3))+"%. Continuing...")
+                +str(100*round(index/len(gsmprocess),2))+"%. Continuing...")
     # form list of fn lists based on nscreensi and indices/slices
     if fl:
         if qcprint:
