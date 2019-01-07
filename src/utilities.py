@@ -6,7 +6,20 @@ import socket
 import struct
 import sys
 import time
-# sys.path.insert(0, os.path.join("recount-methylation-server","src"))
+
+""" utilities.py
+    Commonly referenced functions for recount methylation server.
+    Functions:
+        * gettime_ntp: Return an NTP timestamp as a string.
+        * getlatest_filepath: Access the path to the latest version of a file in
+            a provided files directory. References NTP timestamp in filename to 
+            determine latest available file.
+        * querydict: For a dictionary object by reading in an edirect query 
+            file.
+        * get_queryfilt_dict: Retrieve latest edirect query filtered file. 
+            References querydict and getlatest_filepath, accesses equery files 
+            directory.
+"""
 
 def gettime_ntp(addr = 'time.nist.gov'):
     """ Get NTP Timestamp,
@@ -123,6 +136,3 @@ def get_queryfilt_dict(filesdir='recount-methylation-files',
         print("Error: could not retrieve latest equery filt filepath! "
             +"Are there more than one latest file at the search directory?")
         return
-
-""" Notes and Tutorial
-"""

@@ -16,6 +16,22 @@ sys.path.insert(0, os.path.join("recount-methylation-server","src"))
 from utilities import gettime_ntp, getlatest_filepath
 # import atexit
 
+""" dl.py
+    Functions to manage download of idats and experiment soft files from GEO.
+    Notes:
+        * Validate: Each dl function includes a validation against existing
+            files in the files destination directory of 
+            'recount-methylation-files.'
+        * Job queue: Downloads are launched from the GSE-based job defined for
+            the celery job queue.
+    Functions:
+        * soft_mongo_date: grab latest update date for a soft file from the 
+            Recount Methylation Mongo db (or 'RMDB'). 
+        * idat_mongo_date: grab latest update date for an idat file from RMDB.
+        * dl_idat: Download and validate idat files.
+        * dl_soft: Download and validate soft files.
+"""
+
 def soft_mongo_date(gse,filename,client):
     """ Get date(s) from mongo soft subcollection
 

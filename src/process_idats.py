@@ -7,6 +7,12 @@ import gzip
 import shutil
 # sys.path.insert(0, os.path.join("recount-methylation-server","src"))
 
+""" process_idats.py
+    Functions to preprocess idats before being read into minfi.
+    Functions:
+        * expand_idats: Expand compressed idat files.
+"""
+
 def expand_idats(filesdir = 'recount-methylation-files', idatsdir = 'idats'):
     """ Detect and expand available idat files.
         Arguments:

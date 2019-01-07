@@ -19,6 +19,15 @@ from utilities import querydict
     prepare data and valid sheet files for R analysis.
     Prepares SOFT data for by-GSM input to MetaSRA-pipeline, and runs the 
     pipeline.
+    Functions:
+        * get_mongofiles_for_preprocessing: Access latest file info for idats 
+            and soft files, from RMDB. Includes validation of filepaths.
+        * process_gsesoft: Wrapper function serving as preprocessing pipeline
+            from gse soft files to gsm MetaSRA-pipeline outfiles (mapped sample
+            metadata).
+        * compile_rsheet: Compile a valid sheet/table of samples with info for 
+            metadata and idat filenames, and collapsed form of the MetaSRA-
+            pipeline output. Can be read into R/minfi.
 """
 
 def get_mongofiles_for_preprocessing(idatsdir, softdir, filtresults = True):
@@ -353,7 +362,6 @@ def compile_rsheet(eqfiltd=get_queryfilt_dict(), sheetsdir='sheetfiles',
 if __name__ == "__main__":
     idir = os.path.join('recount-methylation-files','idats')
     sdir = os.path.join('recount-methylation-files','gse_soft')
-    pfd = preprocess.get_mongofiles_for_preprocessing(idatsdir=idir,
-        softdir = sdir)
+    pfd = get_mongofiles_for_preprocessing(idatsdir=idir, softdir = sdir)
     process_gsesoft() # processes all soft files
     gse_soft_records = pfd['soft'] # select valid soft files

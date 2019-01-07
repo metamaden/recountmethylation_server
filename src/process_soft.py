@@ -597,12 +597,3 @@ if __name__ == "__main__":
     flmsrap = [file for file in args.msraplist.split(' ')]
     # run msrap on files list
     run_metasrapipeline(json_flist=flmsrap, timestamp=args.ntptime)
-
-
-
-
-
-
-
-
-

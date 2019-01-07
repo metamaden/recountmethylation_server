@@ -15,6 +15,33 @@ from itertools import chain
 sys.path.insert(0, os.path.join("recount-methylation-server","src"))
 from utilities import gettime_ntp, querydict, getlatest_filepath
 
+""" edirect_query.py
+    Get files of GSE and GSM ids from GEO via edirect query (NCBI entrez 
+    utlities function). IDs correspond to valid HM450k array experiments and 
+    samples.
+    Notes:
+        * Schedule: New edirect queries should be scheduled periodically to 
+            check for latest experiment/sample/file info and to detect novel
+            uploaded experiments/samples/files.
+        * Filter: The edirect queries (GSE, GSM, and filtered query file) work
+            together to form a filter on valid files to be downloaded and 
+            preprocessed. 
+    Functions:
+        * gse_query_diffs: Quickly detect and return differences between two 
+            edirect query files.
+        * gsm_query: Get valid HM450k sample (GSM) IDs, based on presence of 
+            HM450k platform and availability of raw idat array files in 
+            supplement.
+        * gse_query: Get valid HM450k experiment (GSE) IDs, based on 
+            specification of the correct platform accession (GPL13534) in the 
+            experiment annotation. Note, many experiments combine multiple 
+            platform ids, so it is necessary to filter out non-HM450k array 
+            samples from experiment GSM ID lists.
+        * gsequery_filter: Generate a new edirect query filter file, containing
+            valid GSE and GSM IDs for HM450k array experiments/samples with
+            idats available in sample supplemental files.
+"""
+
 def gse_query_diffs(query1, query2, rstat=False):
     """ Compares two GSE query results, returning query file diffs or boolean.
         Arguments
@@ -243,29 +270,3 @@ def gsequery_filter(gsequerystr='gse_edirectquery', eqdir='equery',
             for item in gsefiltl:
                 filtfile.write("%s\n" % item)
     return gsefiltl
-
-""" Notes and Tutorial
-
-import subprocess
-import os
-import socket
-import struct
-import sys
-import time
-import tempfile
-import atexit
-import shutil
-import glob
-import filecmp
-
-from edirect_query import gettime_ntp, gsm_query, gse_query, querydict, gse_query_diffs
-
-gsm_query()
-
-gse_query()
-
-gse_query_diffs(query1='./equery/gse_edirectquery.timestamp2',
-    query2='./temp/tmpavadzdzh/gse_edirectquery.sometime',
-    rstat=True)
-
-"""

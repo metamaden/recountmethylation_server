@@ -193,12 +193,3 @@ if __name__ == "__main__":
                 )
         else:
             print("Error: Valid gselist absent. Returning...")
-
-        
-"""
-Examples and Tutorial
-
-# small experiment example
-gselist = ['GSE109904']
-
-"""        

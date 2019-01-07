@@ -1,15 +1,5 @@
 #!/usr/bin/env python3
 
-""" gse_celerytask.py
-    Task script for celery.
-    
-    This script defines a task for celerybeat, where individual task managed by 
-    celeryd and worker.
-
-    Notes:
-        * For best results, ensure RabbitMQ and celery are both running
-"""
-
 import celery
 from celery import Celery
 import os
@@ -18,6 +8,18 @@ sys.path.insert(0, os.path.join("recount-methylation-server","src"))
 from utilities import gettime_ntp, get_queryfilt_dict
 from dl import soft_mongo_date, idat_mongo_date, dl_idat, dl_soft
 from update_rmdb import update_rmdb
+
+""" gse_celerytask.py
+    Task script for celery. This script defines a task for celerybeat, where 
+    individual task managed by celeryd and worker. Configuration is also 
+    accessed from celeryconfig.py, including SQLite backend database info.
+    Notes:
+        * Broker: For best results, ensure RabbitMQ broker and celery are both 
+            running in background.
+    Functions:
+        * gse_task: Job task definition for celery queue. Returns sparse info. 
+            and GSE ID, for access from backend db.
+"""
 
 app = Celery()
 app.config_from_object('celeryconfig')
@@ -61,22 +63,3 @@ def gse_task(gse_id, gsefiltdict = get_queryfilt_dict(), timestamp = gettime_ntp
         print("Error: no gse query filt file provided. Returning...")
         rl.append(None)
         return rl
-
-""" Notes and Tutorial
-
-# testing server.py
-import subprocess
-import os
-from gse_celerytask import gse_task
-
-# start rabbitmq and celery
-# brew services start rabbitmq # start the broker
-# celery worker -A gse_tasks -l INFO
-
-# run the queue
-qstatlist = []
-gselist = somelist
-for gse in gse_list:
-    qstatlist.append(gse_task.delay(gse))
-
-"""
