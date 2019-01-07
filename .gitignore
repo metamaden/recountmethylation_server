@@ -3,6 +3,9 @@
 .AppleDouble
 .LSOverride
 
+# R 
+.Rhistory
+
 # Icon must end with two \r
 Icon
 
