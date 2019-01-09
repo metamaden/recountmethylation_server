@@ -1,32 +1,32 @@
 #!/usr/bin/env python3
 
+""" utilities.py
+    Commonly referenced functions for recount methylation server.
+    Functions:
+        * gettime_ntp: Return an NTP timestamp as a string, for file versioning.
+        * getlatest_filepath: Access the path to the latest version of a file in
+            a provided files directory. References NTP timestamp in filename to 
+            determine latest available file.
+        * querydict: Form a dictionary object by reading in an edirect file.
+        * get_queryfilt_dict: Retrieve latest edirect query filtered file.
+"""
+
 import os
 import glob
 import socket
 import struct
 import sys
 import time
+sys.path.insert(0, os.path.join("recount-methylation-server","src"))
+import settings
+settings.init()
 
-""" utilities.py
-    Commonly referenced functions for recount methylation server.
-    Functions:
-        * gettime_ntp: Return an NTP timestamp as a string.
-        * getlatest_filepath: Access the path to the latest version of a file in
-            a provided files directory. References NTP timestamp in filename to 
-            determine latest available file.
-        * querydict: For a dictionary object by reading in an edirect query 
-            file.
-        * get_queryfilt_dict: Retrieve latest edirect query filtered file. 
-            References querydict and getlatest_filepath, accesses equery files 
-            directory.
-"""
-
-def gettime_ntp(addr = 'time.nist.gov'):
-    """ Get NTP Timestamp,
-        code from:
-        <https://stackoverflow.com/questions/39466780/simple-sntp-python-script>
+def gettime_ntp(addr='time.nist.gov'):
+    """ gettime_ntp
+        Get NTP Timestamp for file versioning.
         Arguments
-            * addr : valid NTP address ('0.uk.pool.ntp.org','time.nist.gov' etc)
+            * addr (str) : valid NTP address (e.g. '0.uk.pool.ntp.org',
+                'time.nist.gov' etc)
         Returns
             * timestamp (str) : NTP seconds timestamp, converted to string.
     """
@@ -40,9 +40,10 @@ def gettime_ntp(addr = 'time.nist.gov'):
 
 def getlatest_filepath(filepath, filestr, embeddedpattern=False, tslocindex=1,
     returntype='returnstr'):
-    """ Get path the latest version of a file, based on its timestamp.
-        Can return >1 files sharing latest timestamp as type list or str.
-        Arguments
+    """ getlatest_filepath
+        Get path the latest version of a file, based on its timestamp. Can 
+        return >1 files sharing latest timestamp as type list or str.
+        Arguments:
             * filepath (str) : Path to directory to search.
             * filestr (str) : Pattern of filename filter for search.
             * embeddedpattern (T/F, bool) : Whether filestr pattern is embedded
@@ -50,7 +51,7 @@ def getlatest_filepath(filepath, filestr, embeddedpattern=False, tslocindex=1,
             * tslocindex (int) : Relative location index of timestamp in fn.
             * returntype (str) : Return file path(s) as str (use 'returnstr') or 
                 list (use 'returnlist')
-        Returns
+        Returns:
             * latest_file_path (str) or status (0, int) : Path to latest version 
                 of file, or else 0 if search turned up no files at location
     """
@@ -97,11 +98,12 @@ def getlatest_filepath(filepath, filestr, embeddedpattern=False, tslocindex=1,
         return None 
 
 def querydict(querypath, splitdelim='\t'):
-    """ Ingest edirect query results file into a dictionary object.
-        Arguments
+    """ querydict
+        Read edirect query results file into a dictionary object.
+        Arguments:
             * querypath (str) : Filepath of edirect results (format: 1 GSE per 
                 newline).
-        Returns
+        Returns:
             * query (dictionary) : Dictionary (format : keys = GSEs, vals = GSM 
                 lists)
     """
@@ -118,14 +120,16 @@ def querydict(querypath, splitdelim='\t'):
 
 def get_queryfilt_dict(filesdir='recount-methylation-files',
     eqtarget='equery'):
-    """ Grab the latest filtered GSE query file as a dictionary
-        Arguments
+    """ get_queryfilt_dict
+        Return the latest filtered GSE query file as a dictionary.
+        Arguments:
             * filesdir: Root name of directory containing database files.
             * eqtarget: Name of equery files destination directory.
-        Returns
+        Returns:
             * gsefiltd (dict): GSE filtered query, as a dictionary object.
     """
-    eqpath = os.path.join('recount-methylation-files','equery')
+    # eqpath = os.path.join('recount-methylation-files','equery')
+    eqpath = settings.equerypath
     gsefilt_latest = getlatest_filepath(eqpath,'gsequery_filt', 
             embeddedpattern=True, tslocindex=1, returntype='returnlist'
         )

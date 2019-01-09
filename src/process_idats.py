@@ -5,7 +5,9 @@ import sys
 import re
 import gzip
 import shutil
-# sys.path.insert(0, os.path.join("recount-methylation-server","src"))
+sys.path.insert(0, os.path.join("recount-methylation-server","src"))
+import settings
+settings.init()
 
 """ process_idats.py
     Functions to preprocess idats before being read into minfi.

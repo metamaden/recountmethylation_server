@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
 
-import pymongo
-import datetime
-
 """ update_rmdb.py
     Functions to update Recount Methylation MongoDB (or "RMDB"), a database of 
     file metadata for recount methylation. 
@@ -14,7 +11,15 @@ import datetime
         * update_rmdb: Update RMDB with any metadata for newly downloaded files.
 """
 
-def update_rmdb(ddidat,ddsoft,host='localhost',port=27017):
+import pymongo
+import datetime
+import os
+import sys
+sys.path.insert(0, os.path.join("recount-methylation-server","src"))
+import settings
+settings.init()
+
+def update_rmdb(ddidat, ddsoft, host=settings.rmdbhost, port=settings.rmdbport):
     """ Update recount-methylation database compilations with new documents.
         Arguments
             * ddidat : Download dictionary from dl_idats, as returned by 

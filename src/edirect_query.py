@@ -1,31 +1,16 @@
 #!/usr/bin/env python3
 
-import subprocess
-import os
-import socket
-import struct
-import sys
-import time
-import tempfile
-import atexit
-import shutil
-import glob
-import filecmp
-from itertools import chain
-sys.path.insert(0, os.path.join("recount-methylation-server","src"))
-from utilities import gettime_ntp, querydict, getlatest_filepath
-
 """ edirect_query.py
     Get files of GSE and GSM ids from GEO via edirect query (NCBI entrez 
     utlities function). IDs correspond to valid HM450k array experiments and 
     samples.
     Notes:
-        * Schedule: New edirect queries should be scheduled periodically to 
+        * Scheduling: New edirect queries should be scheduled periodically to 
             check for latest experiment/sample/file info and to detect novel
             uploaded experiments/samples/files.
-        * Filter: The edirect queries (GSE, GSM, and filtered query file) work
-            together to form a filter on valid files to be downloaded and 
-            preprocessed. 
+        * Filters: The edirect queries (GSE, GSM, and filtered query file) work
+            together to form a filter on valid sample and experiment ids whose 
+            files are to be downloaded and preprocessed. 
     Functions:
         * gse_query_diffs: Quickly detect and return differences between two 
             edirect query files.
@@ -42,14 +27,32 @@ from utilities import gettime_ntp, querydict, getlatest_filepath
             idats available in sample supplemental files.
 """
 
+import subprocess
+import os
+import socket
+import struct
+import sys
+import time
+import tempfile
+import atexit
+import shutil
+import glob
+import filecmp
+from itertools import chain
+sys.path.insert(0, os.path.join("recount-methylation-server","src"))
+from utilities import gettime_ntp, querydict, getlatest_filepath
+import settings
+settings.init()
+
 def gse_query_diffs(query1, query2, rstat=False):
-    """ Compares two GSE query results, returning query file diffs or boolean.
-        Arguments
+    """ gse_query_diffs
+        Compares two GSE query results, returning query file diffs or boolean.
+        Arguments:
             * query1 (str) : first edirect query, filename
             * query2 (str) : second edirect query, filename
             * rstat (True/False, bool.) : whether to return boolean only, 
                 or else return list (default)
-        Returns
+        Returns:
             * boolean (T/F) or query diffs (list of GSE IDs). Boolean is 'True' 
                 if query objects are the same, 'False' otherwise
     """
@@ -82,28 +85,29 @@ def gse_query_diffs(query1, query2, rstat=False):
     else:
         return difflist
 
-def gsm_query(dest='equery', temp='temp', validate=True, 
-    timestamp=gettime_ntp()):
-    """ Get GSM level query object, from edirect query.
-        Arguments
-            * dest (str) : Destination directory for query object
-            * temp (str) : Temporary directory becfore validation.
+def gsm_query(validate=True, timestamp=gettime_ntp()):
+    """ gsm_query
+        Get GSM level query object, from edirect query.
+        Arguments:
             * validate (True/False, bool.) : whether to validate the file after 
                 ownload.
-        Retursn 
+            * timestamp (str) : NTP timestamp or function to retrieve it.
+        Returns: 
             * Error (str) or download object (dictionary). 
     """
     # timestamp = str(gettime_ntp())
-    os.makedirs(dest, exist_ok=True)
-    os.makedirs(temp, exist_ok=True)
-    temp_make = tempfile.mkdtemp(dir=temp)
+    eqdestpath = settings.equerypath
+    temppath = settings.temppath
+    os.makedirs(eqdestpath, exist_ok=True)
+    os.makedirs(temppath, exist_ok=True)
+    temp_make = tempfile.mkdtemp(dir=temppath)
     atexit.register(shutil.rmtree, temp_make)
     dldict = {}
     dldict['gsmquery'] = []
     dlfilename = ".".join(['gsm_edirectquery',timestamp])
     dldict['gsmquery'].append(dlfilename)
     subp_strlist1 = ["esearch","-db","gds","-query",
-    "'GPL13534[ACCN] AND idat[suppFile] AND gsm[ETYP]'"
+    "'"+settings.platformid+"[ACCN] AND idat[suppFile] AND gsm[ETYP]'"
     ]
     subp_strlist2 = ["efetch","-format","docsum"]
     subp_strlist3 = ["xtract","-pattern","DocumentSummary",
@@ -117,7 +121,7 @@ def gsm_query(dest='equery', temp='temp', validate=True,
     dldict['gsmquery'].append(output) 
     if validate:
         gsmquery_filewritten = os.path.join(temp_make,dlfilename)
-        gsmquery_old = glob.glob('.'.join([os.path.join(dest, 'gsm_edirectquery'), '*',]))
+        gsmquery_old = glob.glob('.'.join([os.path.join(eqdestpath, 'gsm_edirectquery'), '*',]))
         if gsmquery_old:
             if len(gsmquery_old)>1:
                 gsmquery_old.sort(key=lambda x: int(x.split('.')[1]))
@@ -134,38 +138,37 @@ def gsm_query(dest='equery', temp='temp', validate=True,
             else:
                 print("Downloaded file is new, moving to dest...")
                 shutil.move(gsmquery_filewritten, os.path.join(
-                                dest, os.path.basename(gsmquery_filewritten))
+                                eqdestpath, os.path.basename(gsmquery_filewritten))
                             )
                 dldict['gsmquery'].append(True)
         else:
             print("Downloaded file is new, moving...")
             shutil.move(gsmquery_filewritten, os.path.join(
-                dest, os.path.basename(gsmquery_filewritten))
+                eqdestpath, os.path.basename(gsmquery_filewritten))
                 )
             dldict['gsmquery'].append(True)
     return dldict
 
-def gse_query(dest='equery', temp='temp', validate=True, 
-    timestamp=gettime_ntp()):
-    """ Get GSE level query object from edirect query.
-        Arguments
-            * dest (str) : Destination directory for query object.
-            * temp  (str) : Temporary dir becfore validation. 
+def gse_query(validate=True, timestamp=gettime_ntp()):
+    """ gse_query
+        Get GSE level query object from edirect query.
+        Arguments:
             * validate (True/False, bool) : Whether to validate the file after 
                 download.
-        Retursn 
+            * timestamp (str) : NTP timestamp or function to retrieve it.
+        Returns: 
             * Error (str) or download object (dictionary).
     """
-    # timestamp = str(gettime_ntp())
-    os.makedirs(dest, exist_ok=True)
-    os.makedirs(temp, exist_ok=True)
-    temp_make = tempfile.mkdtemp(dir=temp)
+    eqdestpath = settings.equerypath
+    os.makedirs(eqdestpath, exist_ok=True)
+    temppath = settings.temppath
+    os.makedirs(temppath, exist_ok=True)
+    temp_make = tempfile.mkdtemp(dir=temppath)
     atexit.register(shutil.rmtree, temp_make)
     dldict = {}
     dldict['gsequery'] = []
     dlfilename = ".".join(['gse_edirectquery',timestamp])
     dldict['gsequery'].append(dlfilename)
-    
     subp_strlist1 = ["esearch","-db","gds","-query",
     "'GPL13534[ACCN] AND idat[suppFile] AND gse[ETYP]'"
     ]
@@ -181,7 +184,7 @@ def gse_query(dest='equery', temp='temp', validate=True,
     dldict['gsequery'].append(output)
     if validate:
         gsequery_filewritten = os.path.join(temp_make,dlfilename)
-        gsequery_old = glob.glob('.'.join([os.path.join(dest, 'gse_edirectquery'), '*',]))
+        gsequery_old = glob.glob('.'.join([os.path.join(eqdestpath, 'gse_edirectquery'), '*',]))
         if gsequery_old:
             if len(gsequery_old)>1:
                 gsequery_old.sort(key=lambda x: int(x.split('.')[1]))
@@ -201,31 +204,31 @@ def gse_query(dest='equery', temp='temp', validate=True,
             else:
                 print("Downloaded file is new, moving to dest...")
                 shutil.move(gsequery_filewritten, os.path.join(
-                                dest, os.path.basename(gsequery_filewritten))
+                                eqdestpath, os.path.basename(gsequery_filewritten))
                             )
                 dldict['gsequery'].append(True)
         else:
             print("Downloaded file is new, moving...")
             shutil.move(gsequery_filewritten, os.path.join(
-                dest, os.path.basename(gsequery_filewritten))
+                eqdestpath, os.path.basename(gsequery_filewritten))
                 )
             dldict['gsequery'].append(True)
     return dldict
 
-def gsequery_filter(gsequerystr='gse_edirectquery', eqdir='equery', 
-    splitdelim='\t', gsmquerystr='gsm_edirectquery', timestamp=gettime_ntp(), 
-    filesdir='recount-methylation-files'):
-    """ Prepare an edirect query file.
-        Filter a GSE query file on its GSM membership. 
-        Arguments
-            * gsequery (str) : Path to GSE equery file.
-            * gsmqeury (str) : Path to GSM equery file.
+def gsequery_filter(splitdelim='\t', timestamp=gettime_ntp()):
+    """ gsequery_filter
+        Prepare an edirect query file. Filter a GSE query file on its GSM 
+            membership. 
+        Arguments:
             * splitdelim (str) : Delimiter to split ids in querydict() call.
-        Returns
+            * timestamp (str) : NTP timestamp or function to retrieve it.
+        Returns:
             * gsequeryfiltered (list): Filtered GSE query object (list), writes
                 filtered query file as side effect.
     """
-    eqpath = os.path.join(filesdir,eqdir)
+    eqpath = settings.equerypath
+    gsequerystr = settings.gsequerystr
+    gsmquerystr = settings.gsmquerystr
     # get GSM list from gsm query file
     gsmqueryf_latestpath = getlatest_filepath(filepath=eqpath,
             filestr=gsmquerystr, embeddedpattern=True, tslocindex=1, 
@@ -248,8 +251,6 @@ def gsequery_filter(gsequerystr='gse_edirectquery', eqdir='equery',
         print("Error detecting latest gsequery file! Returning...")
         return
     gsed_obj = querydict(querypath=gsequeryf_latestpath[0], splitdelim='\t')
-    # for line in gsmlines:
-    #     gsmlist.append(line.split('\t')[1::][0])
     gsefiltl = []
     for gsekey in list(gsed_obj.keys()):
         samplelist_original = gsed_obj[gsekey]
@@ -257,12 +258,7 @@ def gsequery_filter(gsequerystr='gse_edirectquery', eqdir='equery',
             if sample in gsmlist
         ]
         if samplelist_filt and len(samplelist_filt)>0:
-            gsefiltl.append(' '.join([gsekey,' '.join(samplelist_filt)]))
-        #if len(samplelist_original)>0:
-        #    for sample in samplelist_original:
-        #        if not sample in gsmlist:
-        #            ival.remove(gsm)
-        #    if len(gsed[gsekey])>0:        
+            gsefiltl.append(' '.join([gsekey,' '.join(samplelist_filt)]))      
     print('writing filt file...')
     if eqpath:
         filtfn = ".".join(["gsequery_filt",timestamp])

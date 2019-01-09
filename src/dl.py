@@ -1,5 +1,20 @@
 #!/usr/bin/env python3
 
+""" dl.py
+    Functions to manage download of idats and experiment soft files from GEO.
+    Notes:
+        * Validation for each download function checks new files against 
+            existing files in the corresponding destination files directory.
+        * Downloads are launched from the job definition for the celery job 
+            queue manager. Each queued job is based around a valid GSE id.
+    Functions:
+        * soft_mongo_date: grab latest update date for a soft file from the 
+            Recount Methylation Mongo db (or 'RMDB'). 
+        * idat_mongo_date: grab latest update date for an idat file from RMDB.
+        * dl_idat: Download and validate idat files.
+        * dl_soft: Download and validate soft files.
+"""
+
 import ftplib
 import datetime
 import os
@@ -14,35 +29,19 @@ import tempfile
 import shutil
 sys.path.insert(0, os.path.join("recount-methylation-server","src"))
 from utilities import gettime_ntp, getlatest_filepath
-# import atexit
+import settings
+settings.init()
 
-""" dl.py
-    Functions to manage download of idats and experiment soft files from GEO.
-    Notes:
-        * Validate: Each dl function includes a validation against existing
-            files in the files destination directory of 
-            'recount-methylation-files.'
-        * Job queue: Downloads are launched from the GSE-based job defined for
-            the celery job queue.
-    Functions:
-        * soft_mongo_date: grab latest update date for a soft file from the 
-            Recount Methylation Mongo db (or 'RMDB'). 
-        * idat_mongo_date: grab latest update date for an idat file from RMDB.
-        * dl_idat: Download and validate idat files.
-        * dl_soft: Download and validate soft files.
-"""
-
-def soft_mongo_date(gse,filename,client):
-    """ Get date(s) from mongo soft subcollection
-
-        Arguments
-            * gse : valid GSE ID
-            * filename : name of soft file
-            * client : mongodb client connection
-
-        Returns
+def soft_mongo_date(gse, filename, client):
+    """ soft_mongo_date
+        Get date(s) from mongo soft subcollection.
+        Arguments:
+            * gse (str) : Valid GSE ID.
+            * filename (str) : Name of a valid soft file.
+            * client (conn.) : A client connection to RMDB.
+        Returns:
             * mongo_date_list : list of resultant date(s) from query, or empty 
-                                list if no docs detected
+                list if no docs detected
     """
     mongo_date_list = []
     rmdb = client.recount_methylation
@@ -55,16 +54,16 @@ def soft_mongo_date(gse,filename,client):
     return mongo_date_list
 
 def idat_mongo_date(gsm_id,filename,client):
-    """ Get date(s) from mongo idat subcollections
-
-        Arguments
-            * gsm_id : valid sample GSM ID
-            * filename : name of array idat file, inc. 'grn' or 'red'
-            * client : mongodb client connection
-
-        Returns
-            * mongo_date_list : list of resultant date(s) from query, or empty 
-                                list if no docs detected
+    """ idat_mongo_date
+        Get date(s) from mongo idat subcollections.
+        Arguments:
+            * gsm_id (str) : A valid sample GSM ID.
+            * filename (str) : Name of valid array idat file, inc. 'grn' or 
+                'red'.
+            * client (conn.) : A client connection to RMDB.
+        Returns:
+            * mongo_date_list (list) : list of resultant date(s) from query, or 
+                empty list if no docs detected
     """
     mongo_date_list = []
     rmdb = client.recount_methylation
@@ -82,35 +81,32 @@ def idat_mongo_date(gsm_id,filename,client):
             {'date' : 1}))
     return mongo_date_list
 
-def dl_idat(input_list, filesdir = 'recount-methylation-files', 
-    targetdir = 'idats', temp_dir = 'temp', retries_connection = 3, 
-    retries_files = 3, interval_con = .1, interval_file = .01, validate = True,
-    timestamp = gettime_ntp()):
-    """ Download idats, 
-        Reads in either list of GSM IDs or ftp addresses
-    
+def dl_idat(input_list, retries_connection=3, retries_files=3, interval_con=.1, 
+    interval_file=.01, validate=True, timestamp=gettime_ntp()):
+    """ dl_idat
+        Download idats, reading in either list of GSM IDs or ftp addresses.
         Arguments
-            * input list : list of GSM IDs
-            * dest_dir : target directory for new downloads
-            * temp_dir : temporary directory to store files
-            * retries_connection: num ftp connection retries
-            # retries_files : num retry attempts on sample files
-            * interval_con (float) : time (in sec) before retrying con.
-            * interval_file (float) : time (in sec) before retrying file con. 
-            * validate: compare most recently downloaded version with previous
-                version of file after download and if new file is same, delete
-                it and make note in dictionary
-            * timestamp : NTP timestamp for versioning of downloaded files
+            * input list (list, required) : A list of valid GSM IDs.
+            * retries_connection (int) : Number of ftp connection retries 
+                allowed.
+            # retries_files : Number of retry attempts allowed for sample file
+                downloads.
+            * interval_con (float) : Time (in seconds) to sleep before retrying 
+                a database connection.
+            * interval_file (float) : Time (in seconds) to sleep before retrying 
+                a file connection. 
+            * validate (Bool.): Validate new files against existing idats?
+            * timestamp (str) : An NTP timestamp for versioning.
         Returns 
-            * Dictionary showing records, dates, and exit statuses of ftp calls
-            OR error string over connection issues
+            * dldict (dictionary) : Records, dates, and exit statuses of ftp 
+                calls, OR error string over connection issues. Downloads and 
+                moves new and validated files as side effect. 
     """
-    dest_dir = os.path.join(filesdir,targetdir)
-    temp_dir = os.path.join(filesdir,temp_dir)
-    os.makedirs(dest_dir, exist_ok=True)
-    os.makedirs(temp_dir, exist_ok=True)
-    temp_dir_make = tempfile.mkdtemp(dir=temp_dir)
-    # atexit.register(shutil.rmtree, temp_dir_make)
+    idatspath = settings.idatspath
+    temppath = settings.temppath
+    os.makedirs(idatspath, exist_ok=True)
+    os.makedirs(temppath, exist_ok=True)
+    temp_dir_make = tempfile.mkdtemp(dir=temppath)
     item = input_list[0]
     if not item.startswith('GSM'):
         raise RuntimeError("GSM IDs must begin with \"GSM\".")
@@ -133,7 +129,8 @@ def dl_idat(input_list, filesdir = 'recount-methylation-files',
             else:
                 print('connection retries exhausted, returning...')
                 return str(e)
-    client = pymongo.MongoClient('localhost', 27017) # mongodb connection
+    # mongodb connection
+    client = pymongo.MongoClient(settings.rmdbhost, settings.rmdbport) 
     dldict = {}
     files_written = []
     for gsm_id in input_list:
@@ -272,10 +269,9 @@ def dl_idat(input_list, filesdir = 'recount-methylation-files',
             print("file written is "+file_written)
             filestr = os.path.basename(file_written).split('.')[2::]
             filestr = str('.'.join(filestr))
-            # filestr = str('.'.join(file_written.split('.')[2::]))
             print('filestr written : '+filestr)
-            print('dir to search latest: '+dest_dir)
-            gsmidat_latest = getlatest_filepath(dest_dir,filestr,
+            print('dir to search latest: '+idatspath)
+            gsmidat_latest = getlatest_filepath(idatspath, filestr,
                 embeddedpattern = True
                 )
             print('gsm latest : '+str(gsmidat_latest))
@@ -287,55 +283,52 @@ def dl_idat(input_list, filesdir = 'recount-methylation-files',
                     # If filename is false, we found it was the same
                     dldict[gsm_id][index].append(False)
                 else:
-                    print("Downloaded file is new, moving to dest_dir...")
+                    print("Downloaded file is new, moving to idatspath...")
                     shutil.move(file_written, os.path.join(
-                            dest_dir, os.path.basename(file_written))
+                            idatspath, os.path.basename(file_written))
                         )
                     dldict[gsm_id][index].append(True)
                     dldict[gsm_id][index][2] = os.path.join(
-                                dest_dir, os.path.basename(file_written)
+                                idatspath, os.path.basename(file_written)
                             )
             else:
                 print("Downloaded file is new, moving...")
                 shutil.move(file_written, os.path.join(
-                            dest_dir, os.path.basename(file_written))
+                            idatspath, os.path.basename(file_written))
                         )
                 dldict[gsm_id][index].append(True)
                 dldict[gsm_id][index][2] = os.path.join(
-                                dest_dir, os.path.basename(file_written)
+                                idatspath, os.path.basename(file_written)
                             )
         shutil.rmtree(temp_dir_make)
     return dldict
 
-def dl_soft(gse_list, filesdir = 'recount-methylation-files', 
-    targetdir = 'gse_soft', temp_dir = 'temp', retries_connection = 3, 
-    retries_files = 3, interval_con = .1, interval_file = .01, validate = True,
-    timestamp = gettime_ntp()):
-    """ Download idats, 
-        Reads in either list of GSM IDs or ftp addresses
-    
-        Arguments
-            * input list : list of GSM IDs
-            * dest_dir : target directory for new downloads
-            * temp_dir : temporary directory to store files
-            * retries_connection : num retries for connection, on ftp err.
-            * retries_files : num retries for given file, on ftp err.
-            * interval_con (float) : time (in sec) before retrying con.
-            * interval_file (float) : time (in sec) before retrying file con.
-            * validate: compare most recently downloaded version with previous
-                version of file after download and if new file is same, delete
-                it and make note in dictionary
-            * timestamp : NTP timestamp for versioning of downloaded files
-        Returns 
+def dl_soft(gse_list=[], retries_connection=3, retries_files=3, interval_con=.1, 
+    interval_file=.01, validate=True, timestamp=gettime_ntp()):
+    """ dl_soft
+        Download GSE soft file(s). Accepts either a list of GSM IDs or ftp 
+        addresses.
+        Arguments:
+            * gse_list (list, required) : A list of valid GSE id(s).
+            * retries_connection (int) : Number of ftp connection retries 
+                allowed. 
+            * retries_files : Number of retry attempts allowed for sample file
+                downloads. 
+            * interval_con (float) : Time (in seconds) to sleep before retrying 
+                a database connection. 
+            * interval_file (float) : Time (in seconds) to sleep before retrying 
+                a file connection. 
+            * validate (Bool.): Validate new files against existing idats?
+            * timestamp (str) : An NTP timestamp for versioning.     
+        Returns: 
             * Dictionary showing records, dates, and exit statuses of ftp calls
-            OR error string over connection issues
+                OR error string over connection issues
     """
-    dest_dir = os.path.join(filesdir,targetdir)
-    temp_dir = os.path.join(filesdir,temp_dir)
-    os.makedirs(dest_dir, exist_ok=True)
-    os.makedirs(temp_dir, exist_ok=True)
-    temp_dir_make = tempfile.mkdtemp(dir=temp_dir)
-    # atexit.register(shutil.rmtree, temp_dir_make)
+    gsesoftpath = settings.gsesoftpath
+    temppath = settings.temppath
+    os.makedirs(gsesoftpath, exist_ok=True)
+    os.makedirs(temppath, exist_ok=True)
+    temp_dir_make = tempfile.mkdtemp(dir=temppath)
     item = gse_list[0]
     if not item.startswith('GSE'):
         raise RuntimeError("GSE IDs must begin with \"GSE\".")
@@ -358,7 +351,8 @@ def dl_soft(gse_list, filesdir = 'recount-methylation-files',
             else:
                 print('connection retries exhausted, returning...')
                 return str(e)
-    client = pymongo.MongoClient('localhost', 27017) # mongodb connection
+    # mongodb connection
+    client = pymongo.MongoClient(settings.rmdbhost, settings.rmdbport) 
     dldict = {}
     print('beginning iterations over gse list...')
     for gse in gse_list:
@@ -492,7 +486,7 @@ def dl_soft(gse_list, filesdir = 'recount-methylation-files',
         print('commencing file validation...')
         for gse, new_filepath, index in files_written:
             filestr = os.path.basename(new_filepath).split('.')[0]
-            gsesoft_latest = getlatest_filepath(dest_dir,filestr)
+            gsesoft_latest = getlatest_filepath(gsesoftpath,filestr)
             if gsesoft_latest and not gsesoft_latest == 0:
                 if filecmp.cmp(gsesoft_latest, new_filepath):
                     print('identical file found in dest_dir, removing...')
@@ -503,7 +497,7 @@ def dl_soft(gse_list, filesdir = 'recount-methylation-files',
                         +'dest_dir...')
                     dldict[gse].append(True)
                     dldict[gse][index][2] = os.path.join(
-                                dest_dir, os.path.basename(new_filepath)
+                                gsesoftpath, os.path.basename(new_filepath)
                             )
                     shutil.move(new_filepath, os.path.join(
                             dest_dir, os.path.basename(new_filepath))
@@ -512,10 +506,10 @@ def dl_soft(gse_list, filesdir = 'recount-methylation-files',
                 print('new file detected in temp_dir, moving to dest_dir..')
                 dldict[gse].append(True)
                 dldict[gse][index][2] = os.path.join(
-                                dest_dir, os.path.basename(new_filepath)
+                                gsesoftpath, os.path.basename(new_filepath)
                             )
                 shutil.move(new_filepath, os.path.join(
-                            dest_dir, os.path.basename(new_filepath))
+                            gsesoftpath, os.path.basename(new_filepath))
                         )
             continue
         shutil.rmtree(temp_dir_make)

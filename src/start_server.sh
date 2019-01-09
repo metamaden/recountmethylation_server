@@ -5,10 +5,11 @@
 # To be run from root dir for recount-methylation, above 
 # recount-methylation-files and recount-methylation-server.
 #
-# Requisite processes for recount-methylation-server to run properly:
-# * mongodb: database for file metadata ('RMDB')
-# * broker: messaging program for celery (e.g. RabbitMQ)
-# * celery: queue management software for python
+# Resources (state)
+# * MongoDB (running): Supports file metadata DB (aka. 'RMDB').
+# * RabbitMQ (running): Broker messaging program for celery.
+# * Celery (running): Queue management software for Python.
+# * SQLite (installed): Used for backend job queue reporting.
 
 # 1. Start MongoDB
 conpath="/home/metamaden/usr/local/bin/mongodb-linux-x86_64-4.0.4/bin/mongod"
@@ -17,8 +18,6 @@ dbconcmd=$conpath" --dbpath "$dbpath
 eval $dbconcmd & # execute as background process
 
 # 2. Start Broker
-# brokerpath="/home/metamaden/usr/local/src/..."
-# eval $brokerpath &
 rabbitmq-server start
 
 # 3. Start celery task queue manager

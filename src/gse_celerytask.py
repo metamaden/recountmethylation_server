@@ -1,14 +1,5 @@
 #!/usr/bin/env python3
 
-import celery
-from celery import Celery
-import os
-import sys
-sys.path.insert(0, os.path.join("recount-methylation-server","src"))
-from utilities import gettime_ntp, get_queryfilt_dict
-from dl import soft_mongo_date, idat_mongo_date, dl_idat, dl_soft
-from update_rmdb import update_rmdb
-
 """ gse_celerytask.py
     Task script for celery. This script defines a task for celerybeat, where 
     individual task managed by celeryd and worker. Configuration is also 
@@ -21,11 +12,23 @@ from update_rmdb import update_rmdb
             and GSE ID, for access from backend db.
 """
 
+import celery
+from celery import Celery
+import os
+import sys
+sys.path.insert(0, os.path.join("recount-methylation-server","src"))
+from utilities import gettime_ntp, get_queryfilt_dict
+from dl import soft_mongo_date, idat_mongo_date, dl_idat, dl_soft
+from update_rmdb import update_rmdb
+import settings
+settings.init()
+
 app = Celery()
 app.config_from_object('celeryconfig')
 
 @app.task
-def gse_task(gse_id, gsefiltdict = get_queryfilt_dict(), timestamp = gettime_ntp()):
+def gse_task(gse_id, gsefiltdict = get_queryfilt_dict(), 
+    timestamp = gettime_ntp()):
     """ GSE based task for celery job queue.
         Arguments
             * gse_id (str) : A single valid GSE id
@@ -49,13 +52,13 @@ def gse_task(gse_id, gsefiltdict = get_queryfilt_dict(), timestamp = gettime_ntp
         print("Detected N = "+str(len(gsmlist))+' GSM IDs...')
         rl.append(True)
         print("Beginning soft file download...")
-        ddsoft = dl_soft(gse_list=[gse_id], timestamp = run_timestamp)
+        ddsoft = dl_soft(gse_list=[gse_id], timestamp=run_timestamp)
         rl.append(True)
         print('Beginning idat download...')
-        ddidat = dl_idat(input_list = gsmlist, timestamp = run_timestamp)
+        ddidat = dl_idat(input_list=gsmlist, timestamp=run_timestamp)
         rl.append(True)
         print('updating rmdb...')
-        updateobj = update_rmdb(ddidat = ddidat, ddsoft = ddsoft)
+        updateobj = update_rmdb(ddidat=ddidat, ddsoft=ddsoft)
         rl.append(True)
         print('Task completed! Returning...')
         return rl
