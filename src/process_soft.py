@@ -114,7 +114,7 @@ def expand_soft(rmcompressed=False, qcprint=False):
         rmsuccess = [softl_compressed[i] for i in statusindices]
         if rmcompressed and len(rmsuccess) > 0:
             for compfilename in rmsuccess:
-                os.remove(os.path.join(gse_softpath,compfilename))
+                os.remove(os.path.join(gsesoft_fpath,compfilename))
                 rsoftd[compfilename].append(True) # if comp. file removed
     else: 
         print("No valid compressed soft files found at specified gse_softpath. "
