@@ -82,7 +82,7 @@ As an example, to automatically deploy N = 30 screens each running an instance o
 msrap_screens(nscreensi=200,nmaxscreens=30,qcprint=True)
 ```
 
-After a few minutes, you should start seeing new ".msrapout" files generated in the "gsm_msrap_outfiles" directory. 
+After a few minutes, you should start seeing new ".msrapout" files generated in the "gsm_msrap_outfiles" directory. On a dual 10-core system (2.6 GHz ea.) with 256 Gb RAM, this configuration maps approximately 3-5 samples per minute while utilizing 70-75% of CPU resources.
 
 ## Processing and Analyzing Recount Methylation Samples and Files
 
