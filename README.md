@@ -1,4 +1,7 @@
 # recount-methylation-server
+
+[![Build Status](https://travis-ci.org/metamaden/recount-methylation-server.png?branch=master)](https://travis-ci.org/metamaden/recount-methylation-server)  [![DOI](https://zenodo.org/badge/#)](https://zenodo.org/badge/latestdoi/#)
+
 Server code for hosting and maintaining Recount-Methylation database.
 
 ## Instructions to Set Up and Run Recount Methylation Server and Database Instance
