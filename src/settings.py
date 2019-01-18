@@ -92,6 +92,8 @@ def init():
     global sheetfnstem
     global sheetsdir
     global sheetspath
+    global msraptablesdir
+    global msraptablespath
     analysisdir = 'recount-methylation-analysis'
     analysisfilesdir = 'files'
     analysissrcdir = 'src'
@@ -100,6 +102,8 @@ def init():
     sheetfnstem = 'rsheet'
     sheetsdir = 'rsheets'
     sheetspath = os.path.join(analysisfilespath, sheetsdir)
+    msraptablesdir = 'msraptables'
+    msraptablespath = os.path.join(analysisfilespath, msraptablesdir)
 
     # [rmdb connection]
     global rmdbhost
