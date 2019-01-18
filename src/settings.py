@@ -30,7 +30,6 @@ def init():
     global equerydir
     global gsmjsondir
     global gsmmsrapoutdir
-    global sheetsdir
     global temppath
     global gsesoftpath
     global gsmsoftpath
@@ -38,7 +37,6 @@ def init():
     global equerypath
     global gsmjsonpath
     global gsmmsrapoutpath
-    global sheetspath
     filesdir = 'recount-methylation-files'
     tempdir = 'temp'
     gsesoftdir = 'gse_soft'
@@ -47,7 +45,6 @@ def init():
     equerydir = 'equery'
     gsmjsondir = 'gsm_json'
     gsmmsrapoutdir = 'gsm_msrap_outfiles'
-    sheetsdir = 'sheetfiles'
     temppath = os.path.join(filesdir, tempdir)
     gsesoftpath = os.path.join(filesdir, gsesoftdir)
     gsmsoftpath = os.path.join(filesdir, gsmsoftdir)
@@ -55,7 +52,6 @@ def init():
     equerypath = os.path.join(filesdir, equerydir)
     gsmjsonpath = os.path.join(filesdir, gsmjsondir)
     gsmmsrapoutpath = os.path.join(filesdir, gsmmsrapoutdir)
-    sheetspath = os.path.join(filesdir, sheetsdir)
 
     # [serverdirectories]
     global serverdir
@@ -86,6 +82,24 @@ def init():
     msrapfnstem = 'msrapout'
     msrappath = os.path.join(pipelinedir, msrapdir)
     msraprunscriptpath = os.path.join(msrappath, runscriptname)
+
+    # [analysis files, directories, and values]
+    global analysisdir
+    global analysisfilesdir
+    global analysissrcdir
+    global analysissrcpath
+    global analysisfilespath
+    global sheetfnstem
+    global sheetsdir
+    global sheetspath
+    analysisdir = 'recount-methylation-analysis'
+    analysisfilesdir = 'files'
+    analysissrcdir = 'src'
+    analysissrcpath = os.path.join(analysisdir, analysissrcdir)
+    analysisfilespath = os.path.join(analysisdir, analysisfilesdir)
+    sheetfnstem = 'rsheet'
+    sheetsdir = 'rsheets'
+    sheetspath = os.path.join(analysisfilespath, sheetsdir)
 
     # [rmdb connection]
     global rmdbhost
@@ -122,6 +136,8 @@ def init():
     global msrapoutfnpattern
     global gsequerystr
     global gsmquerystr
+    global grnidat_expcatch
+    global redidat_expcatch
     gsepatt = '^GSE.*'
     softallpatt = '.*\.soft.*'
     compsoftpatt = '.*\.gz$'
@@ -130,6 +146,8 @@ def init():
     msrapoutfnpattern = '.*\.msrapout$'
     gsequerystr = 'gse_edirectquery' 
     gsmquerystr = 'gsm_edirectquery'
+    grnidat_expcatch = '.*Grn\.idat$'
+    redidat_expcatch = '.*Red\.idat$'
 
     # global eqfiltdict
     # eqfiltdict = utilities.get_queryfilt_dict()
