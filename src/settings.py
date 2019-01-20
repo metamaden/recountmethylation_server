@@ -10,8 +10,8 @@
             including files directory names and paths.
         * You will need to change certain sections in settings.py, namely under
             the '[resource path]' section, depending on your system.
-        * Consult all relevant documentation for details and troubleshooting
-            instructions.
+        * Consult all relevant documentation for details, instructions, and 
+            troubleshooting guidelines.
 """
 
 import os
