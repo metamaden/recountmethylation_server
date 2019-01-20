@@ -94,6 +94,8 @@ def init():
     global sheetspath
     global msraptablesdir
     global msraptablespath
+    global diagnosticsdir
+    global diagnosticsfpath
     analysisdir = 'recount-methylation-analysis'
     analysisfilesdir = 'files'
     analysissrcdir = 'src'
@@ -104,6 +106,8 @@ def init():
     sheetspath = os.path.join(analysisfilespath, sheetsdir)
     msraptablesdir = 'msraptables'
     msraptablespath = os.path.join(analysisfilespath, msraptablesdir)
+    diagnosticsdir = "rmqc"
+    diagnosticsfpath = os.path.join(analysisfilespath, diagnosticsdir)
 
     # [rmdb connection]
     global rmdbhost
