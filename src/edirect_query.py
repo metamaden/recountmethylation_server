@@ -170,7 +170,7 @@ def gse_query(validate=True, timestamp=gettime_ntp()):
     dlfilename = ".".join(['gse_edirectquery',timestamp])
     dldict['gsequery'].append(dlfilename)
     subp_strlist1 = ["esearch","-db","gds","-query",
-    "'GPL13534[ACCN] AND idat[suppFile] AND gse[ETYP]'"
+    "'"+settings.platformid+"[ACCN] AND idat[suppFile] AND gse[ETYP]'"
     ]
     subp_strlist2 = ["efetch","-format","docsum"]
     subp_strlist3 = ["xtract","-pattern","DocumentSummary",
