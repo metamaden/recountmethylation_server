@@ -127,22 +127,16 @@ def init():
     global rawpvalspath
     global rawredpath
     global rawgrnpath
-    global noobgrnpath
-    global noobgrnpath
     global noobbetapath
     rawgrndir = 'raw_grn'
     rawreddir = 'raw_red'
-    rawpvaldir = 'raw_pvals'
+    rawpvalsdir = 'raw_pvals'
     rawbetadir = 'raw_beta'
-    noobgrndir = 'noob_grn'
-    noobreddir = 'noob_red'
     noobbetadir = 'noob_beta'
     rawbetapath = os.path.join(mdatdirpath, rawbetadir)
     rawgrnpath = os.path.join(mdatdirpath, rawgrndir)
     rawredpath = os.path.join(mdatdirpath, rawreddir)
-    rawpvalpath = os.path.join(mdatdirpath, rawpvaldir)
-    noobgrnpath = os.path.join(mdatdirpath, noobgrndir)
-    noobredpath = os.path.join(mdatdirpath, noobreddir)
+    rawpvalspath = os.path.join(mdatdirpath, rawpvalsdir)
     noobbetapath = os.path.join(mdatdirpath, noobbetadir)
 
     # [rmdb connection]
