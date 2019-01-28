@@ -10,8 +10,8 @@
             including files directory names and paths.
         * You will need to change certain sections in settings.py, namely under
             the '[resource path]' section, depending on your system.
-        * Consult all relevant documentation for details, instructions, and 
-            troubleshooting guidelines.
+        * Consult all setup and README documents for details and troubleshooting
+            instructions.
 """
 
 import os
@@ -96,6 +96,10 @@ def init():
     global msraptablespath
     global diagnosticsdir
     global diagnosticsfpath
+    global mdatscript
+    global mdatpath
+    global mdatdir
+    global mdatdirpath
     analysisdir = 'recount-methylation-analysis'
     analysisfilesdir = 'files'
     analysissrcdir = 'src'
@@ -108,6 +112,38 @@ def init():
     msraptablespath = os.path.join(analysisfilespath, msraptablesdir)
     diagnosticsdir = "rmqc"
     diagnosticsfpath = os.path.join(analysisfilespath, diagnosticsdir)
+    mdatscript = 'mdat.R'
+    mdatpath = os.path.join(analysissrcpath, mdatscript)
+    mdatdir = 'mdat'
+    mdatdirpath = os.path.join(analysisfilespath, mdatdir)
+    global rawbetadir
+    global rawpvalsdir
+    global rawreddir
+    global rawgrndir
+    global noobgrndir
+    global noobreddir
+    global noobbetadir
+    global rawbetapath
+    global rawpvalspath
+    global rawredpath
+    global rawgrnpath
+    global noobgrnpath
+    global noobgrnpath
+    global noobbetapath
+    rawgrndir = 'raw_grn'
+    rawreddir = 'raw_red'
+    rawpvaldir = 'raw_pvals'
+    rawbetadir = 'raw_beta'
+    noobgrndir = 'noob_grn'
+    noobreddir = 'noob_red'
+    noobbetadir = 'noob_beta'
+    rawbetapath = os.path.join(mdatdirpath, rawbetadir)
+    rawgrnpath = os.path.join(mdatdirpath, rawgrndir)
+    rawredpath = os.path.join(mdatdirpath, rawreddir)
+    rawpvalpath = os.path.join(mdatdirpath, rawpvaldir)
+    noobgrnpath = os.path.join(mdatdirpath, noobgrndir)
+    noobredpath = os.path.join(mdatdirpath, noobreddir)
+    noobbetapath = os.path.join(mdatdirpath, noobbetadir)
 
     # [rmdb connection]
     global rmdbhost
@@ -154,8 +190,9 @@ def init():
     msrapoutfnpattern = '.*\.msrapout$'
     gsequerystr = 'gse_edirectquery' 
     gsmquerystr = 'gsm_edirectquery'
-    grnidat_expcatch = '.*Grn\.idat$'
-    redidat_expcatch = '.*Red\.idat$'
+    grnidat_expcatch = '.*_Grn\.idat$'
+    redidat_expcatch = '.*_Red\.idat$'
+
 
     # global eqfiltdict
     # eqfiltdict = utilities.get_queryfilt_dict()
