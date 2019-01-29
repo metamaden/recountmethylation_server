@@ -128,11 +128,11 @@ def init():
     global rawgrnpath
     global noobbetapath
     global compilationspath
-    rawgrndir = 'raw_grn'
-    rawreddir = 'raw_red'
-    rawpvalsdir = 'raw_pvals'
-    rawbetadir = 'raw_beta'
-    noobbetadir = 'noob_beta'
+    rawgrndir = 'rawgrn'
+    rawreddir = 'rawred'
+    rawpvalsdir = 'detp'
+    rawbetadir = 'rawbeta'
+    noobbetadir = 'noobbeta'
     compilationsdir = 'compilations'
     rawbetapath = os.path.join(mdatdirpath, rawbetadir)
     rawgrnpath = os.path.join(mdatdirpath, rawgrndir)
