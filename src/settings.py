@@ -96,8 +96,8 @@ def init():
     global msraptablespath
     global diagnosticsdir
     global diagnosticsfpath
-    global mdatscript
-    global mdatpath
+    global mdatscriptfn
+    global mdatscriptpath
     global mdatdir
     global mdatdirpath
     analysisdir = 'recount-methylation-analysis'
@@ -112,32 +112,34 @@ def init():
     msraptablespath = os.path.join(analysisfilespath, msraptablesdir)
     diagnosticsdir = "rmqc"
     diagnosticsfpath = os.path.join(analysisfilespath, diagnosticsdir)
-    mdatscript = 'mdat.R'
-    mdatpath = os.path.join(analysissrcpath, mdatscript)
-    mdatdir = 'mdat'
+    mdatscriptfn = 'mdat.R'
+    mdatscriptpath = os.path.join(analysissrcpath, mdatscriptfn)
+    mdatdir = 'mdata'
     mdatdirpath = os.path.join(analysisfilespath, mdatdir)
     global rawbetadir
     global rawpvalsdir
     global rawreddir
     global rawgrndir
-    global noobgrndir
-    global noobreddir
     global noobbetadir
+    global compilationsdir
     global rawbetapath
     global rawpvalspath
     global rawredpath
     global rawgrnpath
     global noobbetapath
+    global compilationspath
     rawgrndir = 'raw_grn'
     rawreddir = 'raw_red'
     rawpvalsdir = 'raw_pvals'
     rawbetadir = 'raw_beta'
     noobbetadir = 'noob_beta'
+    compilationsdir = 'compilations'
     rawbetapath = os.path.join(mdatdirpath, rawbetadir)
     rawgrnpath = os.path.join(mdatdirpath, rawgrndir)
     rawredpath = os.path.join(mdatdirpath, rawreddir)
     rawpvalspath = os.path.join(mdatdirpath, rawpvalsdir)
     noobbetapath = os.path.join(mdatdirpath, noobbetadir)
+    compilationspath = os.path.join(mdatdirpath, compilationspath)
 
     # [rmdb connection]
     global rmdbhost
