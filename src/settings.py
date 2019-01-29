@@ -139,7 +139,7 @@ def init():
     rawredpath = os.path.join(mdatdirpath, rawreddir)
     rawpvalspath = os.path.join(mdatdirpath, rawpvalsdir)
     noobbetapath = os.path.join(mdatdirpath, noobbetadir)
-    compilationspath = os.path.join(mdatdirpath, compilationspath)
+    compilationspath = os.path.join(mdatdirpath, compilationsdir)
 
     # [rmdb connection]
     global rmdbhost
