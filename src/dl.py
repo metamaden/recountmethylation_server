@@ -272,11 +272,14 @@ def dl_idat(input_list, retries_connection=3, retries_files=3, interval_con=.1,
             print('filestr written : '+filestr)
             print('dir to search latest: '+idatspath)
             gsmidat_latest = getlatest_filepath(idatspath, filestr,
-                embeddedpattern = True
+                    embeddedpattern=True, returntype='returnlist', tslocindex=1
                 )
-            print('gsm latest : '+str(gsmidat_latest))
-            print('cmp result : '+str(filecmp.cmp(gsmidat_latest, file_written)))
-            if gsmidat_latest and not gsmidat_latest == 0:
+            print('gsm latest: '+str(gsmidat_latest))
+            if gsmidat_latest:
+                gsmidat_latest = gsmidat_latest[0]
+                print('cmp result: '
+                        +str(filecmp.cmp(gsmidat_latest, file_written))
+                    )
                 if filecmp.cmp(gsmidat_latest, file_written):
                     print("Downloaded file is same as recent file. Removing...")
                     os.remove(file_written)
