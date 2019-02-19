@@ -120,7 +120,11 @@ def init():
     global rawpvalsdir
     global rawreddir
     global rawgrndir
+    global rawmdir
+    global rawumdir
     global noobbetadir
+    global normmdir
+    global normumdir
     global compilationsdir
     global mdatlogsdir
     global rawbetapath
@@ -130,6 +134,10 @@ def init():
     global noobbetapath
     global compilationspath
     global mdatlogspath
+    global rawmpath
+    global rawumpath
+    global normmpath
+    global normumpath
     rawgrndir = 'rawgrn'
     rawreddir = 'rawred'
     rawpvalsdir = 'detp'
@@ -137,6 +145,10 @@ def init():
     noobbetadir = 'noobbeta'
     compilationsdir = 'compilations'
     mdatlogsdir = 'logs'
+    rawmdir = 'mraw'
+    rawumdir = 'umraw'
+    normmdir = 'mnorm'
+    normumdir = 'umnorm'
     rawbetapath = os.path.join(mdatdirpath, rawbetadir)
     rawgrnpath = os.path.join(mdatdirpath, rawgrndir)
     rawredpath = os.path.join(mdatdirpath, rawreddir)
@@ -144,6 +156,10 @@ def init():
     noobbetapath = os.path.join(mdatdirpath, noobbetadir)
     compilationspath = os.path.join(mdatdirpath, compilationsdir)
     mdatlogspath = os.path.join(mdatdirpath, mdatlogsdir)
+    rawmpath = os.path.join(mdatdirpath, rawmdir)
+    rawumpath = os.path.join(mdatdirpath, rawumdir)
+    normmpath = os.path.join(mdatdirpath, normmdir)
+    normumpath = os.path.join(mdatdirpath, normumdir)
 
     # [rmdb connection]
     global rmdbhost
