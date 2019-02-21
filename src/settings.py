@@ -160,7 +160,8 @@ def init():
     rawumpath = os.path.join(mdatdirpath, rawumdir)
     normmpath = os.path.join(mdatdirpath, normmdir)
     normumpath = os.path.join(mdatdirpath, normumdir)
-
+    gsmstatpicklepath = os.path.join(mdatdirpath, 'gsmstatdict.pickle')
+    
     # [rmdb connection]
     global rmdbhost
     global rmdbport
