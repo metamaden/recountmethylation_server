@@ -138,6 +138,7 @@ def init():
     global rawumpath
     global normmpath
     global normumpath
+    global gsmstatpicklepath
     rawgrndir = 'rawgrn'
     rawreddir = 'rawred'
     rawpvalsdir = 'detp'
