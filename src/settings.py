@@ -30,6 +30,7 @@ def init():
     global equerydir
     global gsmjsondir
     global gsmmsrapoutdir
+    global msraplogsdir
     global temppath
     global gsesoftpath
     global gsmsoftpath
@@ -37,6 +38,7 @@ def init():
     global equerypath
     global gsmjsonpath
     global gsmmsrapoutpath
+    global msraplogspath
     filesdir = 'recount-methylation-files'
     tempdir = 'temp'
     gsesoftdir = 'gse_soft'
@@ -45,6 +47,7 @@ def init():
     equerydir = 'equery'
     gsmjsondir = 'gsm_json'
     gsmmsrapoutdir = 'gsm_msrap_outfiles'
+    msraplogsdir = 'msrap_logs'
     temppath = os.path.join(filesdir, tempdir)
     gsesoftpath = os.path.join(filesdir, gsesoftdir)
     gsmsoftpath = os.path.join(filesdir, gsmsoftdir)
@@ -52,6 +55,7 @@ def init():
     equerypath = os.path.join(filesdir, equerydir)
     gsmjsonpath = os.path.join(filesdir, gsmjsondir)
     gsmmsrapoutpath = os.path.join(filesdir, gsmmsrapoutdir)
+    msraplogspath = os.path.join(filesdir, msrap_logsdir)
 
     # [serverdirectories]
     global serverdir

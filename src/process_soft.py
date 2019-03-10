@@ -144,9 +144,9 @@ def extract_gsm_soft(gsesoft_flist=[], softopenindex='.*!Sample_title.*',
                 as a side effect.
     """
     eqfiltdict=get_queryfilt_dict()
-    validgsmlist = [gsmid for gselist in list(eqfiltdict.values()) 
+    validgsmlist = list(set([gsmid for gselist in list(eqfiltdict.values()) 
         for gsmid in gselist
-    ]
+    ]))
     if qcprint:
         print("length validgsmlist : "+str(len(validgsmlist)))
     rvalidsoft = re.compile(".*soft$") # identify expanded GSE soft files
