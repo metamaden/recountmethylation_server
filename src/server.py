@@ -75,13 +75,11 @@ def firsttime_run(filedir='recount-methylation-files',
     print("Beginning first time server run...")
     equery_dest = settings.equerypath
     temppath = settings.temppath
-    gse_query(dest=equery_dest, temp=temppath, timestamp=run_timestamp)
-    gsm_query(dest=equery_dest, temp=temppath, timestamp=run_timestamp)
+    gse_query()
+    gsm_query()
     gseqfile = getlatest_filepath(equery_dest,'gse_edirectquery') 
     gsmqfile = getlatest_filepath(equery_dest,'gsm_edirectquery')
-    gsequery_filter(gsequery=gseqfile, gsmquery = gsmqfile, splitdelim = ' ', 
-            timestamp = run_timestamp
-        )
+    gsequery_filter()
     gsefiltpath = getlatest_filepath(equery_dest,'gsequery_filt')
     if gsefiltpath:
         gsefiltd = querydict(querypath=gsefiltpath,splitdelim=' ')
@@ -117,14 +115,12 @@ def scheduled_run(eqfilt_path=False, run_timestamp=gettime_ntp()):
         gsequery_latest = getlatest_filepath(filepath=eqpath,
             filestr='gse_edirectquery')
         if not gsequery_latest:
-            gse_query(dest=eqpath, timestamp=run_timestamp)
+            gse_query()
         gsmquery_latest = getlatest_filepath(eqpath,'gsm_edirectquery')
         if not gsmquery_latest:
-            gsm_query(dest=eqpath, timestamp=run_timestamp)
+            gsm_query()
         print("Running filter on gse query...")
-        gsequery_filter(gsequery=gsequery_latest, gsmquery=gsmquery_latest,
-                    splitdelim=' ', timestamp=run_timestamp
-                )
+        gsequery_filter()
         gsefiltd = get_queryfilt_dict()
     # get list of gse ids from existing soft files
     gsesoftfiles = os.listdir(settings.gsesoftpath)
