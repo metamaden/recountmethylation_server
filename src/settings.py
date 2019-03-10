@@ -55,7 +55,7 @@ def init():
     equerypath = os.path.join(filesdir, equerydir)
     gsmjsonpath = os.path.join(filesdir, gsmjsondir)
     gsmmsrapoutpath = os.path.join(filesdir, gsmmsrapoutdir)
-    msraplogspath = os.path.join(filesdir, msrap_logsdir)
+    msraplogspath = os.path.join(filesdir, msraplogsdir)
 
     # [serverdirectories]
     global serverdir

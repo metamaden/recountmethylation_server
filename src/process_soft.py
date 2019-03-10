@@ -31,6 +31,9 @@ import shutil
 import subprocess
 import filecmp
 import tempfile
+import pickle
+from datetime import datetime
+import time
 from random import shuffle
 sys.path.insert(0, os.path.join("recount-methylation-server","src"))
 from utilities import gettime_ntp, getlatest_filepath, get_queryfilt_dict
@@ -199,7 +202,10 @@ def extract_gsm_soft(gsesoft_flist=[], softopenindex='.*!Sample_title.*',
                 print("num : "+str(num))
                 print("openi : "+str(openi))
                 print("closei : "+str(closeindex[num]))
-            gsm_softlines = lsoft[openi:closeindex[num]] # read gsm lines
+            try:
+                gsm_softlines = lsoft[openi:closeindex[num]] # read gsm lines
+            except:
+                break
             gsmid_lines = [line for line in gsm_softlines
                 if '!Sample_geo_accession' in line
             ]
@@ -402,32 +408,26 @@ def run_metasrapipeline(json_flist=[], timestamp=gettime_ntp()):
             gsmjson_readpath = os.path.join(gsm_jsonpath, gsm_json_fn)
             gsm_msrapout_writepath = os.path.join(msrap_destpath,
                 ".".join([timestamp,outfn,msrap_fn]))
-            try:
-                cmdlist = ['python2',
-                    msrap_runpath,
-                    gsmjson_readpath,
-                    gsm_msrapout_writepath
-                    ]
-                subprocess.call(cmdlist,shell=False)
-                msrap_statlist.append(True)
-            except subprocess.CalledProcessError as e:
-                msrap_statlist.append(e)
+            cmdlist = ['python2',
+                msrap_runpath,
+                gsmjson_readpath,
+                gsm_msrapout_writepath
+                ]
+            proc = subprocess.Popen(cmdlist, stdout=subprocess.PIPE, 
+                    stderr=subprocess.PIPE)
+            msrap_statlist.append(proc)
         else:
             msrap_statlist.append(None)
             print("GSM id : "+gsmid+" is not a valid HM450k sample. "
                 +"Continuing...")
     return msrap_statlist
 
-def msrap_screens(json_flist=[], nscreensi=50, nmaxscreens=20, qcprint=False):
-    """ msrap_screens
-        Processing GSM JSON files with MetaSRA-pipeline in parallel by 
-        automatically deploying GNU screen. 
+def msrap_launchproc(json_flist=[], timestamp=gettime_ntp(), nprocsamp=50, 
+    nmaxproc=20, timelim=2800, statint=5, qcprint=False):
+    """ msrap_launchproc
+        Preprocess subsets of GSM JSON files in MetaSRA-pipeline in background, 
+        with process monitoring
         Notes:
-            * Deployed screens should automatically quit once process is finished
-            * Screen configurations should be informed by available system 
-                resources. Arguments 'nscreensi' and 'nmaxscreens' pertain to 
-                number of samples run per screen and total number of screens to 
-                deploy. Defaults may not work on all systems.
             *If no GSM JSON files list supplied to 'json_flist', then a new list 
                 of GSMs is generated for valid GSM JSON files that don't already 
                 have msrapout files available.
@@ -435,19 +435,13 @@ def msrap_screens(json_flist=[], nscreensi=50, nmaxscreens=20, qcprint=False):
             * json_flist (list) : List of GSM JSON filenames to process. If not 
                 provided, function automatically detects any new GSM JSON files
                 without available MetaSRA-pipeline outfiles.
-            * nscreensi (int) : Number of samples to process per screen deployed.
-            * nmaxscreens (int) : Limit to total screen session deployed. 
-            * srcdir (str) : Source files (e.g. scripts) directory name.
-            * filesdir (str) : Recount methylation files based directory name.
-            * gsmjsondir (str) : Files directory name containing GSM JSON files.
-            * gsmsoftdir (str) : Files directory name containing GSM Soft files.
-            * serverfilesdir (str) : Recount methylation server directory name.
-            * psoftfn (str) : Name of script for preprocessing soft files.
-            * gsmmsrapoutdir (str) : MetaSRA-pipeline outfiles directory name.
+            * nprocsamp (int) : Number of samples to process per screen deployed.
+            * nmaxproc (int) : Maximum processes to launch
+            * timelim (int) : time limit (minutes) for monitoring processes.
+            * statint (int) : time (seconds) to sleep before next status update.
             * qcprint (Bool) : Whether to print QC texts.
         Returns:
-            (Null) Generates >=1 screens for preprocessing files list(s), as a 
-                side effect.
+            (Null) Generates >=1 processes for file sublists
     """
     psoftpath = settings.psoftscriptpath
     if psoftpath and qcprint:
@@ -500,7 +494,7 @@ def msrap_screens(json_flist=[], nscreensi=50, nmaxscreens=20, qcprint=False):
         if qcprint:
             print("Forming list of fn lists for screen deployment...")
         ll = []
-        rangelist = [i for i in range(0, len(fl), nscreensi)]
+        rangelist = [i for i in range(0, len(fl), nprocsamp)]
         for enum, i in enumerate(rangelist[:-1]):
             ll.append(fl[i:rangelist[enum+1]])
         if len(fl[rangelist[-1]::]) > 0:
@@ -510,27 +504,75 @@ def msrap_screens(json_flist=[], nscreensi=50, nmaxscreens=20, qcprint=False):
         return None
     if qcprint:
         print('screens ll list, len = ' + str(len(ll)))
-        print('nmax screens = '+str(nmaxscreens))
-    ll = ll[0:nmaxscreens] # slice ll based on screen count max
-    timestampi = gettime_ntp() # single timestamp call shared across screens
-    # deploy screen(s) running MetaSRA-pipeline
+        print('nmax screens = '+str(nmaxproc))
+    ll = ll[0:nmaxproc] # slice ll based on screen count max
+    ts = timestamp # single timestamp call shared across screens
+    process_list = [] # process list for status monitoring and stderr
+    os.makedirs(settings.msraplogspath, exist_ok=True)
     if len(ll)>1:
-        for loc, sublist in enumerate(ll):
+        for loc, sublist in enumerate(ll, 1):
             # each loc in ll represents a new screen index, check vs. screen max
-            if loc <= nmaxscreens:
-                strid = str(loc)
-                cmdlist0 = ['screen', '-S', 'MetaSRApipeline'+strid, '-dm', 'python3',
-                        psoftpath, '--msraplist', 
-                        ' '.join(str(item) for item in sublist), '--ntptime', 
-                        timestampi
-                    ]
-            subprocess.call(cmdlist0,shell=False)
+            if loc <= nmaxproc:
+                cmdlist0 = ['python3', psoftpath, 
+                    '--msraplist', ' '.join(str(item) for item in ll[0]),
+                    '--ntptime', ts
+                ]
+                proc = subprocess.Popen(cmdlist0, stdout=subprocess.PIPE, 
+                    stderr=subprocess.PIPE)
+                process_list.append(proc)
     else:
-        cmdlist0 = ['screen', '-S', 'MetaSRApipeline'+str(0), '-dm', 'python3',
-                psoftpath, '--msraplist', ' '.join(str(item) for item in ll[0]),
-                '--ntptime', timestampi
-            ]
-        subprocess.call(cmdlist0,shell=False)
+        cmdlist0 = ['python3', psoftpath, 
+            '--msraplist', ' '.join(str(item) for item in ll[0]),
+            '--ntptime', ts
+        ]
+        proc = subprocess.Popen(cmdlist0, stdout=subprocess.PIPE, 
+            stderr=subprocess.PIPE)
+        process_list.append(proc)
+    # monitor process statuses as they run
+    print("Monitoring launched processes...")
+    tstart = datetime.now()
+    proc_statuses = [proc.poll() for proc in process_list 
+        if proc.poll()==0
+        or proc.poll()==1
+    ]
+    telapsed = datetime.now() - tstart
+    while len(proc_statuses)<len(process_list) and telapsed.seconds/60<=timelim:
+        proc_statuses = [proc.poll() for proc in process_list 
+            if proc.poll()==0
+            or proc.poll()==1
+        ]
+        telapsed = datetime.now() - tstart
+        printstr = str("Num processes completed = " 
+                    + str(len([status for status in proc_statuses if status==0]))
+                    + ", Num processes failed = " 
+                    + str(len([status for status in proc_statuses if status==1]))
+                    + "; Time elapsed = " + str(telapsed)
+                )
+        if not len(proc_statuses) == len(process_list):
+            # end with return to overwrite next stat
+            print(printstr, end = "\r") 
+        else:
+            # finally, end with newline to retain final statuses
+            print(printstr, end = "\n")
+        if telapsed.seconds/60>=timelim:
+            print("Time limit reached. Saving logs and returning...")
+            break
+        time.sleep(statint)
+    print("Finished processes, or reached max time limit. Saving logs and "
+        + "returning...")
+    # return pids in a status dicitonary to log file
+    print("Forming log dictionary...")
+    procstatdict = {}
+    for proc in process_list:
+        procstatdict[proc.pid] = [proc.poll(),proc.stderr.read()]
+    pfn = '.'.join([ts,'log','pickle'])
+    dfp = os.path.join(settings.msraplogspath, pfn)
+    # write status log
+    print("Writing log dict to new pickle file :" + str(pfn) + "...")
+    pickle_out = open(dfp,"wb")
+    pickle.dump(procstatdict, pickle_out)
+    pickle_out.close()
+
     return
 
 def main(filesdir = 'recount-methylation-files'):
