@@ -17,6 +17,10 @@ import socket
 import struct
 import sys
 import time
+import pickle
+import subprocess
+from datetime import datetime
+import time
 sys.path.insert(0, os.path.join("recount-methylation-server","src"))
 import settings
 settings.init()
@@ -140,3 +144,71 @@ def get_queryfilt_dict(filesdir='recount-methylation-files',
         print("Error: could not retrieve latest equery filt filepath! "
             +"Are there more than one latest file at the search directory?")
         return
+
+def monitor_processes(process_list, logpath, timelim=2800, statint=5):
+    """
+        Monitor ongoing background processes
+        Arguments
+        * process_list (list): list of processes to monitor
+        * logpath (path): path to store new process log
+        * timelim (int): max time (minutes) to monitor processes
+        * statint (int): interval for getting status updates.
+        Returns
+        * process_statlist (list): list of process statuses after done monitoring
+    """
+    print("Monitoring launched processes...")
+    ts = gettime_ntp()
+    tstart = datetime.now()
+    process_statlist = [proc.poll() for proc in process_list 
+        if proc.poll()==0
+        or proc.poll()==1
+    ]
+    telapsed = datetime.now() - tstart
+    while len(process_statlist)<len(process_list) and telapsed.seconds/60<=timelim:
+        process_statlist = [proc.poll() for proc in process_list 
+            if proc.poll()==0
+            or proc.poll()==1
+        ]
+        telapsed = datetime.now() - tstart
+        printstr = str("Num processes completed = " 
+                    + str(len([status for status in process_statlist if status==0]))
+                    + ", Num processes failed = " 
+                    + str(len([status for status in process_statlist if status==1]))
+                    + "; Time elapsed = " + str(telapsed)
+                )
+        if not len(process_statlist) == len(process_list):
+            # end with return to overwrite next stat
+            print(printstr, end = "\r") 
+        else:
+            # finally, end with newline to retain final statuses
+            print(printstr, end = "\n")
+        if telapsed.seconds/60>=timelim:
+            print("Time limit reached. Saving logs and returning...")
+            break
+        time.sleep(statint)
+    print("Finished processes, or reached max time limit. Saving logs and "
+        + "returning...")
+    
+    # return pids in dict
+    print("Forming log dictionary...")
+    procstatdict = {}
+    for proc in process_list:
+        procstatdict[proc.pid] = [proc.poll(), proc.stderr.read()]
+    pfn = '.'.join([ts,'log','pickle'])
+    # write stats dict to pickle object
+    dfp = os.path.join(logpath, pfn)
+    
+    # write status log
+    print("Writing log dict to new pickle file :" + str(pfn) + "...")
+    pickle_out = open(dfp,"wb")
+    pickle.dump(procstatdict, pickle_out)
+    pickle_out.close()
+
+    print("Completed preprocessing. Returning...")
+    return None
+
+
+
+
+
+

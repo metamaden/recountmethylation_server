@@ -37,6 +37,7 @@ import time
 from random import shuffle
 sys.path.insert(0, os.path.join("recount-methylation-server","src"))
 from utilities import gettime_ntp, getlatest_filepath, get_queryfilt_dict
+from utilities import monitor_processes
 import settings
 settings.init()
 
@@ -401,6 +402,8 @@ def run_metasrapipeline(json_flist=[], timestamp=gettime_ntp()):
     msrap_statlist = []
     msrap_fn = settings.msrapfnstem
     # iterate over valid filenames at gsm json dir
+    process_list = []
+    args_list = []
     for gsm_json_fn in gsm_json_fn_list:
         gsmid = gsm_json_fn.split('.')[1]
         if gsmid in validgsmlist:
@@ -415,11 +418,14 @@ def run_metasrapipeline(json_flist=[], timestamp=gettime_ntp()):
                 ]
             proc = subprocess.Popen(cmdlist, stdout=subprocess.PIPE, 
                     stderr=subprocess.PIPE)
-            msrap_statlist.append(proc)
+            process_list.append(proc)
+            args_list.append([gsmjson_readpath, gsm_msrapout_writepath])
         else:
             msrap_statlist.append(None)
             print("GSM id : "+gsmid+" is not a valid HM450k sample. "
                 +"Continuing...")
+    # monitor launched processes for status
+    monitor_processes(process_list=process_list, logpath=settings.msraplogspath)
     return msrap_statlist
 
 def msrap_launchproc(json_flist=[], timestamp=gettime_ntp(), nprocsamp=50, 
@@ -507,75 +513,29 @@ def msrap_launchproc(json_flist=[], timestamp=gettime_ntp(), nprocsamp=50,
         print('nmax screens = '+str(nmaxproc))
     ll = ll[0:nmaxproc] # slice ll based on screen count max
     ts = timestamp # single timestamp call shared across screens
-    process_list = [] # process list for status monitoring and stderr
-    os.makedirs(settings.msraplogspath, exist_ok=True)
     if len(ll)>1:
         for loc, sublist in enumerate(ll, 1):
             # each loc in ll represents a new screen index, check vs. screen max
             if loc <= nmaxproc:
-                cmdlist0 = ['python3', psoftpath, 
-                    '--msraplist', ' '.join(str(item) for item in ll[0]),
-                    '--ntptime', ts
+                cmdlist0 = ['screen','-S',"msrapsession"+str(loc), '-dm', 
+                    'python3', psoftpath, '--msraplist', 
+                    ' '.join(str(item) for item in ll[0]),'--ntptime', ts
                 ]
                 proc = subprocess.Popen(cmdlist0, stdout=subprocess.PIPE, 
                     stderr=subprocess.PIPE)
-                process_list.append(proc)
     else:
-        cmdlist0 = ['python3', psoftpath, 
-            '--msraplist', ' '.join(str(item) for item in ll[0]),
-            '--ntptime', ts
-        ]
-        proc = subprocess.Popen(cmdlist0, stdout=subprocess.PIPE, 
+        cmdlist0 = ['screen','-S',"msrapsession"+str(loc), '-dm', 
+                    'python3', psoftpath, '--msraplist', 
+                    ' '.join(str(item) for item in ll[0]),'--ntptime', ts
+                ]
+        subprocess.Popen(cmdlist0, stdout=subprocess.PIPE, 
             stderr=subprocess.PIPE)
-        process_list.append(proc)
-    # monitor process statuses as they run
-    print("Monitoring launched processes...")
-    tstart = datetime.now()
-    proc_statuses = [proc.poll() for proc in process_list 
-        if proc.poll()==0
-        or proc.poll()==1
-    ]
-    telapsed = datetime.now() - tstart
-    while len(proc_statuses)<len(process_list) and telapsed.seconds/60<=timelim:
-        proc_statuses = [proc.poll() for proc in process_list 
-            if proc.poll()==0
-            or proc.poll()==1
-        ]
-        telapsed = datetime.now() - tstart
-        printstr = str("Num processes completed = " 
-                    + str(len([status for status in proc_statuses if status==0]))
-                    + ", Num processes failed = " 
-                    + str(len([status for status in proc_statuses if status==1]))
-                    + "; Time elapsed = " + str(telapsed)
-                )
-        if not len(proc_statuses) == len(process_list):
-            # end with return to overwrite next stat
-            print(printstr, end = "\r") 
-        else:
-            # finally, end with newline to retain final statuses
-            print(printstr, end = "\n")
-        if telapsed.seconds/60>=timelim:
-            print("Time limit reached. Saving logs and returning...")
-            break
-        time.sleep(statint)
-    print("Finished processes, or reached max time limit. Saving logs and "
-        + "returning...")
-    # return pids in a status dicitonary to log file
-    print("Forming log dictionary...")
-    procstatdict = {}
-    for proc in process_list:
-        procstatdict[proc.pid] = [proc.poll(),proc.stderr.read()]
-    pfn = '.'.join([ts,'log','pickle'])
-    dfp = os.path.join(settings.msraplogspath, pfn)
-    # write status log
-    print("Writing log dict to new pickle file :" + str(pfn) + "...")
-    pickle_out = open(dfp,"wb")
-    pickle.dump(procstatdict, pickle_out)
-    pickle_out.close()
+    print("Finished launching background processes. Check screens for ongoing "
+        +"status reports.")
+    print("Returning...")
+    return None
 
-    return
-
-def main(filesdir = 'recount-methylation-files'):
+def main():
     """
     """
     return
