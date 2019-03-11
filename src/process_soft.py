@@ -416,8 +416,7 @@ def run_metasrapipeline(json_flist=[], timestamp=gettime_ntp()):
                 gsmjson_readpath,
                 gsm_msrapout_writepath
                 ]
-            proc = subprocess.Popen(cmdlist, stdout=subprocess.PIPE, 
-                    stderr=subprocess.PIPE)
+            proc = subprocess.call(cmdlist, shell=False)
             process_list.append(proc)
             args_list.append([gsmjson_readpath, gsm_msrapout_writepath])
         else:
@@ -425,7 +424,7 @@ def run_metasrapipeline(json_flist=[], timestamp=gettime_ntp()):
             print("GSM id : "+gsmid+" is not a valid HM450k sample. "
                 +"Continuing...")
     # monitor launched processes for status
-    monitor_processes(process_list=process_list, logpath=settings.msraplogspath)
+    #monitor_processes(process_list=process_list, logpath=settings.msraplogspath)
     return msrap_statlist
 
 def msrap_launchproc(json_flist=[], timestamp=gettime_ntp(), nprocsamp=50, 
@@ -449,6 +448,12 @@ def msrap_launchproc(json_flist=[], timestamp=gettime_ntp(), nprocsamp=50,
         Returns:
             (Null) Generates >=1 processes for file sublists
     """
+    # ensure metasrapipeline dir exists
+    if not os.path.exists(settings.msraprunscriptpath):
+        print("Error: MetaSRA-pipeline script not found. Please check your "
+            +"local download of MetaSRA-pipeline.")
+        return None
+    # detect gsm soft files
     psoftpath = settings.psoftscriptpath
     if psoftpath and qcprint:
         print("Process soft script found at: "+str(psoftpath))
@@ -513,6 +518,7 @@ def msrap_launchproc(json_flist=[], timestamp=gettime_ntp(), nprocsamp=50,
         print('nmax screens = '+str(nmaxproc))
     ll = ll[0:nmaxproc] # slice ll based on screen count max
     ts = timestamp # single timestamp call shared across screens
+    process_list = []
     if len(ll)>1:
         for loc, sublist in enumerate(ll, 1):
             # each loc in ll represents a new screen index, check vs. screen max
@@ -523,15 +529,21 @@ def msrap_launchproc(json_flist=[], timestamp=gettime_ntp(), nprocsamp=50,
                 ]
                 proc = subprocess.Popen(cmdlist0, stdout=subprocess.PIPE, 
                     stderr=subprocess.PIPE)
+                process_list.append(proc)
     else:
         cmdlist0 = ['screen','-S',"msrapsession"+str(loc), '-dm', 
                     'python3', psoftpath, '--msraplist', 
                     ' '.join(str(item) for item in ll[0]),'--ntptime', ts
                 ]
-        subprocess.Popen(cmdlist0, stdout=subprocess.PIPE, 
+        proc = subprocess.Popen(cmdlist0, stdout=subprocess.PIPE, 
             stderr=subprocess.PIPE)
+        process_list.append(proc)
     print("Finished launching background processes. Check screens for ongoing "
         +"status reports.")
+    # monitor processes
+    print("Beginning process monitoring...")
+    monitor_processes(process_list=process_list, logpath=settings.msraplogspath)
+    print("Finished with process monitoring.")
     print("Returning...")
     return None
 
