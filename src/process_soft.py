@@ -128,7 +128,7 @@ def expand_soft(rmcompressed=False, qcprint=False):
 
 def extract_gsm_soft(gsesoft_flist=[], softopenindex='.*!Sample_title.*', 
     softcloseindex='.*!Sample_data_row_count.*', timestamp=gettime_ntp(), 
-    validate=True, qcprint=False):
+    validate=True):
     """ extract_gsm_soft
         Extract GSM soft file sections from GSE soft files.
         Arguments: 
@@ -142,7 +142,6 @@ def extract_gsm_soft(gsesoft_flist=[], softopenindex='.*!Sample_title.*',
             * timestamp (str) : NTP timestamp version for expanded files.
             * validate (Bool.) : Validate extracted GSM files against files in 
                 gsm_soft directory?
-            * qcprint (Bool.) : Print status texts for debugging?
         Returns:
             * newfilesd (dictionary), or error (null), generates GSM soft files 
                 as a side effect.
@@ -151,8 +150,7 @@ def extract_gsm_soft(gsesoft_flist=[], softopenindex='.*!Sample_title.*',
     validgsmlist = list(set([gsmid for gselist in list(eqfiltdict.values()) 
         for gsmid in gselist
     ]))
-    if qcprint:
-        print("length validgsmlist : "+str(len(validgsmlist)))
+    print("length validgsmlist : "+str(len(validgsmlist)))
     rvalidsoft = re.compile(".*soft$") # identify expanded GSE soft files
     gse_softpath = settings.gsesoftpath
     gsm_softpath = settings.gsmsoftpath
@@ -171,16 +169,14 @@ def extract_gsm_soft(gsesoft_flist=[], softopenindex='.*!Sample_title.*',
     shuffle(gse_softlist)
     gsmsoft_destpath = settings.gsmsoftpath
     newfilesd = {} # new files, status dictionary to return
-    if qcprint:
-        print("new tempdir for writing soft files : "+str(temp_dir_make))
-        print("length gse_softlist: "+str(len(gse_softlist)))
+    print("new tempdir for writing soft files : "+str(temp_dir_make))
+    print("length gse_softlist: "+str(len(gse_softlist)))
     rxopen = re.compile(softopenindex)
     rxclose = re.compile(softcloseindex)
     rxgsm = re.compile('GSM[0-9]*')
     rxgsmfile = re.compile('.*GSM.*')
     for gse_softfile in gse_softlist:
-        if qcprint:
-            print("Beginning gse softfile : "+gse_softfile)
+        print("Beginning gse softfile : "+gse_softfile)
         newfilesd[gse_softfile] = []
         openindex = []
         closeindex = []
@@ -193,16 +189,14 @@ def extract_gsm_soft(gsesoft_flist=[], softopenindex='.*!Sample_title.*',
                 if rxopen.search(line):
                     openindex.append(num)
                 lsoft.append(line)
-        if qcprint:
-            print("for gse, found n = "+str(len(openindex))+" valid open "
+        print("for gse, found n = "+str(len(openindex))+" valid open "
                 +"indices..")
-            print("for gse, found n = "+str(len(lsoft))+" soft file lines. "
-                +"Continuing...")
+        print("for gse, found n = "+str(len(lsoft))+" soft file lines. "
+            +"Continuing...")
         for num, openi in enumerate(openindex,0):
-            if qcprint:
-                print("num : "+str(num))
-                print("openi : "+str(openi))
-                print("closei : "+str(closeindex[num]))
+            print("num : "+str(num))
+            print("openi : "+str(openi))
+            print("closei : "+str(closeindex[num]))
             try:
                 gsm_softlines = lsoft[openi:closeindex[num]] # read gsm lines
             except:
@@ -214,9 +208,8 @@ def extract_gsm_soft(gsesoft_flist=[], softopenindex='.*!Sample_title.*',
                 gsmid = str(rxgsm.findall(gsmid_lines[0])[0])
                 print("Found GSM id : "+gsmid)
                 gsm_softfn = ".".join([timestamp, gsmid, 'soft'])
-                if qcprint:
-                    print("GSM id found : "+gsmid)
-                    print(gsmid+" in valid list... "+str(gsmid in validgsmlist))
+                print("GSM id found : "+gsmid)
+                print(gsmid+" in valid list... "+str(gsmid in validgsmlist))
                 if gsmid in validgsmlist:
                     newfilesd[gse_softfile].append(gsm_softfn)
                     gsm_newfile_path = os.path.join(temp_dir_make, gsm_softfn)
@@ -227,33 +220,28 @@ def extract_gsm_soft(gsesoft_flist=[], softopenindex='.*!Sample_title.*',
                         +"Continuing...")
             else:
                 print("GSM soft lines malformed! Continuing...")
-    if qcprint:
-        print("newfilesd : "+str(newfilesd))
+    print("newfilesd : "+str(newfilesd))
     if validate:
-        if qcprint:
-            print(list(newfilesd.keys()))
+        print(list(newfilesd.keys()))
         for gse_softfn in list(newfilesd.keys()):
             gsmfilelist = list(filter(rxgsmfile.match, newfilesd[gse_softfn]))
             if gsmfilelist and len(gsmfilelist)>0:
-                if qcprint:
-                    print(str(gsmfilelist))
+                print(str(gsmfilelist))
                 for gsmfile in gsmfilelist:
                     gsm_oldfile_path = ""
                     gsm_newfile_path = ""
                     gsm_softfn = gsmfile
                     gsmstr = gsm_softfn.split(".")[1]
-                    if qcprint:
-                        print("gsmfile: "+str(gsmfile))
-                        print("gsmstr : "+gsmstr)
+                    print("gsmfile: "+str(gsmfile))
+                    print("gsmstr : "+gsmstr)
                     gsm_newfile_path = os.path.join(temp_dir_make, gsm_softfn)
                     gsm_oldfile_path = getlatest_filepath(
                             filepath=gsmsoft_destpath, filestr=gsmstr, 
                             embeddedpattern=True, tslocindex=0
                         )
-                    if qcprint:
-                        print("gsm_oldfile_path : "+str(gsm_oldfile_path))
-                        print("gsm_newfile_path : "+str(gsm_newfile_path))
-                    if gsm_oldfile_path and not gsm_oldfile_path == 0:
+                    print("gsm_oldfile_path : "+str(gsm_oldfile_path))
+                    print("gsm_newfile_path : "+str(gsm_newfile_path))
+                    if gsm_oldfile_path and os.path.exists(gsm_newfile_path):
                         if filecmp.cmp(gsm_oldfile_path, gsm_newfile_path):
                             print("Identical GSM soft file detected, removing...")
                             os.remove(gsm_newfile_path)
