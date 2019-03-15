@@ -241,26 +241,30 @@ def extract_gsm_soft(gsesoft_flist=[], softopenindex='.*!Sample_title.*',
                         )
                     print("gsm_oldfile_path : "+str(gsm_oldfile_path))
                     print("gsm_newfile_path : "+str(gsm_newfile_path))
-                    if gsm_oldfile_path and os.path.exists(gsm_newfile_path):
-                        if filecmp.cmp(gsm_oldfile_path, gsm_newfile_path):
-                            print("Identical GSM soft file detected, removing...")
-                            os.remove(gsm_newfile_path)
-                            newfilesd[gsmfile] = False
-                        else:
+                    if os.path.exists(gsm_newfile_path):
+                        if gsm_oldfile_path:
+                            if filecmp.cmp(gsm_oldfile_path, gsm_newfile_path):
+                                print("Identical GSM soft file detected, removing...")
+                                os.remove(gsm_newfile_path)
+                                newfilesd[gsmfile] = False
+                            else:
+                                print("New GSM soft file detected, moving from temp...")
+                                shutil.move(gsm_newfile_path, os.path.join(
+                                        gsmsoft_destpath, 
+                                        os.path.basename(gsm_newfile_path))
+                                    )
+                                newfilesd[gsmfile] = True
+                        else: 
                             print("New GSM soft file detected, moving from temp...")
                             shutil.move(gsm_newfile_path, os.path.join(
-                                    gsmsoft_destpath, 
-                                    os.path.basename(gsm_newfile_path))
-                                )
+                                        gsmsoft_destpath, 
+                                        os.path.basename(gsm_newfile_path))
+                                    )
                             newfilesd[gsmfile] = True
-                    else: 
-                        print("New GSM soft file detected, moving from temp...")
-                        shutil.move(gsm_newfile_path, os.path.join(
-                                    gsmsoft_destpath, 
-                                    os.path.basename(gsm_newfile_path))
-                                )
-                        newfilesd[gsmfile] = True
-        shutil.rmtree(temp_dir_make) # remove tempdir if validate true
+                        shutil.rmtree(temp_dir_make) # remove tempdir
+                    else:
+                        print("GSM soft file unavailable. Continuing...")
+                        newfilesd[gsmfile] = False
     return newfilesd 
 
 def gsm_soft2json(gsm_softlist=[], scriptpath=settings.s2jscriptpath, 
