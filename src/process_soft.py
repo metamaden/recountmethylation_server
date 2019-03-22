@@ -41,13 +41,12 @@ from utilities import monitor_processes
 import settings
 settings.init()
 
-def expand_soft(rmcompressed=False, qcprint=False):
+def expand_soft(rmcompressed=False):
     """ expand_soft
         Expand compressed GSE soft files, including filter on valid GSE ids.
         Arguments:
             * rmcompressed (T/F,Bool.) : Whether to remove compressed soft files
                 once they have been successfully expanded.
-            * qcprint (Bool.) : Print status texts for debugging?
         Returns:
             * rsoftd (list) : List of filenames and statuses, produces expanded 
                 soft files as side effect.
@@ -60,8 +59,7 @@ def expand_soft(rmcompressed=False, qcprint=False):
     gsepatt = settings.gsepatt
     rgse = re.compile(gsepatt)
     gseidlist = list(filter(rgse.match, gseidlist)) # valid GSE IDs
-    if qcprint:
-        print(str(gseidlist))
+    print(str(gseidlist))
     softpatt = settings.softallpatt
     comppatt = settings.compsoftpatt
     expsoftpatt = settings.expsoftpatt
@@ -267,8 +265,7 @@ def extract_gsm_soft(gsesoft_flist=[], softopenindex='.*!Sample_title.*',
                         newfilesd[gsmfile] = False
     return newfilesd 
 
-def gsm_soft2json(gsm_softlist=[], scriptpath=settings.s2jscriptpath, 
-    qcprint=False):
+def gsm_soft2json(gsm_softlist=[], scriptpath=settings.s2jscriptpath):
     """ gsm_soft2json
         Convert GSM soft file to JSON format Calls R script to coerce GSM soft 
         files (XML-like format) to valid JSON format.
@@ -277,7 +274,6 @@ def gsm_soft2json(gsm_softlist=[], scriptpath=settings.s2jscriptpath,
                 process.
             * scriptpath (str) : Path to R script for JSON conversion. If not 
                 provided, automatically checks current working directory.
-            * qcprint (Bool.) : Print status texts for debugging?
         Returns:
             * rlist object (list) of converted files and statuses, or error, 
                 generates GSM JSON files as a side effect.
@@ -303,7 +299,7 @@ def gsm_soft2json(gsm_softlist=[], scriptpath=settings.s2jscriptpath,
     statd = {}
     if gsm_softfn_list and len(gsm_softfn_list)>0:
         # check existant json files before attempting conversion
-        for gsm_softfn in gsm_softfn_list:
+        for gsmi, gsm_softfn in enumerate(gsm_softfn_list, 1):
             gsmid = gsm_softfn.split('.')[1]
             statd[gsm_softfn] = []
             if gsmid in validgsmlist:
@@ -327,26 +323,27 @@ def gsm_soft2json(gsm_softlist=[], scriptpath=settings.s2jscriptpath,
                             ]
                             subprocess.call(cmdlist,shell=False)
                             statd[gsm_softfn].append(True)
+                            print("R session launched for sample "+str(gsmi), 
+                                end="\r")
                         except subprocess.CalledProcessError as e:
                             statd[gsm_softfn].append(None)
                             statd[gsm_softfn].append(e)
                 else:
-                    if qcprint:
-                        print("No latest JSON files found for GSM id: "+gsmid
-                            +". Continuing...")
                     try:
                         cmdlist = ['Rscript', scriptpath, gsm_softfn, 
                             gsm_softpath, gsm_jsonpath
                         ]
                         subprocess.call(cmdlist,shell=False)
                         statd[gsm_softfn].append(True)
+                        print("R session launched for sample "+str(gsmi), 
+                            end="\r")
                     except subprocess.CalledProcessError as e:
                         statd[gsm_softfn].append(None)
                         statd[gsm_softfn].append(e)
             else:
                 statd[gsm_softfn].append(None)
-                print("GSM id : "+gsmid+" is not a valid HM450k sample. "
-                    +"Continuing...")
+                print("Sample num "+str(gsmi)+" is not a valid HM450k sample. ",
+                    end="\r")
     else:
         print("Error: No valid GSM Soft files to process from list. Returning.")
         return None
@@ -355,9 +352,7 @@ def gsm_soft2json(gsm_softlist=[], scriptpath=settings.s2jscriptpath,
     rjsonlist_return = [jfile for jfile in rjsonlist_new
         if not jfile in rjsonlist_current
     ]
-    if qcprint:
-        print("Detected N = "+str(len(rjsonlist_return))+" new json files in "
-            +"dir.")
+    print("Generated "+str(len(rjsonlist_return))+" new json files in dir.")
     rlist = [statd, rjsonlist_return]
     return rlist
 
@@ -420,7 +415,7 @@ def run_metasrapipeline(json_flist=[], timestamp=gettime_ntp()):
     return msrap_statlist
 
 def msrap_launchproc(json_flist=[], timestamp=gettime_ntp(), nprocsamp=50, 
-    nmaxproc=20, timelim=2800, statint=5, qcprint=False):
+    nmaxproc=20, timelim=2800, statint=5):
     """ msrap_launchproc
         Preprocess subsets of GSM JSON files in MetaSRA-pipeline in background, 
         with process monitoring
@@ -436,7 +431,6 @@ def msrap_launchproc(json_flist=[], timestamp=gettime_ntp(), nprocsamp=50,
             * nmaxproc (int) : Maximum processes to launch
             * timelim (int) : time limit (minutes) for monitoring processes.
             * statint (int) : time (seconds) to sleep before next status update.
-            * qcprint (Bool) : Whether to print QC texts.
         Returns:
             (Null) Generates >=1 processes for file sublists
     """
@@ -447,7 +441,7 @@ def msrap_launchproc(json_flist=[], timestamp=gettime_ntp(), nprocsamp=50,
         return None
     # detect gsm soft files
     psoftpath = settings.psoftscriptpath
-    if psoftpath and qcprint:
+    if psoftpath:
         print("Process soft script found at: "+str(psoftpath))
     gsmsoftpath = settings.gsmsoftpath
     gsmjsonpath = settings.gsmjsonpath
@@ -467,9 +461,8 @@ def msrap_launchproc(json_flist=[], timestamp=gettime_ntp(), nprocsamp=50,
         jsongsmlist = [x.split('.')[1] for x in jsonfnlist]
     msrapoutfnlist = os.listdir(gsmmsrapoutpath) 
     msrapoutfnlist = list(filter(rmsrapout.match, msrapoutfnlist))
-    if qcprint:
-        print("Found "+str(len(msrapoutfnlist))+" files with pattern "
-            +msrapoutfnpattern+". Continuing...")
+    print("Found "+str(len(msrapoutfnlist))+" files with pattern "
+        +msrapoutfnpattern+". Continuing...")
     msrapgsmlist = [x.split('.')[2] for x in msrapoutfnlist]
     gsmprocess = [g for g in jsongsmlist 
             if not g in msrapgsmlist and
@@ -486,16 +479,14 @@ def msrap_launchproc(json_flist=[], timestamp=gettime_ntp(), nprocsamp=50,
             gjsonfn = [os.path.basename(fn) for fn in gjsonfpath]
         gjsonfn = gjsonfn[0]
         fl.append(gjsonfn)
-        if qcprint:
-            numi = 100*(index/len(gsmprocess))
-            perci = str(round(numi,2))
-            print("Appended file "+gjsonfn+" to files list to process. "
-                +"Progress: "+str(index)+"/"+str(len(gsmprocess))+"="
-                +perci+"%. Continuing...")
+        numi = 100*(index/len(gsmprocess))
+        perci = str(round(numi,2))
+        print("Appended file "+gjsonfn+" to files list to process. "
+            +"Progress: "+str(index)+"/"+str(len(gsmprocess))+"="
+            +perci+"%. Continuing...")
     # form list of fn lists based on nscreensi and indices/slices
     if fl:
-        if qcprint:
-            print("Forming list of fn lists for screen deployment...")
+        print("Forming list of fn lists for screen deployment...")
         ll = []
         rangelist = [i for i in range(0, len(fl), nprocsamp)]
         for enum, i in enumerate(rangelist[:-1]):
@@ -505,9 +496,8 @@ def msrap_launchproc(json_flist=[], timestamp=gettime_ntp(), nprocsamp=50,
     else:
         print("Error, no files list object to process. Returning...")
         return None
-    if qcprint:
-        print('screens ll list, len = ' + str(len(ll)))
-        print('nmax screens = '+str(nmaxproc))
+    print('screens ll list, len = ' + str(len(ll)))
+    print('nmax screens = '+str(nmaxproc))
     ll = ll[0:nmaxproc] # slice ll based on screen count max
     ts = timestamp # single timestamp call shared across screens
     process_list = []
