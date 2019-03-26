@@ -439,9 +439,12 @@ def msrap_launchproc(json_flist=[], timestamp=gettime_ntp(), nprocsamp=50,
         print("Error: MetaSRA-pipeline script not found. Please check your "
             +"local download of MetaSRA-pipeline.")
         return None
+    print("Checking dirs for msrapout and msrap logs...")
+    os.makedirs(settings.gsmmsrapoutpath, exist_ok=True)
+    os.makedirs(settings.msraplogspath, exist_ok=True)
     # detect gsm soft files
     psoftpath = settings.psoftscriptpath
-    if psoftpath:
+    if os.path.exists(psoftpath):
         print("Process soft script found at: "+str(psoftpath))
     gsmsoftpath = settings.gsmsoftpath
     gsmjsonpath = settings.gsmjsonpath
