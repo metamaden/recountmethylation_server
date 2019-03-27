@@ -174,7 +174,7 @@ def monitor_processes(process_list, logpath, timelim=2800, statint=5):
                     + str(len([status for status in process_statlist if status==0]))
                     + ", Num processes failed = " 
                     + str(len([status for status in process_statlist if status==1]))
-                    + "; Time elapsed = " + str(telapsed)
+                    + "; Time elapsed = " + str(telapsed), end="\r"
                 )
         if not len(process_statlist) == len(process_list):
             # end with return to overwrite next stat
