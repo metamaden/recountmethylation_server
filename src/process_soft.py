@@ -414,7 +414,7 @@ def run_metasrapipeline(json_flist=[], timestamp=gettime_ntp()):
     #monitor_processes(process_list=process_list, logpath=settings.msraplogspath)
     return msrap_statlist
 
-def msrap_launchproc(json_flist=[], timestamp=gettime_ntp(), nprocsamp=50, 
+def msrap_launchproc(json_flist=[], fnpatt=settings.jsonfnpattern, timestamp=gettime_ntp(), nprocsamp=50, 
     nmaxproc=20, timelim=2800, statint=5):
     """ msrap_launchproc
         Preprocess subsets of GSM JSON files in MetaSRA-pipeline in background, 
@@ -427,6 +427,7 @@ def msrap_launchproc(json_flist=[], timestamp=gettime_ntp(), nprocsamp=50,
             * json_flist (list) : List of GSM JSON filenames to process. If not 
                 provided, function automatically detects any new GSM JSON files
                 without available MetaSRA-pipeline outfiles.
+            * fnpatt (str): Filename pattern of valid json files to identify.
             * nprocsamp (int) : Number of samples to process per screen deployed.
             * nmaxproc (int) : Maximum processes to launch
             * timelim (int) : time limit (minutes) for monitoring processes.
@@ -449,7 +450,7 @@ def msrap_launchproc(json_flist=[], timestamp=gettime_ntp(), nprocsamp=50,
     gsmsoftpath = settings.gsmsoftpath
     gsmjsonpath = settings.gsmjsonpath
     gsmmsrapoutpath = settings.gsmmsrapoutpath
-    jsonfnpattern = settings.jsonfnpattern
+    jsonfnpattern = fnpatt
     rjson = re.compile(jsonfnpattern)
     msrapoutfnpattern = settings.msrapoutfnpattern
     rmsrapout = re.compile(msrapoutfnpattern)
