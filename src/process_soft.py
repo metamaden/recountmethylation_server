@@ -356,7 +356,7 @@ def gsm_soft2json(gsm_softlist=[], scriptpath=settings.s2jscriptpath):
     rlist = [statd, rjsonlist_return]
     return rlist
 
-def run_metasrapipeline(json_flist=[], timestamp=gettime_ntp()):
+def run_metasrapipeline(json_flist=[], jsonpatt=".*json.filt$", timestamp=gettime_ntp()):
     """ run_metasrapipeline
         Run MetaSRA-pipeline on GSM JSON files. It is highly recommended to 
         implement this with parallelization using msrap_screens, instead of 
@@ -378,11 +378,11 @@ def run_metasrapipeline(json_flist=[], timestamp=gettime_ntp()):
     gsm_jsonpath = settings.gsmjsonpath
     # if filenames provided, form list, else list json dir contents
     if json_flist and len(json_flist)>0:
-        rjson = re.compile(".*json$")
+        rjson = re.compile(jsonpatt)
         gsm_json_fn_list = list(filter(rjson.match, json_flist)) 
     else:
         gsm_json_fn_list = os.listdir(gsm_jsonpath)
-        rjson = re.compile(".*json$")
+        rjson = re.compile(jsonpatt)
         gsm_json_fn_list = list(filter(rjson.match, gsm_json_fn_list))
     msrap_destpath = settings.gsmmsrapoutpath
     os.makedirs(msrap_destpath, exist_ok=True)
