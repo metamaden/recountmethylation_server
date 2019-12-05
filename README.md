@@ -4,6 +4,11 @@
 
 Server code for hosting and maintaining Recount-Methylation database.
 
+## Authorship
+
+Sean Maden (maintainer, co-creator)
+Abhi Nellore (maintainer, co-creator)
+
 ## Instructions to Set Up and Run Recount Methylation Server and Database Instance
 
 This sections explains how to run the server and handle a local Recount Methylation instance.
