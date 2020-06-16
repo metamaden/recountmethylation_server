@@ -97,9 +97,3 @@ After a few minutes, you should start seeing new ".msrapout" files generated in 
 The preprocess workflow utilizes information on the latest versions of files, stored in the Recount Methylation MongoDB (RMDB), a database of document compilations containing file metadata. RMDB file records are validated by searching the root files directory ('./recount-methylation-files'), and metadata and idat files are paired under their corresponding shared GSM ID. Finally, this information is used to form a data sheet including valid file names and paths, and a compressed/'flattened' version of the MetaSRA-pipeline mapped sample metadata. 
 
 ![alt text](https://github.com/metamaden/recount-methylation-server/blob/master/preprocess_workflow.jpg "Recount Methylation Server Process")
-
-### Processing Tutorial
-
-TBD
-
-
