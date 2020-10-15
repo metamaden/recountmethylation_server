@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
 """ dl.py
+
+    Authors: Sean Maden, Abhi Nellore
+    
     Functions to manage download of idats and experiment soft files from GEO.
     Notes:
         * Validation for each download function checks new files against 

@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
 """ gse_celerytask.py
+    
+    Authors: Sean Maden, Abhi Nellore
+    
     Task script for celery. This script defines a task for celerybeat, where 
     individual task managed by celeryd and worker. Configuration is also 
     accessed from celeryconfig.py, including SQLite backend database info.

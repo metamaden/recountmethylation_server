@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
 """ settings.py
+    
+    Authors: Sean Maden, Abhi Nellore
+    
     Sets global variables for recount methylation, namely for filepaths and 
     platformid. Settings global objects are accessible by importing settings 
     then running 'settings.init()' and declaring a global object (e.g. 

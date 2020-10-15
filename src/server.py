@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 
 """ server.py
-Recount Methylation Server
+
 Authors: Sean Maden, Abhinav Nellore
-Website: 
 
 Description:
     Server script to manage an instance of the recount-methylation database.

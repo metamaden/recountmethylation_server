@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# Authors: Sean Maden, Abhi Nellore
+
 import ftplib
 import datetime
 import os

@@ -1,3 +1,10 @@
+#!/usr/bin/env R
+
+# Authors: Sean Maden, Abhi Nellore
+# Filter the sample/GSM metadata JSON files, removing any
+# study/GSE record-specific data, prior to mapping with the
+# MetaSRA-pipeline.
+
 library(readr)
 library(jsonlite)
 

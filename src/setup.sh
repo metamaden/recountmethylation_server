@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+# Authors: Sean Maden, Abhi Nellore
 # Installs, clones, and sets up dependencies for Recount Methylation server
 
 # 1. Clone Recount Methylation Server and MetaSRA-pipeline fork

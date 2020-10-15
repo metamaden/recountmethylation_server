@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
 """ process_soft.py
+
+    Authors: Sean Maden, Abhi Nellore
+    
     Preprocess GSE/GSM Soft files for recount methylation samples. Includes GSM 
     Soft metadata extraction, methods to convert to JSON, and methods to process 
     samples in MetaSRA-pipeline.

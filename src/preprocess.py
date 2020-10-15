@@ -17,6 +17,9 @@ import settings
 settings.init()
 
 """ preprocess.py
+
+    Authors: Sean Maden, Abhi Nellore
+    
     Wrapper functions for preprocessing idats and soft files, and functions to
     prepare data and valid sheet files for R analysis.
     Prepares SOFT data for by-GSM input to MetaSRA-pipeline, and runs the 

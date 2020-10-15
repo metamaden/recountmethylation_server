@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
 """ edirect_query.py
+    
+    Authors: Sean Maden, Abhi Nellore
+    
     Get files of GSE and GSM ids from GEO via edirect query (NCBI entrez 
     utlities function). IDs correspond to valid HM450k array experiments and 
     samples.

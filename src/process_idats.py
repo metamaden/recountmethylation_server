@@ -10,6 +10,9 @@ import settings
 settings.init()
 
 """ process_idats.py
+
+    Authors: Sean Maden, Abhi Nellore
+    
     Functions to preprocess idats before being read into minfi.
     Functions:
         * expand_idats: Expand compressed idat files.
