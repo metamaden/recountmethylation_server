@@ -1,5 +1,8 @@
+#!/usr/bin/env python3
 
 """
+
+Authors: Sean Maden, Abhi Nellore
 
 To process the experiment soft files, Recount Methylation begins by downloading
 the soft metadata file for each experiment. Each downloaded soft file thus has a 

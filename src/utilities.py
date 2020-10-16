@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
 """ utilities.py
+    
+    Authors: Sean Maden, Abhi Nellore
+
     Commonly referenced functions for recount methylation server.
     Functions:
         * gettime_ntp: Return an NTP timestamp as a string, for file versioning.
@@ -59,7 +62,6 @@ def getlatest_filepath(filepath, filestr, embeddedpattern=False, tslocindex=1,
             * latest_file_path (str) or status (0, int) : Path to latest version 
                 of file, or else 0 if search turned up no files at location
     """
-    # print("start getlatest")
     if embeddedpattern:
         embedpattern = str('*' + filestr + '*')
         pathstr = str(os.path.join(filepath, embedpattern))
@@ -89,7 +91,6 @@ def getlatest_filepath(filepath, filestr, embeddedpattern=False, tslocindex=1,
                 ]
             else:
                 lfr = [flfilt[0]]
-            # print("getlatest end")
             if returntype=='returnstr':
                 return ' '.join(i for i in lfr)
             if returntype=='returnlist':

@@ -1,21 +1,5 @@
 #!/usr/bin/env python3
 
-import pymongo
-import sys
-import os
-import datetime
-import inspect
-import re
-import json
-sys.path.insert(0, os.path.join("recount-methylation-server","src"))
-from process_soft import expand_soft, extract_gsm_soft, gsm_soft2json
-from process_soft import msrap_prepare_json, run_metasrapipeline
-from process_idats import expand_idats
-from utilities import gettime_ntp, getlatest_filepath, get_queryfilt_dict
-from utilities import querydict
-import settings
-settings.init()
-
 """ preprocess.py
 
     Authors: Sean Maden, Abhi Nellore
@@ -35,7 +19,22 @@ settings.init()
             pipeline output. Can be read into R/minfi.
 """
 
-# def get_mongofiles_for_preprocessing(idatsdir, softdir, filtresults = True):
+import pymongo
+import sys
+import os
+import datetime
+import inspect
+import re
+import json
+sys.path.insert(0, os.path.join("recount-methylation-server","src"))
+from process_soft import expand_soft, extract_gsm_soft, gsm_soft2json
+from process_soft import msrap_prepare_json, run_metasrapipeline
+from process_idats import expand_idats
+from utilities import gettime_ntp, getlatest_filepath, get_queryfilt_dict
+from utilities import querydict
+import settings
+settings.init()
+
 def get_mongofiles_for_preprocessing(filtresults = True):
     """ Get GSE and GSM IDs from MongoDB 
         Get most recent records for relevant GSE and GSM MongoDB entries
@@ -149,11 +148,6 @@ def get_mongofiles_for_preprocessing(filtresults = True):
         drfiles['soft'] = softrecordsfilt
     return drfiles
 
-#def process_gsesoft(filesdir = 'recount-methylation-files',
-#    rmcompressed_gsesoft = False,
-#    gse_softdir = 'gse_soft', gsm_softdir = 'gsm_soft', 
-#    gsm_jsondir = 'gsm_json', expand_soft_opt = True, extract_gsm_opt = True, 
-#    conv_json_opt = True, msrap_prepare_opt = True):
 def process_gsesoft(rmcompressed_gsesoft=False, expand_soft_opt=True, 
     extract_gsm_opt=True, conv_json_opt=True, msrap_prepare_opt=True):
     """ Wrapper to preprocess GSE soft files and run MetaSRA-pipeline on GSM 
@@ -178,8 +172,6 @@ def process_gsesoft(rmcompressed_gsesoft=False, expand_soft_opt=True,
             * null
     """
     # filter softlist on valid files
-    #gse_softpath = os.path.join(filesdir, gse_softdir)
-    #gsm_softpath = os.path.join(filesdir, gsm_softdir)
     gse_softpath = settings.gsesoftpath
     gsm_softpath = settings.gsmsoftpath
     # expand all gse soft files at target dir
@@ -251,20 +243,17 @@ def compile_rsheet(eqfiltd=get_queryfilt_dict(), sheetfn_ext='rsheet',
             * null, produces sheet files as a side effect.
     """
     # form the sheet path and make dir as needed
-    # sheetspath = os.path.join(filesdir, sheetsdir)
     sheetspath = settings.sheetspath
     os.makedirs(sheetspath, exist_ok = True)
     sheets_fpath = os.path.join(sheetspath,
         ".".join([timestamp, sheetfn_ext])
         )
     # form msrap and idat paths and get filenames
-    # msrap_path = os.path.join(filesdir, msrapdir)
     msrap_path = settings.gsmmsrapoutpath
     rxmsrap = re.compile(".*"+msrapfn_ext+"$")
     msrap_fnlist = list(filter(rxmsrap.match, os.listdir(msrap_path)))
     print("msrap_fnlist : "+str(msrap_fnlist))
     # idats fn
-    # idats_path = os.path.join(filesdir, idatsdir)
     idats_path = settings.idatspath
     rxidat = re.compile(".*"+idatsfn_ext+"$")
     idats_fnlist = list(filter(rxidat.match, os.listdir(idats_path)))
@@ -366,8 +355,6 @@ def compile_rsheet(eqfiltd=get_queryfilt_dict(), sheetfn_ext='rsheet',
     return lsheet     
 
 if __name__ == "__main__":
-    #idir = os.path.join('recount-methylation-files','idats')
-    #sdir = os.path.join('recount-methylation-files','gse_soft')
     idir = settings.idatspath
     sdir = settings.gsesoftdir
     pfd = get_mongofiles_for_preprocessing(idatsdir=idir, softdir = sdir)

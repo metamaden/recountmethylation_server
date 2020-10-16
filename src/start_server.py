@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 
-"""
+""" start_server.py
+
+    Authors: Sean Maden, Abhi Nellore
+
+    Code to start processes used by the server.
+
 """
 
 import sys
@@ -11,6 +16,7 @@ settings.init()
 
 def start_mongodb():
     """
+        Start the MongoDB process
     """
     try:
         subprocess.call(settings.runmongocmd.split(" "), shell=False)
@@ -20,6 +26,7 @@ def start_mongodb():
 
 def start_rabbitmq():
     """
+        Start the RabbitMQ process
     """
     try:
         subprocess.call(settings.runrabbitmqcmd.split(" "), shell=False)
@@ -29,6 +36,7 @@ def start_rabbitmq():
 
 def start_celery():
     """
+        Start the celery process
     """
     try:
         subprocess.call(settings.runcelerycmd.split(" "), shell=False)
@@ -37,6 +45,9 @@ def start_celery():
         return False
 
 if __name__ == "__main__":
+    """
+        Start processes used by the server.
+    """
     statuslist = []
     try:
         statuslist.append(start_mongodb())

@@ -103,9 +103,6 @@ def scheduled_run(eqfilt_path=False, run_timestamp=gettime_ntp()):
             * gse_list (list) : list of valid GSE IDs, or None if error occurs 
 
     """
-    # eqpath = os.path.join(filedir,'equery')
-    #eqpath = settings.equerypath
-    #gsefilt_latest = getlatest_filepath(eqpath,'gsequery_filt')
     try:
         gsefiltd = get_queryfilt_dict()
     except:

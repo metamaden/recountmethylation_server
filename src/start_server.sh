@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 
 # start_server.sh 
+# 
+# Authors: Sean Maden, Abhi Nellore
+# 
 # Script to start vital server processes and run server.py.
 # To be run from root dir for recount-methylation, above 
 # recount-methylation-files and recount-methylation-server.

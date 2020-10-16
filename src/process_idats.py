@@ -1,14 +1,5 @@
 #!/usr/bin/env python3
 
-import os
-import sys
-import re
-import gzip
-import shutil
-sys.path.insert(0, os.path.join("recount-methylation-server","src"))
-import settings
-settings.init()
-
 """ process_idats.py
 
     Authors: Sean Maden, Abhi Nellore
@@ -17,6 +8,15 @@ settings.init()
     Functions:
         * expand_idats: Expand compressed idat files.
 """
+
+import os
+import sys
+import re
+import gzip
+import shutil
+sys.path.insert(0, os.path.join("recount-methylation-server","src"))
+import settings
+settings.init()
 
 def expand_idats(filesdir = 'recount-methylation-files', idatsdir = 'idats'):
     """ Detect and expand available idat files.

@@ -413,8 +413,6 @@ def run_metasrapipeline(json_flist=[], jsonpatt=".*json.filt$", timestamp=gettim
             msrap_statlist.append(None)
             print("GSM id : "+gsmid+" is not a valid HM450k sample. "
                 +"Continuing...")
-    # monitor launched processes for status
-    #monitor_processes(process_list=process_list, logpath=settings.msraplogspath)
     return msrap_statlist
 
 def msrap_launchproc(json_flist=[], fnpatt=settings.jsonfnpattern, timestamp=gettime_ntp(), nprocsamp=50, 
@@ -535,11 +533,6 @@ def msrap_launchproc(json_flist=[], fnpatt=settings.jsonfnpattern, timestamp=get
     print("Finished with process monitoring.")
     print("Returning...")
     return None
-
-def main():
-    """
-    """
-    return
 
 if __name__ == "__main__":
     # the following is called by msrap_screens()

@@ -217,8 +217,3 @@ def init():
     gsmquerystr = 'gsm_edirectquery'
     grnidat_expcatch = '.*_Grn\.idat$'
     redidat_expcatch = '.*_Red\.idat$'
-
-
-    # global eqfiltdict
-    # eqfiltdict = utilities.get_queryfilt_dict()
-

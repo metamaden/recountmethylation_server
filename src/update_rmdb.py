@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
 """ update_rmdb.py
+    
+    Authors: Sean Maden, Abhi Nellore
+    
     Functions to update Recount Methylation MongoDB (or "RMDB"), a database of 
     file metadata for recount methylation. 
     Notes:

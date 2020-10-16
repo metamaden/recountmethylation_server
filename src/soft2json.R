@@ -1,6 +1,6 @@
 #!user/bin/env R
 
-# soft2json.R
+# Author: Sean Maden
 # Script to convert GSM soft file to JSON format
 # Arguments
 # 1. gsmsoft_fn (str) : GSM SOFT filename. 
