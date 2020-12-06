@@ -15,6 +15,7 @@ import re
 import gzip
 import shutil
 sys.path.insert(0, os.path.join("recount-methylation-server","src"))
+from utilities import gettime_ntp, getlatest_filepath, get_queryfilt_dict
 import settings
 settings.init()
 
@@ -43,3 +44,47 @@ def expand_idats(filesdir = 'recount-methylation-files', idatsdir = 'idats'):
                 except shutil.Error as se:
                     ridatd[compidat].append(se)
     return ridatd
+
+def cleanup_idats(gsmfpathdict):
+    """
+    """
+    eqd = get_queryfilt_dict()
+    gsmvalidlist = list(set([gsmid for gselist in list(eqd.values()) 
+        for gsmid in gselist
+    ]))
+    gsmvalid_fpathlist = {key:value for (key,value) in gsmfpathdict.items() 
+        if key in gsmvalidlist
+    }
+    for gsmindex, gsmid in enumerate(gsmvalid_fpathlist, 1):
+        if not gsmid in gsmvalidlist:
+            
+qstr = "esearch -db gds -query 'GPL21145[ACCN] and idat[suppFile] and gsm[ETYP]' | efetch -format docsum | xtract -pattern DocumentSummary -element Id Accession > gsmid"
+output=subprocess.check_output(qstr, shell=True)
+
+qstr = "esearch -db gds -query 'GPL21145 [ACCN] and idat [suppFile] and gsm [ETYP]'"
+output=subprocess.check_output(qstr, shell=True)
+
+dldict['gsmquery'].append(dlfilename)
+    subp_strlist1 = ["esearch","-db","gds","-query",
+    "'"+settings.platformid+"[ACCN] AND idat[suppFile] AND gsm[ETYP]'"
+    ]
+    subp_strlist2 = ["efetch","-format","docsum"]
+    subp_strlist3 = ["xtract","-pattern","DocumentSummary",
+        "-element","Id Accession",">",
+        os.path.join(temp_make,dlfilename)
+        ]
+    args = " | ".join([" ".join(subp_strlist1),
+        " ".join(subp_strlist2),
+        " ".join(subp_strlist3)])
+
+
+
+for item in idatfiles:
+    if not item.split(".")[0] in of:
+        print("File not valid. removing " + item)
+        os.remove(os.path.join("recount-methylation-files", "idats", item))
+    else:
+        print(item + " has valid gsm id. Continuing...")
+
+
+
