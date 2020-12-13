@@ -130,7 +130,7 @@ def expand_soft(rmcompressed=False):
 def extract_gsm_soft(gsesoft_flist=[], softopenindex='.*!Sample_title.*', 
     softcloseindex='.*!Sample_data_row_count.*', timestamp=gettime_ntp(), 
     gse_softpath = settings.gsesoftpath, gsm_softpath = settings.gsmsoftpath, 
-    gsmsoft_destpath = settings.gsmsoftpath, validate=True):
+    gsmsoft_destpath = settings.gsmsoftpath, rmtempdir = True, validate=True):
     """ extract_gsm_soft
         Extract GSM soft file sections from GSE soft files.
         Arguments: 
@@ -142,6 +142,7 @@ def extract_gsm_soft(gsesoft_flist=[], softopenindex='.*!Sample_title.*',
                 include possible methylation data table, change to 
                 '!sample_table_end'.
             * timestamp (str) : NTP timestamp version for expanded files.
+            * rmtempdir (Bool.) : Whether to remove temp directory.
             * validate (Bool.) : Validate extracted GSM files against files in 
                 gsm_soft directory?
         Returns:
@@ -221,7 +222,7 @@ def extract_gsm_soft(gsesoft_flist=[], softopenindex='.*!Sample_title.*',
                 print("GSM soft lines malformed! Continuing...")
     print("newfilesd : "+str(newfilesd))
     if validate:
-        print(list(newfilesd.keys()))
+        print("Beginning validation for files: ", list(newfilesd.keys()))
         for gse_softfn in list(newfilesd.keys()):
             gsmfilelist = list(filter(rxgsmfile.match, newfilesd[gse_softfn]))
             if gsmfilelist and len(gsmfilelist)>0:
@@ -260,10 +261,17 @@ def extract_gsm_soft(gsesoft_flist=[], softopenindex='.*!Sample_title.*',
                                         os.path.basename(gsm_newfile_path))
                                     )
                             newfilesd[gsmfile] = True
-                        shutil.rmtree(temp_dir_make) # remove tempdir
                     else:
                         print("GSM soft file unavailable. Continuing...")
                         newfilesd[gsmfile] = False
+    else:
+        for fn in gsmfile:
+            print("Moving file ", str(fn), "...")
+            shutil.move(os.path.join(temp_dir_make, fn), 
+                os.path.join(gsmsoft_destpath, fn))
+    if rmtempdir:
+        print("Removing tempdir...")
+        shutil.rmtree(temp_dir_make) # remove tempdir
     return newfilesd 
 
 def gsm_soft2json(gsm_softlist=[], scriptpath=settings.s2jscriptpath,

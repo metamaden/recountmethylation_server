@@ -82,6 +82,7 @@ for i, val in enumerate(vall):
     valf = [v for v in val if not v in gsmidfilt]
     if len(valf) > 10:
         gseid_processnew.append(keyl[i])
+        print(str(keyl[i]), ": ", str(len(valf)), " samples unavail.")
     print(str(i))
 
 # get corresponding filenames for filtered study IDs
@@ -93,6 +94,217 @@ gsefn_processnew = []
 for i, gseid in enumerate(gsesoftlid):
     if gseid in gseid_processnew:
         gsefn_processnew.append(gsesoftl[i])
+
+len(gsefn_processnew)
+
+
+
+
+
+
+#---------------------------------
+#  process a single gse soft file
+#---------------------------------
+softopenindex='.*!Sample_title.*'
+softcloseindex='.*!Sample_data_row_count.*'
+timestamp=gettime_ntp()
+gse_softpath = settings.gsesoftpath
+gsm_softpath = settings.gsmsoftpath
+gsmsoft_destpath = settings.gsmsoftpath
+validate=True
+
+which_gsefn = 0
+gsefn = gsefn_processnew[which_gsefn]
+
+gsesoft_flist=[gsefn]
+
+eqfiltdict=get_queryfilt_dict()
+validgsmlist = list(set([gsmid for gselist in list(eqfiltdict.values()) 
+    for gsmid in gselist
+]))
+print("length validgsmlist : "+str(len(validgsmlist)))
+rvalidsoft = re.compile(".*soft$") # identify expanded GSE soft files
+gsmsoft_temppath = settings.temppath
+os.makedirs(gsm_softpath, exist_ok=True)
+os.makedirs(gsmsoft_temppath, exist_ok=True)
+temp_dir_make = tempfile.mkdtemp(dir=gsmsoft_temppath)
+
+gse_soft_dirlist = gsesoft_flist
+gse_soft_dirlist = [gsefile for gsefile in gse_soft_dirlist
+    if os.path.exists(os.path.join(gse_softpath, gsefile))
+]
+
+gse_softlist = list(filter(rvalidsoft.match, gse_soft_dirlist))
+shuffle(gse_softlist)
+newfilesd = {} # new files, status dictionary to return
+print("new tempdir for writing soft files : "+str(temp_dir_make))
+print("length gse_softlist: "+str(len(gse_softlist)))
+rxopen = re.compile(softopenindex)
+rxclose = re.compile(softcloseindex)
+rxgsm = re.compile('GSM[0-9]*')
+rxgsmfile = re.compile('.*GSM.*')
+
+
+gse_softfile = gse_softlist[0]
+print("Beginning gse softfile : "+gse_softfile)
+newfilesd[gse_softfile] = []
+openindex = []
+closeindex = []
+lsoft = []
+gse_softfile_path = os.path.join(gse_softpath, gse_softfile)
+with open(gse_softfile_path) as file:
+    for num, line in enumerate(file, 0):
+        if rxclose.search(line):
+            closeindex.append(num)
+        if rxopen.search(line):
+            openindex.append(num)
+        lsoft.append(line)
+
+
+
+print("for gse, found n = "+str(len(openindex))+" valid open "
+        +"indices..")
+print("for gse, found n = "+str(len(lsoft))+" soft file lines. "
+    +"Continuing...")
+
+for num, openi in enumerate(openindex,0):
+    print("num : "+str(num))
+    print("openi : "+str(openi))
+    print("closei : "+str(closeindex[num]))
+    try:
+        gsm_softlines = lsoft[openi:closeindex[num]] # read gsm lines
+    except:
+        break
+    gsmid_lines = [line for line in gsm_softlines
+        if '!Sample_geo_accession' in line
+    ]
+    if len(gsmid_lines)==1:
+        gsmid = str(rxgsm.findall(gsmid_lines[0])[0])
+        print("Found GSM id : "+gsmid)
+        gsm_softfn = ".".join([timestamp, gsmid, 'soft'])
+        print("GSM id found : "+gsmid)
+        print(gsmid+" in valid list... "+str(gsmid in validgsmlist))
+        if gsmid in validgsmlist:
+            newfilesd[gse_softfile].append(gsm_softfn)
+            gsm_newfile_path = os.path.join(temp_dir_make, gsm_softfn)
+            write = [gsmfile.write(line) for line in open(gsm_newfile_path,"w+")]
+            open(gsm_newfile_path,"w+").write("\n".join(gsm_softlines))
+        else: 
+            print("GSM id :"+gsmid+" is not a valid HM450k sample. "
+                +"Continuing...")
+    else:
+        print("GSM soft lines malformed! Continuing...")
+
+
+if validate:
+
+print(list(newfilesd.keys()))
+for gse_softfn in list(newfilesd.keys()):
+    gsmfilelist = list(filter(rxgsmfile.match, newfilesd[gse_softfn]))
+    if gsmfilelist and len(gsmfilelist)>0:
+        print(str(gsmfilelist))
+        for gsmfile in gsmfilelist:
+            gsm_oldfile_path = ""
+            gsm_newfile_path = ""
+            gsm_softfn = gsmfile
+            gsmstr = gsm_softfn.split(".")[1]
+            print("gsmfile: "+str(gsmfile))
+            print("gsmstr : "+gsmstr)
+            gsm_newfile_path = os.path.join(temp_dir_make, gsm_softfn)
+            gsm_oldfile_path = getlatest_filepath(
+                    filepath=gsmsoft_destpath, filestr=gsmstr, 
+                    embeddedpattern=True, tslocindex=0
+                )
+            print("gsm_oldfile_path : "+str(gsm_oldfile_path))
+            print("gsm_newfile_path : "+str(gsm_newfile_path))
+            if os.path.exists(gsm_newfile_path):
+                if gsm_oldfile_path:
+                    if filecmp.cmp(gsm_oldfile_path, gsm_newfile_path):
+                        print("Identical GSM soft file detected, removing...")
+                        os.remove(gsm_newfile_path)
+                        newfilesd[gsmfile] = False
+                    else:
+                        print("New GSM soft file detected, moving from temp...")
+                        shutil.move(gsm_newfile_path, os.path.join(
+                                gsmsoft_destpath, 
+                                os.path.basename(gsm_newfile_path))
+                            )
+                        newfilesd[gsmfile] = True
+                else: 
+                    print("New GSM soft file detected, moving from temp...")
+                    shutil.move(gsm_newfile_path, os.path.join(
+                                gsmsoft_destpath, 
+                                os.path.basename(gsm_newfile_path))
+                            )
+                    newfilesd[gsmfile] = True
+                shutil.rmtree(temp_dir_make) # remove tempdir
+            else:
+                print("GSM soft file unavailable. Continuing...")
+                newfilesd[gsmfile] = False
+
+
+
+
+
+
+
+for gse_softfile in gse_softlist:
+        print("Beginning gse softfile : "+gse_softfile)
+        newfilesd[gse_softfile] = []
+        openindex = []
+        closeindex = []
+        lsoft = []
+        gse_softfile_path = os.path.join(gse_softpath, gse_softfile)
+        with open(gse_softfile_path) as file:
+            for num, line in enumerate(file, 0):
+                if rxclose.search(line):
+                    closeindex.append(num)
+                if rxopen.search(line):
+                    openindex.append(num)
+                lsoft.append(line)
+        print("for gse, found n = "+str(len(openindex))+" valid open "
+                +"indices..")
+        print("for gse, found n = "+str(len(lsoft))+" soft file lines. "
+            +"Continuing...")
+        for num, openi in enumerate(openindex,0):
+            print("num : "+str(num))
+            print("openi : "+str(openi))
+            print("closei : "+str(closeindex[num]))
+            try:
+                gsm_softlines = lsoft[openi:closeindex[num]] # read gsm lines
+            except:
+                break
+            gsmid_lines = [line for line in gsm_softlines
+                if '!Sample_geo_accession' in line
+            ]
+            if len(gsmid_lines)==1:
+                gsmid = str(rxgsm.findall(gsmid_lines[0])[0])
+                print("Found GSM id : "+gsmid)
+                gsm_softfn = ".".join([timestamp, gsmid, 'soft'])
+                print("GSM id found : "+gsmid)
+                print(gsmid+" in valid list... "+str(gsmid in validgsmlist))
+                if gsmid in validgsmlist:
+                    newfilesd[gse_softfile].append(gsm_softfn)
+                    gsm_newfile_path = os.path.join(temp_dir_make, gsm_softfn)
+                    write = [gsmfile.write(line) for line in open(gsm_newfile_path,"w+")]
+                    open(gsm_newfile_path,"w+").write("\n".join(gsm_softlines))
+                else: 
+                    print("GSM id :"+gsmid+" is not a valid HM450k sample. "
+                        +"Continuing...")
+            else:
+                print("GSM soft lines malformed! Continuing...")
+    print("newfilesd : "+str(newfilesd))
+
+
+
+#------------
+#------------
+#------------
+
+for gse in gsefn_processnew:
+    extract_gsm_soft(gsesoft_flist = [gse], gse_softpath = settings.gsesoftpath, 
+        gsm_softpath = settings.gsmsoftpath, gsmsoft_destpath = settings.gsmsoftpath,
+        rmtempdir = False, validate = True)
 
 # rerun the function
 extract_gsm_soft(gsesoft_flist = gsefn_processnew, gse_softpath = settings.gsesoftpath, 
