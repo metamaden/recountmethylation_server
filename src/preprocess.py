@@ -26,7 +26,7 @@ import datetime
 import inspect
 import re
 import json
-sys.path.insert(0, os.path.join("recount-methylation-server","src"))
+sys.path.insert(0, os.path.join("recountmethylation_server","src"))
 from process_soft import expand_soft, extract_gsm_soft, gsm_soft2json
 from process_soft import msrap_prepare_json, run_metasrapipeline
 from process_idats import expand_idats

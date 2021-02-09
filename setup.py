@@ -4,7 +4,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="recount-methylation-server-metamaden",
+    name="recountmethylation_server",
     version="0.0.1",
     author="Sean Maden",
     author_email="maden.sean@gmail.com",
