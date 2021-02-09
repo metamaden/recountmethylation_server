@@ -323,6 +323,8 @@ This function passes sample soft files with an R function to convert to JSON.
 gsm_jsonpath = os.path.join("recount-methylation-files", "gsm_json")
 gsm_softpath = os.path.join("recount-methylation-files", "gsm_soft")
 
+process_soft.gsm_soft2json()
+
 process_soft.gsm_soft2json(gsm_jsonpath = gsm_jsonpath, gsm_softpath = gsm_softpath)
 
 gsm_soft2json(gsm_jsonpath = gsm_jsonpath, gsm_softpath = gsm_softpath)
@@ -540,18 +542,13 @@ def msrap_getsamples(json_flist=[], fnpatt=".*json.filt$",
     return ll
 
 
+ll = msrap_getsamples(nprocsamp=500, nmaxproc=22)
 
 
 
 
 
-ll = msrap_getsamples(nprocsamp=2100, nmaxproc=22)
-
-
-
-
-
-lall = ll
+lall = ll[21:26]
 for ll in lall:
     json_flist=ll
     jsonpatt=".*json.filt$"
