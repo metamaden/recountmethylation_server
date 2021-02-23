@@ -9,29 +9,29 @@
         * expand_idats: Expand compressed idat files.
 """
 
-import os
-import sys
-import re
-import gzip
-import shutil
+import os, sys, re, gzip, shutil
 sys.path.insert(0, os.path.join("recountmethylation_server","src"))
-from utilities import gettime_ntp, getlatest_filepath, get_queryfilt_dict
 import settings
 settings.init()
 
-def expand_idats(filesdir = 'recount-methylation-files', idatsdir = 'idats'):
+def expand_idats(idatspath, compext = ".*idat.gz$"):
     """ Detect and expand available idat files.
+        
         Arguments:
-            * filesdir (str) : Root name of directory containing files.
-            * idatsdir (str) : Name of directory containing idat files.
+            * idatspath : Path to instance directory containing downloaded 
+                            IDATs (valid file path).
+            * compext : Regular expression pattern for extension of compressed
+                            IDAT files (string, regex pattern).
+
         Returns:
-            * ridatd object (dictionary)
+            * ridatd dictionary containing expanded IDAT info.
+
     """
-    idatspath = os.path.join(filesdir,idatsdir)
     idats_fnlist = os.listdir(idatspath)
-    rcompressed1 = re.compile(".*idat.gz$")
+    rcompressed1 = re.compile(compext)
     idats_fnlist_filt = list(filter(rcompressed1.match, idats_fnlist)) 
     ridatd = {} # return dictionary
+    print("Expanding "+str(len(idats_fnlist_filt))+"compressed IDATs...")
     for compidat in idats_fnlist_filt:
         idat_fn = os.path.splitext(compidat)[0]
         statuslist = []
@@ -45,46 +45,17 @@ def expand_idats(filesdir = 'recount-methylation-files', idatsdir = 'idats'):
                     ridatd[compidat].append(se)
     return ridatd
 
-def cleanup_idats(gsmfpathdict):
+def cleanup_idats(remove_type = "expanded", expext = ".*idat$", 
+    compext = ".*idat.gz$"):
+    """ Remove redundant IDATs 
     """
+    return True
+
+if __name__ == "__main__":
+    """ Process downloaded IDATs
+
+    Process downloaded IDATs for a recountmethylation instance. Prepares IDATs
+    for compilation.
+
     """
-    eqd = get_queryfilt_dict()
-    gsmvalidlist = list(set([gsmid for gselist in list(eqd.values()) 
-        for gsmid in gselist
-    ]))
-    gsmvalid_fpathlist = {key:value for (key,value) in gsmfpathdict.items() 
-        if key in gsmvalidlist
-    }
-    for gsmindex, gsmid in enumerate(gsmvalid_fpathlist, 1):
-        if not gsmid in gsmvalidlist:
-            
-qstr = "esearch -db gds -query 'GPL21145[ACCN] and idat[suppFile] and gsm[ETYP]' | efetch -format docsum | xtract -pattern DocumentSummary -element Id Accession > gsmid"
-output=subprocess.check_output(qstr, shell=True)
-
-qstr = "esearch -db gds -query 'GPL21145 [ACCN] and idat [suppFile] and gsm [ETYP]'"
-output=subprocess.check_output(qstr, shell=True)
-
-dldict['gsmquery'].append(dlfilename)
-    subp_strlist1 = ["esearch","-db","gds","-query",
-    "'"+settings.platformid+"[ACCN] AND idat[suppFile] AND gsm[ETYP]'"
-    ]
-    subp_strlist2 = ["efetch","-format","docsum"]
-    subp_strlist3 = ["xtract","-pattern","DocumentSummary",
-        "-element","Id Accession",">",
-        os.path.join(temp_make,dlfilename)
-        ]
-    args = " | ".join([" ".join(subp_strlist1),
-        " ".join(subp_strlist2),
-        " ".join(subp_strlist3)])
-
-
-
-for item in idatfiles:
-    if not item.split(".")[0] in of:
-        print("File not valid. removing " + item)
-        os.remove(os.path.join("recount-methylation-files", "idats", item))
-    else:
-        print(item + " has valid gsm id. Continuing...")
-
-
-
+    expand_idats(idatspath = settings.idatspath)
