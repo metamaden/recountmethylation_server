@@ -38,7 +38,7 @@ import pickle
 from datetime import datetime
 import time
 from random import shuffle
-sys.path.insert(0, os.path.join("recount-methylation-server","src"))
+sys.path.insert(0, os.path.join("recountmethylation_server","src"))
 from utilities import gettime_ntp, getlatest_filepath, get_queryfilt_dict
 from utilities import monitor_processes
 import settings
@@ -274,7 +274,7 @@ def extract_gsm_soft(gsesoft_flist=[], softopenindex='.*!Sample_title.*',
         shutil.rmtree(temp_dir_make) # remove tempdir
     return newfilesd 
 
-def gsm_soft2json(gsm_softlist=[], scriptpath=settings.s2jscriptpath,
+def gsm_soft2json(gsm_softlist = [], scriptpath = settings.s2jscriptpath,
     gsm_jsonpath = settings.gsmjsonpath, gsm_softpath = settings.gsmsoftpath):
     """ gsm_soft2json
         Convert GSM soft file to JSON format Calls R script to coerce GSM soft 

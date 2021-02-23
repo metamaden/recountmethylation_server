@@ -10,7 +10,7 @@
 
 library(readr); library(jsonlite)
 
-jsonfilt <- function(jsonext = ".*\\.json$", jsonfiltext = ".*\\.json\\.filt$", 
+jsonfilt <- function(jsonext.re = ".*\\.json$", jsonfiltext.str = ".json.filt", 
                      json.dn = "gsm_json", jfilt.dn = "gsm_json_filt", 
                      verbose = TRUE, files.dname = "recount-methylation-files",
                      keys.list = c("!Sample_characteristics_ch1", 
@@ -20,12 +20,12 @@ jsonfilt <- function(jsonext = ".*\\.json$", jsonfiltext = ".*\\.json\\.filt$",
   if(!dir.exists(readpath)){stop("Couldn't find read path at: ", readpath)}
   if(!dir.exists(destpath)){message("Making new destpath: ", destpath)
     dir.create(destpath)}
-  lf.json <- list.files(readpath); lf.json <- lf.json[grepl(jsonext, lf.json)]
+  lf.json <- list.files(readpath); lf.json <- lf.json[grepl(jsonext.re, lf.json)]
   if(verbose){message("Apply JSON filter for ",length(lf.json)," files...")}
   for(i in seq(length(lf.json))){
     fni <- lf.json[i]; ts <- unlist(strsplit(fni,"\\."))[1]
     gsmi <- unlist(strsplit(fni,"\\."))[2]
-    writefn <- paste0(paste(ts, gsmi, sep = "."), jsonfiltext)
+    writefn <- paste0(paste(ts, gsmi, sep = "."), jsonfiltext.str)
     writepath <- file.path(destpath, writefn)
     rjsoni <- jsonlite::fromJSON(file.path(readpath, fni))
     if(verbose){message("Filtering keys for file: ",i)}
