@@ -68,7 +68,7 @@ def init():
     global soft2jsonscriptname
     global psoftscriptpath
     global s2jscriptpath
-    serverdir = 'recount-methylation-server'
+    serverdir = 'recountmethylation_server'
     srcdir = 'src'
     psoftscriptname = 'process_soft.py'
     soft2jsonscriptname = 'soft2json.R'
@@ -107,68 +107,14 @@ def init():
     global mdatscriptpath
     global mdatdir
     global mdatdirpath
-    analysisdir = 'recount-methylation-analysis'
-    analysisfilesdir = 'files'
-    analysissrcdir = 'src'
-    analysissrcpath = os.path.join(analysisdir, analysissrcdir)
-    analysisfilespath = os.path.join(analysisdir, analysisfilesdir)
+    analysisdir = 'recountmethylation_server'
+    analysisfilesdir = 'metadata'
+    analysisfilespath = os.path.join(analysisdir)
     sheetfnstem = 'rsheet'
     sheetsdir = 'rsheets'
-    sheetspath = os.path.join(analysisfilespath, sheetsdir)
+    sheetspath = analysisfilespath
     msraptablesdir = 'msraptables'
     msraptablespath = os.path.join(analysisfilespath, msraptablesdir)
-    diagnosticsdir = "rmqc"
-    diagnosticsfpath = os.path.join(analysisfilespath, diagnosticsdir)
-    mdatscriptfn = 'mdat.R'
-    mdatscriptpath = os.path.join(analysissrcpath, mdatscriptfn)
-    mdatdir = 'mdata'
-    mdatdirpath = os.path.join(analysisfilespath, mdatdir)
-    global rawbetadir
-    global rawpvalsdir
-    global rawreddir
-    global rawgrndir
-    global rawmdir
-    global rawumdir
-    global noobbetadir
-    global normmdir
-    global normumdir
-    global compilationsdir
-    global mdatlogsdir
-    global rawbetapath
-    global rawpvalspath
-    global rawredpath
-    global rawgrnpath
-    global noobbetapath
-    global compilationspath
-    global mdatlogspath
-    global rawmpath
-    global rawumpath
-    global normmpath
-    global normumpath
-    global gsmstatpicklepath
-    rawgrndir = 'rawgrn'
-    rawreddir = 'rawred'
-    rawpvalsdir = 'detp'
-    rawbetadir = 'rawbeta'
-    noobbetadir = 'noobbeta'
-    compilationsdir = 'compilations'
-    mdatlogsdir = 'logs'
-    rawmdir = 'mraw'
-    rawumdir = 'umraw'
-    normmdir = 'mnorm'
-    normumdir = 'umnorm'
-    rawbetapath = os.path.join(mdatdirpath, rawbetadir)
-    rawgrnpath = os.path.join(mdatdirpath, rawgrndir)
-    rawredpath = os.path.join(mdatdirpath, rawreddir)
-    rawpvalspath = os.path.join(mdatdirpath, rawpvalsdir)
-    noobbetapath = os.path.join(mdatdirpath, noobbetadir)
-    compilationspath = os.path.join(mdatdirpath, compilationsdir)
-    mdatlogspath = os.path.join(mdatdirpath, mdatlogsdir)
-    rawmpath = os.path.join(mdatdirpath, rawmdir)
-    rawumpath = os.path.join(mdatdirpath, rawumdir)
-    normmpath = os.path.join(mdatdirpath, normmdir)
-    normumpath = os.path.join(mdatdirpath, normumdir)
-    gsmstatpicklepath = os.path.join(mdatdirpath, 'gsmstatdict.pickle')
     
     # [rmdb connection]
     global rmdbhost
@@ -194,7 +140,7 @@ def init():
 
     # [launch server.py]
     global launchserverpycmd
-    launchserverpycmd = 'python3 ./recount-methylation-server/src/server.py'
+    launchserverpycmd = 'python3 ./recountmethylation_server/src/server.py'
 
     # [misc]
     global gsepatt
