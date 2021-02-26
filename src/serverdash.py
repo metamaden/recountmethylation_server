@@ -20,39 +20,42 @@ from report import idats_report, soft_report
 
 # GLOBALS
 # define globals
-NUM_SEC = 5
+NUM_SEC = 60
 # new query
-didat = idats_report()
-dsoft = soft_report(didat = didat)
+ddidat = idats_report()
+ddsoft = soft_report(ddidat = ddidat)
+ddsoft_lkeys = list(ddsoft.keys())
 # main data for line plots by time
 data_all = pd.DataFrame({"num_idat" : [0], "num_gsesoft" : [0],
     "num_gsmsoft" : [0], "time" : [0]})
 # file counts data
-dfcount = pd.DataFrame({"file_type" : ["IDATs (all)", "IDATs (only expanded)",
-                                    "GSE SOFT (all)", "GSE SOFT (only expanded)",
-                                    "GSM SOFT (all)", "GSM SOFT (with paired IDAT)",
-                                    "GSM SOFT (with JSON)", "GSM JSON (all)"],
-                        "num_files" : [didat["total_files"], 
-                                        didat["total_expanded_files"],
-                                        dsoft["soft_gse_total_files"],
-                                        dsoft["soft_gse_total_expanded_files"],
-                                        dsoft["soft_gsm_total_files"],
-                                        dsoft["soft_num_gsm_ipaircomp"],
-                                        dsoft["gsm_soft_with_json"],
-                                        dsoft["json_gsm_total_files"]
-                                    ]
-                        }
-                    )
+dfcount = pd.DataFrame({"file_type": [
+        "IDAT", "GSE SOFT", "GSM SOFT", "GSM SOFT & IDAT",
+        "IDAT", "IDAT", "IDAT", "GSE SOFT", "GSM SOFT", "GSM JSON"
+    ],
+    "count_type" : [
+        "Unique GSM ID", "Unique GSE ID", "Unique GSM ID", "Unique GSM ID",
+        "Ext. 'idat.gz'", "Ext. `idat`", "Type hlink", "Ext. `soft.gz`", 
+        "Ext. `soft`", "Ext. `json.filt`"
+    ],
+    "counts" : [
+        ddidat["unique.gsm"], ddsoft["soft.unique.gse"],
+        ddsoft["soft.unique.gsm"],ddsoft["gsm_soft_and_idat"],
+        ddidat[".*idat.gz$"], ddidat[".*idat$"], ddidat[".*hlink.*"],
+        ddsoft[ddsoft_lkeys[3]],ddsoft[ddsoft_lkeys[4]],ddsoft[ddsoft_lkeys[5]]
+        ]
+    }
+)
 
 # perc data
-val1 = round(didat["expanded_fract_of_eqidats"], 3)
-val2 = round(dsoft["soft_gse_all_fract_target"], 3)
-val3 = round(dsoft["soft_gsm_all_fract_target"], 3)
-val4 = round(dsoft["json_gsm_fract_target"], 3)
-var_metric = ["IDAT"] * 2
+val1 = ddidat["eqd.fract.gsm"]
+val2 = ddsoft["eqd.fract.gse"]
+val3 = ddsoft["eqd.fract.gsm.soft"]
+val4 = ddsoft["eqd.fract.gsm.both"]
+var_metric = ["GSM IDAT"] * 2
 var_metric = var_metric + ["GSE SOFT"] * 2 
 var_metric = var_metric + ["GSM SOFT"] * 2 
-var_metric = var_metric + ["GSM JSON"] * 2 
+var_metric = var_metric + ["GSM SOFT & IDAT"] * 2 
 var_perc_bp = [val1, 1-val1, val2, 1-val2, val3, 1-val3, val4, 1-val4]
 var_perc_df = [val1, val2, val3, val4]
 var_type = ["complete", "incomplete"] * 4
@@ -74,26 +77,25 @@ app.layout = dbc.Container(
     html.Div([
         # title
         dbc.Row(dbc.Col(html.Div(
-            html.H4('Recountmethylation server dashboard')))),
+            html.H4('Server dashboard')))),
         # timer
         dbc.Row(dbc.Col(html.Div(id='live-update-text'))),
-        # num files data
-        dbc.Row([
-                dbc.Col(dcc.Graph(id='table-filecounts'), width = 5),
-                dbc.Col(dcc.Graph(id='live-scatterplot-all'), width = 6)
-            ]),
         # eqperc data
-        dbc.Row([
-                dbc.Col(html.Div(dcc.Graph(id='table-eqperc')), width = 5),
-                dbc.Col(html.Div(dcc.Graph(id='live-barplots-all')), width = 6)
-            ]),
+        dbc.Row(dbc.Col(html.Div(dcc.Graph(id='table-eqperc')))),
+        dbc.Row(dbc.Col(dcc.Graph(id='table-filecounts'))),
+        dbc.Row(dbc.Col(html.Div(dcc.Graph(id='live-barplots-all')))),
+        #dbc.Row([
+        #        dbc.Col(html.Div(dcc.Graph(id='table-eqperc')), width = 3),
+        #        dbc.Col(html.Div(dcc.Graph(id='live-barplots-all')), width = 7)
+        #    ]),
+        # num files data
+        dbc.Row(dbc.Col(dcc.Graph(id='live-scatterplot-all'))),
         dbc.Row(dbc.Col(html.Div(dcc.Interval(id='interval-component',
                     interval=NUM_SEC*1000, # in milliseconds
                     n_intervals=0))))
         ]
     )
 )
-
 
 # TEXT OUTPUTs
 # time, text data
@@ -107,21 +109,6 @@ def update_metrics(n):
     return [html.Span(mstr)]
 
 # TABLE OUTPUTS
-# num files table
-@app.callback(Output("table-filecounts", 'figure'),
-              Input('interval-component', 'n_intervals'))
-def update_table_filecounts(n):
-    lval = [c for c in dfcount.columns]
-    fig = go.Figure(data=[go.Table(header=dict(values=lval),
-            cells=dict(values=[[d for d in dfcount.file_type], 
-                                [d for d in dfcount.num_files]]
-                                )
-            )
-    ])
-    fig.update_layout(height = 250, width=450, 
-        margin=dict(r=5, l=5, t=20, b=5))
-    return fig
-
 # percentage found table
 @app.callback(Output("table-eqperc", 'figure'),
               Input('interval-component', 'n_intervals'))
@@ -130,10 +117,27 @@ def update_table_eqperc(n):
     fig = go.Figure(data=[go.Table(header=dict(values=lval),
                      cells=dict(values=[[d for d in dfperc.type], 
                             [d for d in dfperc.percent_found]]))])
-    fig.update_layout(height = 300, margin=dict(r=5, l=5, t=20, b=5))
+    fig.update_layout(height = 200, width = 300, margin=dict(r=5, l=5, t=20, b=5))
     return fig
 
-# PLOT OUTPUTS
+# num files table
+@app.callback(Output("table-filecounts", 'figure'),
+              Input('interval-component', 'n_intervals'))
+def update_table_filecounts(n):
+    lval = [c for c in dfcount.columns]
+    fig = go.Figure(data=[go.Table(header=dict(values=lval),
+            cells=dict(values=[
+                [d for d in dfcount.file_type], 
+                [d for d in dfcount.count_type],
+                [d for d in dfcount.counts]
+                ]
+            )
+        )
+    ])
+    fig.update_layout(height = 300, width=450, 
+        margin=dict(r=5, l=5, t=20, b=5))
+    return fig
+
 # percent complete, barplots
 @app.callback(Output('live-barplots-all', 'figure'),
               Input('interval-component', 'n_intervals'))
@@ -141,7 +145,8 @@ def ubarplot_percbp(n):
     """
     """
     figbp = px.bar(bpdf, x="type", y="percent_found", color="status")
-    figbp.update_layout(height = 250, width=450, margin=dict(r=5, l=5, t=20, b=5))
+    figbp.update_layout(height = 250, width=550, 
+        margin=dict(r=5, l=5, t=20, b=5))
     return figbp
 
 # all quantities, overlay
@@ -153,9 +158,9 @@ def uscatter_numidat(n):
     # get updated data
     global data_all
     data_all = pd.concat([data_all, 
-        pd.DataFrame({"num_idat" : [didat["total_files"]], 
-                        "num_gsesoft" : [dsoft["soft_gse_total_files"]],
-                        "num_gsmsoft" : [dsoft["soft_gsm_total_files"]], 
+        pd.DataFrame({"num_idat" : [ddidat['.*idat.gz$']], 
+                        "num_gsesoft" : [ddsoft[ddsoft_lkeys[2]]],
+                        "num_gsmsoft" : [ddsoft[ddsoft_lkeys[4]]], 
                         "time_seconds" : n*NUM_SEC})])
     fig = go.Figure()
     # numidat
@@ -170,7 +175,8 @@ def uscatter_numidat(n):
     fig.add_trace(go.Scatter(x=list(data_all.time_seconds), 
         y=list(data_all.num_gsmsoft), line_color='#AB63FA',
         mode='lines+markers',name='Num. GSM SOFT'))
-    fig.update_layout(height = 200, margin=dict(r=5, l=5, t=20, b=5))
+    fig.update_layout(height = 400, width = 650, 
+        margin=dict(r=5, l=5, t=20, b=5))
     return fig
 
 if __name__ == '__main__':

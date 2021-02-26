@@ -30,59 +30,69 @@ import settings
 settings.init()
 
 def run_metasrapipeline(json_flist=[], jsonpatt=".*json.filt$", 
-    gsm_jsonpath = settings.gsmjsonpath, timestamp=gettime_ntp()):
+    gsm_jsonpath=settings.gsmjsonfiltpath, timestamp=gettime_ntp()):
     """ run_metasrapipeline
+        
         Run MetaSRA-pipeline on GSM JSON files. It is highly recommended to 
         implement this with parallelization using msrap_screens, instead of 
         instantiating directly!
+        
         Arguments:
             * json_flist (list, optional) : List of JSON filename(s) to process. 
                 If not provided, automatically targets all JSON files at 
                 gsm_jsondir.
             * timestamp (str) : NTP timestamp version for expanded files.       
+        
         Returns:
             * msrap_statlist (list), Int (1) or error: Whether MetaSRA-pipeline 
-                uccessfully ran, generating a new MetaSRA file as side effect. 
+                successfully ran, generating a new MetaSRA file as side effect. 
+
     """
-    eqfiltdict=get_queryfilt_dict()
-    validgsmlist = [gsmid for gselist in list(eqfiltdict.values()) 
-        for gsmid in gselist
-    ]
-    msrap_runpath = settings.msraprunscriptpath
+eqfiltdict=get_queryfilt_dict()
+validgsmlist = [gsmid for gselist in list(eqfiltdict.values()) 
+    for gsmid in gselist
+]
+msrap_runpath = settings.msraprunscriptpath
     # if filenames provided, form list, else list json dir contents
-    if json_flist and len(json_flist)>0:
-        rjson = re.compile(jsonpatt)
-        gsm_json_fn_list = list(filter(rjson.match, json_flist)) 
+if json_flist and len(json_flist)>0:
+    rjson = re.compile(jsonpatt)
+    gsm_json_fn_list = list(filter(rjson.match, json_flist)) 
+else:
+    gsm_json_fn_list = os.listdir(gsm_jsonpath)
+    rjson = re.compile(jsonpatt)
+    gsm_json_fn_list = list(filter(rjson.match, gsm_json_fn_list))
+
+msrap_destpath = settings.gsmmsrapoutpath
+os.makedirs(msrap_destpath, exist_ok=True)
+msrap_statlist = []
+msrap_fn = settings.msrapfnstem
+# iterate over valid filenames at gsm json dir
+process_list = []
+args_list = []
+
+for gsm_json_fn in gsm_json_fn_list:
+    
+    gsmid = gsm_json_fn.split('.')[1]
+    
+    if gsmid in validgsmlist:
+        
+outfn = os.path.splitext(gsm_json_fn)[0] # fn without extension
+gsmjson_readpath = os.path.join(gsm_jsonpath, gsm_json_fn)
+gsm_msrapout_writepath = os.path.join(msrap_destpath,
+    ".".join([timestamp,outfn,msrap_fn]))
+cmdlist = ['python2',
+    msrap_runpath,
+    gsmjson_readpath,
+    gsm_msrapout_writepath
+    ]
+proc = subprocess.call(cmdlist, shell=False)
+process_list.append(proc)
+args_list.append([gsmjson_readpath, gsm_msrapout_writepath])
+
     else:
-        gsm_json_fn_list = os.listdir(gsm_jsonpath)
-        rjson = re.compile(jsonpatt)
-        gsm_json_fn_list = list(filter(rjson.match, gsm_json_fn_list))
-    msrap_destpath = settings.gsmmsrapoutpath
-    os.makedirs(msrap_destpath, exist_ok=True)
-    msrap_statlist = []
-    msrap_fn = settings.msrapfnstem
-    # iterate over valid filenames at gsm json dir
-    process_list = []
-    args_list = []
-    for gsm_json_fn in gsm_json_fn_list:
-        gsmid = gsm_json_fn.split('.')[1]
-        if gsmid in validgsmlist:
-            outfn = os.path.splitext(gsm_json_fn)[0] # fn without extension
-            gsmjson_readpath = os.path.join(gsm_jsonpath, gsm_json_fn)
-            gsm_msrapout_writepath = os.path.join(msrap_destpath,
-                ".".join([timestamp,outfn,msrap_fn]))
-            cmdlist = ['python2',
-                msrap_runpath,
-                gsmjson_readpath,
-                gsm_msrapout_writepath
-                ]
-            proc = subprocess.call(cmdlist, shell=False)
-            process_list.append(proc)
-            args_list.append([gsmjson_readpath, gsm_msrapout_writepath])
-        else:
-            msrap_statlist.append(None)
-            print("GSM id : "+gsmid+" is not a valid HM450k sample. "
-                +"Continuing...")
+        msrap_statlist.append(None)
+        print("GSM id : "+gsmid+" is not a valid HM450k sample. "
+            +"Continuing...")
     return msrap_statlist
 
 def msrap_getsamples(json_flist=[], fnpatt=".*json.filt$", 

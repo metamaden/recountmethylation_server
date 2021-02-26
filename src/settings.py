@@ -32,6 +32,7 @@ def init():
     global idatsdir
     global equerydir
     global gsmjsondir
+    global gsmjsonfiltdir
     global gsmmsrapoutdir
     global msraplogsdir
     global temppath
@@ -40,6 +41,7 @@ def init():
     global idatspath
     global equerypath
     global gsmjsonpath
+    global gsmjsonfiltpath
     global gsmmsrapoutpath
     global msraplogspath
     filesdir = 'recount-methylation-files'
@@ -51,12 +53,14 @@ def init():
     gsmjsondir = 'gsm_json'
     gsmmsrapoutdir = 'gsm_msrap_outfiles'
     msraplogsdir = 'msrap_logs'
+    gsmjsonfiltdir = "gsm_json_filt"
     temppath = os.path.join(filesdir, tempdir)
     gsesoftpath = os.path.join(filesdir, gsesoftdir)
     gsmsoftpath = os.path.join(filesdir, gsmsoftdir)
     idatspath = os.path.join(filesdir, idatsdir)
     equerypath = os.path.join(filesdir, equerydir)
     gsmjsonpath = os.path.join(filesdir, gsmjsondir)
+    gsmjsonfiltpath = os.path.join(filesdir, gsmjsonfiltdir)
     gsmmsrapoutpath = os.path.join(filesdir, gsmmsrapoutdir)
     msraplogspath = os.path.join(filesdir, msraplogsdir)
 
