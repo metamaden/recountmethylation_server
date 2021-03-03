@@ -4,335 +4,212 @@
 
     Authors: Sean Maden, Abhi Nellore
     
-    Run the MetaSRA-pipeline.
+    Run the MetaSRA-pipeline. Included functions allow for batch analysis of 
+    sample JSON files in the form of composite files that are passed to the
+    pipeline. The outputs include the new composite JSON files, the new
+    composite files with pipeline mappings, and the sample/GSM-level pipeline
+    outputs.
     
     Notes:
 
     Functions:
+        * write_cjson: Writes the composite JSON files to be used in the 
+            pipeline.
+        * get_gsm_outputs: Writes GSM-specific metadata files using composite
+            JSON files and pipeline output files with matching timestamps.
+        * run_msrap_compjson: Performs the full workflow, including composite 
+            JSON generation from the filtered JSON files (write_cjson function),
+            pipeline metadata mapping, and sample/GSM-level metadata output
+            writes (get_gsm_outputs function).
 """
 
-import os
-import sys
-import re
-import gzip
-import shutil
-import subprocess
-import filecmp
-import tempfile
-import pickle
-from datetime import datetime
-import time
-from random import shuffle
+import os, sys, re, gzip, shutil, subprocess, filecmp, tempfile, pickle, time
+from datetime import datetime; from random import shuffle
 sys.path.insert(0, os.path.join("recountmethylation_server","src"))
 from utilities import gettime_ntp, getlatest_filepath, get_queryfilt_dict
-from utilities import monitor_processes
-import settings
-settings.init()
+from utilities import monitor_processes; import settings; settings.init()
 
-def run_metasrapipeline(json_flist=[], jsonpatt=".*json.filt$", 
-    gsm_jsonpath=settings.gsmjsonfiltpath, timestamp=gettime_ntp()):
-    """ run_metasrapipeline
+def write_cjson(jffnv, newfilefn = "cjson", 
+    jsonfiltpath = settings.gsmjsonfiltpath, 
+    msrap_destpath = settings.gsmmsrapoutpath, tempdname = "cjsontemp",
+    ts = gettime_ntp()):
+    """ Write a composite JSON file with multiple samples
+
+    Arguments: 
+        * jffnv (list): Vector of filtered JSON filenames.
+        * newfilefn (str): File name stem of new file to write
+        * msrap_destpath (str): Path to MetaSRA-pipeline output files.
+        * jsonfiltpath (str): Path to filtered GSM JSON files.
+        * tempdname (str): Name of dir, at jsonfiltpath, to contain composite JSON 
+        files.
+        * ts (int): Timestamp of output and input files.
+
+    Returns:
+        * Path to new composite JSON file.
+
+    """
+    temppath_read = os.path.join(jsonfiltpath)
+    if not os.path.exists(temppath_read):
+        os.makedirs(temppath_read)
+    temppath_write = os.path.join(msrap_destpath, tempdname)
+    if not os.path.exists(temppath_write):
+        os.makedirs(temppath_write)
+    ll = []; fnl = []
+    for fn in jffnv:
+        fpath = os.path.join(jsonfiltpath, fn)
+        if os.path.exists(fpath):
+            with open(fpath, "r") as openjson:
+                linesi = openjson.readlines()
+                if len(linesi) > 0:
+                    ll.append(linesi)
+                    fnl.append(fpath)
+    newfn = ".".join([newfilefn, ts])
+    wite_fpath = os.path.join(temppath_write, newfn)
+    if len(ll) > 0:
+        print("Read data for " + str(len(ll)) + " files. Writing data")
+        lform = []
+        with open(wite_fpath, "w") as opencj:
+            opencj.write("[\n") # first line
+            for fi, file in enumerate(ll):
+                ld = []
+                for line in file:
+                    if line == "}\n":
+                        opencj.write("\t{\n"); ld = ld[1::]
+                        jfname = os.path.basename(fnl[fi])
+                        gsmid = '"'+jfname.split(".")[1]+'"'
+                        lpath = ":".join(['"gsm"', gsmid])
+                        opencj.write("\t\t" + lpath + ",\n") # sample id
+                        for ii, ldi in enumerate(ld):
+                            lf = ldi.split(":")
+                            if lf[0] == '  !Sample_source_name_ch1':
+                                lf = ['source'] + lf[1::]
+                            elif lf[0] == '  !Sample_title':
+                                lf = ['title'] + lf[1::]
+                            else:
+                                lf = lf[1::]
+                            lf = ['"' + i + '"' for i in lf];lf = ':'.join(lf)
+                            if ii == len(ld) - 1:
+                                lf = lf + "\n" # comma for values before last
+                            else:
+                                lf = lf + ",\n"
+                            opencj.write("\t\t" + lf)
+                        if fi == len(ll) - 1:
+                            opencj.write("\t}\n") # no comma for final entry
+                        else:
+                            opencj.write("\t},\n")
+                    else:
+                        ldi = line
+                        ldi = ldi.replace(']', '');ldi = ldi.replace('[', '')
+                        ldi = ldi.replace('"', '');ldi = ldi.replace('\n', '')
+                        ldi = ldi.replace(',', '')
+                        if not ldi == "":
+                            ld.append(ldi)
+            opencj.write("]") # last line              
+    return wite_fpath
+
+def get_gsm_outputs(cjfn = "cjson", newfn = "msrap.cjson", 
+    tempdname = "cjsontemp", jsonfiltpath = settings.gsmjsonfiltpath, 
+    msrap_destpath = settings.gsmmsrapoutpath):
+    """ Get the GSM-specific data from pipeline output files.
+
+    Get the GSM-specific data from pipeline outputs run using composite JSON 
+    files. Detects JSON composite files (cjfn) and output files (newfn) with
+    matching timestamps. For matching files, the GSM IDs contained in the 
+    composite JSON files are used to make the GSM-specific output files at the
+    top level of msrap_destpath. Timestamps of new sample/GSM metadata files 
+    match the valid detected composite file pairs.
+    
+    Arguments:
+        * cjfn (str): File name string of composite JSON files containing the 
+            GSM IDs.
+        * newfn (str): File name string of the composite output metadata.
+        * tempdname (str): Name of dir, at jsonfiltpath, to contain composite 
+                            JSON files.
+        * jsonfiltpath (str): Path to filtered GSM JSON files.
+        * msrap_destpath (str): Path to MetaSRA-pipeline output files.
+
+    Returns:
+        * NULL produces gsm metadata files at top level of msrap_destpath.
+
+    """
+    pathread_mdout = os.path.join(msrap_destpath, tempdname)
+    if not os.path.exists(pathread_mdout):
+        print("Path to cmoposite metadata files doesn't exist: " + 
+            str(pathread_mdout) + ". Returning...")
+        return NULL
+    re_cjson = re.compile("^" + cjfn + ".*")
+    prl_cjson = os.listdir(pathread_mdout)
+    prl_cjson = [fn for fn in prl_cjson if re_cjson.findall(fn)]
+    re_msrap = re.compile("^" + newfn + ".*")
+    prl_msrap = os.listdir(pathread_mdout)
+    prl_msrap = [fn for fn in prl_msrap if re_msrap.findall(fn)]
+    tsl_msrap = [fn.split(".")[2] for fn in prl_msrap];lx = []
+    for fn in prl_cjson:
+        if fn.split(".")[1] in tsl_msrap:
+            print("Detected file match. Getting GSM IDs...")
+            msrap_fmatch = [mn for mn in prl_msrap 
+                                if mn.split(".")[2] == fn.split(".")[1]][0]
+            ts = msrap_fmatch.split(".")[2] # use cfile ts
+            rpath1 = os.path.join(pathread_mdout, fn)
+            with open(rpath1, "r") as rf:
+                for line in rf:
+                    if line.split(":")[0] == '\t\t"gsm"':
+                        gsmid = line.split(":")[1]
+                        gsmid = gsmid.replace('"', '').replace('\n', '')
+                        gsmid = gsmid.replace(",", "");llf.append(gsmid)
+                        llf.append(gsmid)
+            rpath2=os.path.join(pathread_mdout,msrap_fmatch);gsmct=0;ld=[]
+            with open(rpath2, "r") as rf:
+                for line in rf:
+                    if not line in ["    }\n", "    },\n"]:
+                        ld.append(line)
+                    else:
+                        gsmfname = ".".join(["msrapout", 
+                            llf[gsmct].replace(",", ""), ts])
+                        wpath = os.path.join(msrap_destpath, gsmfname)
+                        print("Writing new file ", wpath)
+                        with open(wpath, "w") as wf:
+                            wf.write("[\n");wf.write("    {\n")
+                            ld = ld[1::]
+                            for line in ld:
+                                wf.write(line)
+                            wf.write("    }\n");wf.write("]");ld = []
+                        print("Finished writing file num "+
+                            str(gsmct)); gsmct += 1            
+    return NULL
+
+def run_msrap_compjson(json_flist=[], njint = 100, jsonpatt=".*json.filt$", 
+    gsm_jsonpath = settings.gsmjsonfiltpath, tempdname = "cjsontemp",
+    msrap_destpath = settings.gsmmsrapoutpath, newfnpattern = "msrap.cjson"):
+    """ Run MetaSRA-pipeline on composite JSON files
         
-        Run MetaSRA-pipeline on GSM JSON files. It is highly recommended to 
-        implement this with parallelization using msrap_screens, instead of 
-        instantiating directly!
+        Runs the MetaSRA-pipeline on composite JSON files containing njint 
+        samples' JSON-formatted metadata. The composite JSON files and the 
+        composite metadata outputs are both written to tempfname at 
+        msrap_destpath. After mapping, get_gsm_outputs() is called to make the
+        GSM-specific files, which are output to the top level of msrap_destpath.
         
         Arguments:
             * json_flist (list, optional) : List of JSON filename(s) to process. 
                 If not provided, automatically targets all JSON files at 
                 gsm_jsondir.
-            * timestamp (str) : NTP timestamp version for expanded files.       
+            * njint (int): Number of JSON files per composite file to process.
+            * jsonpatt (str): File name pattern for valid filtered JSON files.
+            * gsm_jsonpath (str): Path to the filtered GSM JSON files directory.
+            * tempdname (str): Dir, located at msrap_destpath, where composite
+                JSON files and outputs are to be written.
+            * msrap_destpath (str): Path where mapped metadata output files will
+                be written.     
+            * newfnpattern (str): File name pattern for mapped metadata output.
         
         Returns:
-            * msrap_statlist (list), Int (1) or error: Whether MetaSRA-pipeline 
-                successfully ran, generating a new MetaSRA file as side effect. 
+            * NULL, produces the composite file pairs and GSM metadata files.
 
     """
-eqfiltdict=get_queryfilt_dict()
-validgsmlist = [gsmid for gselist in list(eqfiltdict.values()) 
-    for gsmid in gselist
-]
-msrap_runpath = settings.msraprunscriptpath
-    # if filenames provided, form list, else list json dir contents
-if json_flist and len(json_flist)>0:
-    rjson = re.compile(jsonpatt)
-    gsm_json_fn_list = list(filter(rjson.match, json_flist)) 
-else:
-    gsm_json_fn_list = os.listdir(gsm_jsonpath)
-    rjson = re.compile(jsonpatt)
-    gsm_json_fn_list = list(filter(rjson.match, gsm_json_fn_list))
-
-msrap_destpath = settings.gsmmsrapoutpath
-os.makedirs(msrap_destpath, exist_ok=True)
-msrap_statlist = []
-msrap_fn = settings.msrapfnstem
-# iterate over valid filenames at gsm json dir
-process_list = []
-args_list = []
-
-for gsm_json_fn in gsm_json_fn_list:
-    
-    gsmid = gsm_json_fn.split('.')[1]
-    
-    if gsmid in validgsmlist:
-        
-outfn = os.path.splitext(gsm_json_fn)[0] # fn without extension
-gsmjson_readpath = os.path.join(gsm_jsonpath, gsm_json_fn)
-gsm_msrapout_writepath = os.path.join(msrap_destpath,
-    ".".join([timestamp,outfn,msrap_fn]))
-cmdlist = ['python2',
-    msrap_runpath,
-    gsmjson_readpath,
-    gsm_msrapout_writepath
-    ]
-proc = subprocess.call(cmdlist, shell=False)
-process_list.append(proc)
-args_list.append([gsmjson_readpath, gsm_msrapout_writepath])
-
-    else:
-        msrap_statlist.append(None)
-        print("GSM id : "+gsmid+" is not a valid HM450k sample. "
-            +"Continuing...")
-    return msrap_statlist
-
-def msrap_getsamples(json_flist=[], fnpatt=".*json.filt$", 
-    gsmjsonpath=os.path.join("recount-methylation-files", "gsm_json_filt"), 
-    nprocsamp=50, nmaxproc=20):
-    """ msrap_getsamples
-        
-        Get the validated samples file list
-
-        Arguments:
-            * json_flist (list) : List of GSM JSON filenames to process. If not 
-                provided, function automatically detects any new GSM JSON files
-                without available MetaSRA-pipeline outfiles.
-            * fnpatt (str): Filename pattern of valid json files to identify.
-            * gsmjsonpath (path): Path to JSON formatted sample SOFT data.
-            * nprocsamp (int) : Number of samples to process per screen deployed.
-            * nmaxproc (int) : Maximum processes to launch
-            * timelim (int) : time limit (minutes) for monitoring processes.
-            * statint (int) : time (seconds) to sleep before next status update.
-        Returns:
-            (Null) Generates >=1 processes for file sublists
-
-    """
-    if not os.path.exists(settings.msraprunscriptpath):
-        print("Error: MetaSRA-pipeline script not found. Please check your "
-            +"local download of MetaSRA-pipeline.")
-        return None
-    print("Checking dirs for msrapout and msrap logs...")
-    os.makedirs(settings.gsmmsrapoutpath, exist_ok=True)
-    os.makedirs(settings.msraplogspath, exist_ok=True)
-    # detect gsm soft files
-    psoftpath = settings.psoftscriptpath
-    if os.path.exists(psoftpath):
-        print("Process soft script found at: "+str(psoftpath))
-    gsmsoftpath = settings.gsmsoftpath
-    gsmmsrapoutpath = settings.gsmmsrapoutpath
-    jsonfnpattern = fnpatt
-    rjson = re.compile(jsonfnpattern)
-    msrapoutfnpattern = settings.msrapoutfnpattern
-    rmsrapout = re.compile(msrapoutfnpattern)
-    # generate fl list of valid json files that haven't been processed yet
-    fl = []
-    if json_flist and len(json_flist)>0:
-        jsonfnlist = list(filter(rjson.match, json_flist)) 
-        jsongsmlist = [x.split('.')[1] for x in jsonfnlist]
-    else:
-        json_flist = os.listdir(gsmjsonpath)
-        jsonfnlist = list(filter(rjson.match, json_flist)) 
-        jsongsmlist = [x.split('.')[1] for x in jsonfnlist]
-    msrapoutfnlist = os.listdir(gsmmsrapoutpath) 
-    msrapoutfnlist = list(filter(rmsrapout.match, msrapoutfnlist))
-    print("Found "+str(len(msrapoutfnlist))+" files with pattern "
-        +msrapoutfnpattern+". Continuing...")
-    msrapgsmlist = [x.split('.')[2] for x in msrapoutfnlist]
-    gsmprocess = [g for g in jsongsmlist 
-            if not g in msrapgsmlist and
-            g[0:3]=='GSM'
-        ]
-    for index, gsmid in enumerate(gsmprocess):
-        gjsonfpath = getlatest_filepath(filepath=gsmjsonpath,
-                filestr=gsmid, embeddedpattern=True, tslocindex=0,
-                returntype='returnlist'
-            )
-        if gjsonfpath and len(gjsonfpath)==1:
-            gjsonfn = [os.path.basename(gjsonfpath[0])]
-        else:
-            gjsonfn = [os.path.basename(fn) for fn in gjsonfpath]
-        gjsonfn = gjsonfn[0]
-        fl.append(gjsonfn)
-        numi = 100*(index/len(gsmprocess))
-        perci = str(round(numi,2))
-        print("Appended file "+gjsonfn+" to files list to process. "
-            +"Progress: "+str(index)+"/"+str(len(gsmprocess))+"="
-            +perci+"%. Continuing...")
-    # form list of fn lists based on nscreensi and indices/slices
-    if fl:
-        print("Forming list of fn lists for screen deployment...")
-        ll = []
-        rangelist = [i for i in range(0, len(fl), nprocsamp)]
-        for enum, i in enumerate(rangelist[:-1]):
-            ll.append(fl[i:rangelist[enum+1]])
-        if len(fl[rangelist[-1]::]) > 0:
-            ll.append(fl[rangelist[-1]::])
-    else:
-        print("Error, no files list object to process. Returning...")
-        return None
-    print('screens ll list, len = ' + str(len(ll)))
-    print('nmax screens = '+str(nmaxproc))
-    return ll
-    
-
-def msrap_launchproc(json_flist=[], fnpatt=settings.jsonfnpattern, 
-    gsmjsonpath=settings.gsmjsonpath, timestamp=gettime_ntp(), nprocsamp=50, 
-    nmaxproc=20, timelim=2800, statint=5):
-    """ msrap_launchproc
-        Preprocess subsets of GSM JSON files in MetaSRA-pipeline in background, 
-        with process monitoring
-        Notes:
-            *If no GSM JSON files list supplied to 'json_flist', then a new list 
-                of GSMs is generated for valid GSM JSON files that don't already 
-                have msrapout files available.
-        Arguments:
-            * json_flist (list) : List of GSM JSON filenames to process. If not 
-                provided, function automatically detects any new GSM JSON files
-                without available MetaSRA-pipeline outfiles.
-            * fnpatt (str): Filename pattern of valid json files to identify.
-            * gsmjsonpath (path): Path to JSON formatted sample SOFT data.
-            * nprocsamp (int) : Number of samples to process per screen deployed.
-            * nmaxproc (int) : Maximum processes to launch
-            * timelim (int) : time limit (minutes) for monitoring processes.
-            * statint (int) : time (seconds) to sleep before next status update.
-        Returns:
-            (Null) Generates >=1 processes for file sublists
-    """
-    if not os.path.exists(settings.msraprunscriptpath):
-        print("Error: MetaSRA-pipeline script not found. Please check your "
-            +"local download of MetaSRA-pipeline.")
-        return None
-    print("Checking dirs for msrapout and msrap logs...")
-    os.makedirs(settings.gsmmsrapoutpath, exist_ok=True)
-    os.makedirs(settings.msraplogspath, exist_ok=True)
-    # detect gsm soft files
-    psoftpath = settings.psoftscriptpath
-    if os.path.exists(psoftpath):
-        print("Process soft script found at: "+str(psoftpath))
-    gsmsoftpath = settings.gsmsoftpath
-    gsmmsrapoutpath = settings.gsmmsrapoutpath
-    jsonfnpattern = fnpatt
-    rjson = re.compile(jsonfnpattern)
-    msrapoutfnpattern = settings.msrapoutfnpattern
-    rmsrapout = re.compile(msrapoutfnpattern)
-    # generate fl list of valid json files that haven't been processed yet
-    fl = []
-    if json_flist and len(json_flist)>0:
-        jsonfnlist = list(filter(rjson.match, json_flist)) 
-        jsongsmlist = [x.split('.')[1] for x in jsonfnlist]
-    else:
-        json_flist = os.listdir(gsmjsonpath)
-        jsonfnlist = list(filter(rjson.match, json_flist)) 
-        jsongsmlist = [x.split('.')[1] for x in jsonfnlist]
-    msrapoutfnlist = os.listdir(gsmmsrapoutpath) 
-    msrapoutfnlist = list(filter(rmsrapout.match, msrapoutfnlist))
-    print("Found "+str(len(msrapoutfnlist))+" files with pattern "
-        +msrapoutfnpattern+". Continuing...")
-    msrapgsmlist = [x.split('.')[2] for x in msrapoutfnlist]
-    gsmprocess = [g for g in jsongsmlist 
-            if not g in msrapgsmlist and
-            g[0:3]=='GSM'
-        ]
-    for index, gsmid in enumerate(gsmprocess):
-        gjsonfpath = getlatest_filepath(filepath=gsmjsonpath,
-                filestr=gsmid, embeddedpattern=True, tslocindex=0,
-                returntype='returnlist'
-            )
-        if gjsonfpath and len(gjsonfpath)==1:
-            gjsonfn = [os.path.basename(gjsonfpath[0])]
-        else:
-            gjsonfn = [os.path.basename(fn) for fn in gjsonfpath]
-        gjsonfn = gjsonfn[0]
-        fl.append(gjsonfn)
-        numi = 100*(index/len(gsmprocess))
-        perci = str(round(numi,2))
-        print("Appended file "+gjsonfn+" to files list to process. "
-            +"Progress: "+str(index)+"/"+str(len(gsmprocess))+"="
-            +perci+"%. Continuing...")
-    # form list of fn lists based on nscreensi and indices/slices
-    if fl:
-        print("Forming list of fn lists for screen deployment...")
-        ll = []
-        rangelist = [i for i in range(0, len(fl), nprocsamp)]
-        for enum, i in enumerate(rangelist[:-1]):
-            ll.append(fl[i:rangelist[enum+1]])
-        if len(fl[rangelist[-1]::]) > 0:
-            ll.append(fl[rangelist[-1]::])
-    else:
-        print("Error, no files list object to process. Returning...")
-        return None
-    print('screens ll list, len = ' + str(len(ll)))
-    print('nmax screens = '+str(nmaxproc))
-    
-    ll = ll[0:nmaxproc] # slice ll based on screen count max
-    ts = timestamp # single timestamp call shared across screens
-    process_list = []
-    if len(ll)>1:
-        for loc, sublist in enumerate(ll, 1):
-            # each loc in ll represents a new screen index, check vs. screen max
-            if loc <= nmaxproc:
-                cmdlist0 = ['screen','-S',"msrapsession"+str(loc), '-dm', 
-                    'python3', psoftpath, '--msraplist', 
-                    ' '.join(str(item) for item in ll[0]),'--ntptime', ts,
-                    '--gsm_jsonpath', gsmjsonpath
-                ]
-                proc = subprocess.Popen(cmdlist0, stdout=subprocess.PIPE, 
-                    stderr=subprocess.PIPE)
-                process_list.append(proc)
-    else:
-        cmdlist0 = ['screen','-S',"msrapsession"+str(loc), '-dm', 
-                    'python3', psoftpath, '--msraplist', 
-                    ' '.join(str(item) for item in ll[0]),'--ntptime', ts,
-                    '--gsm_jsonpath', gsmjsonpath
-                ]
-        proc = subprocess.Popen(cmdlist0, stdout=subprocess.PIPE, 
-            stderr=subprocess.PIPE)
-        process_list.append(proc)
-    print("Finished launching background processes. Check screens for ongoing "
-        +"status reports.")
-    # monitor processes
-    print("Beginning process monitoring...")
-    monitor_processes(process_list=process_list, logpath=settings.msraplogspath)
-    print("Finished with process monitoring.")
-    print("Returning...")
-    return None
-
-def run_metasrapipeline2(json_flist=[], jsonpatt=".*json.filt$", 
-    gsm_jsonpath = os.path.join("recount-methylation-files", "gsm_json_filt"), 
-    timestamp=gettime_ntp()):
-    """ run_metasrapipeline2
-        
-        Designed to run with modified script "run_pipeline.py"
-
-        Run MetaSRA-pipeline on GSM JSON files. It is highly recommended to 
-        implement this with parallelization using msrap_screens, instead of 
-        instantiating directly!
-        Arguments:
-            * json_flist (list, optional) : List of JSON filename(s) to process. 
-                If not provided, automatically targets all JSON files at 
-                gsm_jsondir.
-            * timestamp (str) : NTP timestamp version for expanded files.       
-        Returns:
-            * msrap_statlist (list), Int (1) or error: Whether MetaSRA-pipeline 
-                uccessfully ran, generating a new MetaSRA file as side effect. 
-    """
-    print("Validating files on GSM equery results...")
     eqfiltdict=get_queryfilt_dict()
     validgsmlist = [gsmid for gselist in list(eqfiltdict.values()) 
-        for gsmid in gselist
-    ]
+        for gsmid in gselist]
     msrap_runpath = settings.msraprunscriptpath
-    # if filenames provided, form list, else list json dir contents
-    print("Validating JSON files on filename patterns...")
     if json_flist and len(json_flist)>0:
         rjson = re.compile(jsonpatt)
         gsm_json_fn_list = list(filter(rjson.match, json_flist)) 
@@ -340,38 +217,25 @@ def run_metasrapipeline2(json_flist=[], jsonpatt=".*json.filt$",
         gsm_json_fn_list = os.listdir(gsm_jsonpath)
         rjson = re.compile(jsonpatt)
         gsm_json_fn_list = list(filter(rjson.match, gsm_json_fn_list))
-    # make write path
-    msrap_destpath = settings.gsmmsrapoutpath
-    os.makedirs(msrap_destpath, exist_ok=True)
-    print("Getting read and write paths...")
-    # define file read paths
-    gsm_read_pathl = [os.path.join(gsm_jsonpath, fn) for fn in gsm_json_fn_list]
-    # define write paths, same file order as read paths
-    msrap_fn = settings.msrapfnstem
-    ts_gsm_fnl = [".".join(fn.split(".")[0:2]) for fn in gsm_json_fn_list]
-    gsm_write_fnl = [".".join([timestamp,outfn,msrap_fn]) for outfn in ts_gsm_fnl]
-    gsm_write_pathl = [os.path.join(msrap_destpath,fn) for fn in gsm_write_fnl]
-    # note -- pass 1 long args list once
-    args0 = gsm_read_pathl.join(";")
-    args1 = gsm_write_pathl.join(";")
-    print("Calling the subprocess...")
-    cmdlist = " ".join(["python2", msrap_runpath, "--fnvread", '"'+args0+'"', 
-        "--fnvwrite", '"'+args1+'"'])
-    proc = subprocess.call(cmdlist, shell=True)
-    print("Finished calling subprocess. Returning...")
-    return True
+    cjsonpath = os.path.join(msrap_destpath, tempdname)
+    os.makedirs(cjsonpath, exist_ok=True); msrap_statlist = []
+    msrap_fn = settings.msrapfnstem; process_list = []
+    rl = [r for r in range(0, len(gsm_json_fn_list), njint)]
+    print("Running pipeline for composite JSON files...")
+    for r in rl:
+        ts = gettime_ntp() # use new ts for each new composite file pair
+        jsonflist = gsm_json_fn_list[r:r+njint]
+        cjreadpath = write_cjson(jffnv = jsonflist, jsonfiltpath = gsm_jsonpath, 
+            msrap_destpath = msrap_destpath, ts = ts, tempdname = tempdname)
+        newfn = ".".join([newfnpattern, ts])
+        cjwritepath = os.path.join(cjsonpath, newfn)
+        cmdlist = ['python2', msrap_runpath, "--fnvread", cjreadpath, 
+            "--fnvwrite", cjwritepath]
+        process_list.append(subprocess.call(cmdlist, shell=False))
+        print("Finished index "+str(r))
+    print("Extracting GSM data from composite JSON results...")
+    get_gsm_outputs()
+    return NULL
 
 if __name__ == "__main__":
-    # the following is called by msrap_screens()
-    import argparse
-    parser = argparse.ArgumentParser(description='Process some integers.')
-    parser.add_argument("--msraplist", type=str, required=True,
-        default=None, help='Files list to process with MetaSRA-pipeline.')
-    parser.add_argument("--ntptime", type=str, required=True,
-        default=gettime_ntp(), help='NTP timestamp, as a string.')
-    parser.add_argument("--gsm_jsonpath", type=str, required=False,
-        default=gettime_ntp(), help='GSM JSON file path')
-    args = parser.parse_args()
-    # parse filename strings into list 
-    flmsrap = [file for file in args.msraplist.split(' ')]
-    run_metasrapipeline2(json_flist=flmsrap, timestamp=args.ntptime)
+    run_msrap_compjson()
