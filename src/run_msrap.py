@@ -40,7 +40,8 @@ def write_cjson(jffnv, newfilefn = "cjson",
         * newfilefn (str): File name stem of new file to write
         * msrap_destpath (str): Path to MetaSRA-pipeline output files.
         * jsonfiltpath (str): Path to filtered GSM JSON files.
-        * tempdname (str): Name of dir, at jsonfiltpath, to contain composite JSON 
+        * tempdname (str): Name of dir, at jsonfiltpath, to contain composite 
+            JSON 
         files.
         * ts (int): Timestamp of output and input files.
 
@@ -124,7 +125,7 @@ def get_gsm_outputs(cjfn = "cjson", newfn = "msrap.cjson",
             GSM IDs.
         * newfn (str): File name string of the composite output metadata.
         * tempdname (str): Name of dir, at jsonfiltpath, to contain composite 
-                            JSON files.
+            JSON files.
         * jsonfiltpath (str): Path to filtered GSM JSON files.
         * msrap_destpath (str): Path to MetaSRA-pipeline output files.
 
@@ -134,7 +135,7 @@ def get_gsm_outputs(cjfn = "cjson", newfn = "msrap.cjson",
     """
     pathread_mdout = os.path.join(msrap_destpath, tempdname)
     if not os.path.exists(pathread_mdout):
-        print("Path to cmoposite metadata files doesn't exist: " + 
+        print("Path to composite metadata files doesn't exist: " + 
             str(pathread_mdout) + ". Returning...")
         return NULL
     re_cjson = re.compile("^" + cjfn + ".*")
@@ -210,13 +211,14 @@ def run_msrap_compjson(json_flist=[], njint = 100, jsonpatt=".*json.filt$",
     validgsmlist = [gsmid for gselist in list(eqfiltdict.values()) 
         for gsmid in gselist]
     msrap_runpath = settings.msraprunscriptpath
-    if json_flist and len(json_flist)>0:
-        rjson = re.compile(jsonpatt)
-        gsm_json_fn_list = list(filter(rjson.match, json_flist)) 
-    else:
-        gsm_json_fn_list = os.listdir(gsm_jsonpath)
-        rjson = re.compile(jsonpatt)
-        gsm_json_fn_list = list(filter(rjson.match, gsm_json_fn_list))
+    msrap_oldgsm = os.listdir(msrap_runpath)
+    msrap_oldgsm = [fn.split(".")[1] for fn in msrap_oldgsm]
+    if not (json_flist and len(json_flist))>0:
+        json_flist = os.listdir(gsm_jsonpath)
+    print("Filtering GSM JSON filenames on pattern, existing msrap files...")
+    gsm_json_fn_list = list(filter(re.compile(jsonpatt).match, json_flist))
+    gsm_json_fn_list = [fn for fn in gsm_json_fn_list 
+                        if not fn.split(.)[1] in msrap_oldgsm]
     cjsonpath = os.path.join(msrap_destpath, tempdname)
     os.makedirs(cjsonpath, exist_ok=True); msrap_statlist = []
     msrap_fn = settings.msrapfnstem; process_list = []
