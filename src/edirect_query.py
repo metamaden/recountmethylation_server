@@ -269,3 +269,13 @@ def gsequery_filter(splitdelim='\t', timestamp=gettime_ntp()):
             for item in gsefiltl:
                 filtfile.write("%s\n" % item)
     return gsefiltl
+
+if __name__ == "__main__":
+    """ Run a new EDirect query
+
+    Query the GEO DataSets API for valid data run using the target platform.
+
+    """
+    print("Beginning EDirect query...")
+    equery_dest = settings.equerypath; temppath = settings.temppath
+    gse_query(); gsm_query(); gsequery_filter()
