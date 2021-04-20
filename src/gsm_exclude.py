@@ -23,7 +23,7 @@ from server import firsttime_run
 from utilities import get_queryfilt_dict, querydict, gettime_ntp
 from edirect_query import gse_query_diffs
 
-def eqd_gsm_exclude(gsmv_fname = "gsm_exclude", 
+def eqd_gsm_exclude(gsmv_fname = "gsmv.txt", 
     exclude_dpath = os.path.join("."),  filesdir = settings.filesdir,
     equery_dest = settings.equerypath):
     """ Exclude GSM IDs from edirecty query objects
@@ -41,6 +41,7 @@ def eqd_gsm_exclude(gsmv_fname = "gsm_exclude",
     if not os.path.exists(gsmv_fpath):
         print("Couldn't find sample ID file")
     gsmv_exclude = [line.rstrip('\n').split(" ") for line in open(gsmv_fpath)]
+    gsmv_exclude = [i for sublist in gsmv_exclude for i in sublist]
     eqpath = settings.equerypath
     gsefilt_latest = getlatest_filepath(eqpath,'gsequery_filt', 
             embeddedpattern=True, tslocindex=1, returntype='returnlist'
