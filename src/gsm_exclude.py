@@ -68,6 +68,31 @@ def eqd_gsm_exclude(gsmv_fname = "gsm_exclude",
     return newfpath
 
 if __name__ == "__main__":
+    """ gsm_exclude
+
+    Exclude a file containing a space-sparated list of GSM IDs (a.k.a. gsmv 
+    file) prior to synchronizing a recountmethylation instance.
+
+    Arguments:
+
+    * fname: Name of the file containing the GSM IDs for exclusion.
+    * dpath: Path to the directory containing the file with GSM IDs for 
+        exclusion.
+
+    Returns:
+
+    None, modifies the contents of files targeted by an instance.
+
     """
-    """
-    eqd_gsm_exclude()
+    import argparse, os
+    parser = argparse.ArgumentParser(description='Arguments for gsm_exclude.py')
+    parser.add_argument("--fname", type=str, required=True, default="gsmv.txt", 
+        help='File containing space-separated GSM IDs to exclude from instance')
+    parser.add_argument("--dpath", type=str, required=True, 
+        default=os.path.join("inst", "freeze_gsmv"), 
+        help='Path to directory containg file with GSM IDs for exclusion.')
+    gsmv_fpath = os.path.join(args.dpath, args.fname)
+    if os.path.exists(gsmv_fpath):
+        eqd_gsm_exclude(gsmv_fname = args.fname, exclude_dpath = args.dpath)
+    else:
+        print("Error, couldn't find gsmv file at path: " + str(gsmv_fpath))
