@@ -17,7 +17,7 @@ import subprocess
 import pickle
 from datetime import datetime
 import time
-sys.path.insert(0, os.path.join("recount-methylation-server","src"))
+sys.path.insert(0, os.path.join("recountmethylation_server","src"))
 sys.path.insert(0, os.path.join("recount-methylation-analysis","src"))
 from utilities import gettime_ntp, getlatest_filepath, get_queryfilt_dict
 from utilities import monitor_processes

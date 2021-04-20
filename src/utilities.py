@@ -24,7 +24,7 @@ import pickle
 import subprocess
 from datetime import datetime
 import time
-sys.path.insert(0, os.path.join("recount-methylation-server","src"))
+sys.path.insert(0, os.path.join("recountmethylation_server","src"))
 import settings
 settings.init()
 

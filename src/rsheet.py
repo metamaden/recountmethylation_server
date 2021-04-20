@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
 
 """ rsheet.py
-    Prepare an R sheet for analysis, using RMDB.
+
+    Author: Sean Maden
+
+    Description:
+        Prepare an R sheet for analysis, using RMDB.
+    
     Functions:
         * rmdb_files_for_processing: compile valid file info from RMDB
         * compile_rsheet: compile R sheet from files and RMDB pointers.
+
 """
 
 import pymongo
@@ -15,16 +21,24 @@ import inspect
 import re
 import json
 sys.path.insert(0, os.path.join("recount-methylation-server","src"))
-sys.path.insert(0, os.path.join("recount-methylation-analysis","src"))
 from utilities import gettime_ntp, getlatest_filepath, get_queryfilt_dict
 import settings
 settings.init()
 
 def new_idat_hlinks(gsmid, ts, igrn_fn, ired_fn):
     """ new_idat_hlinks
+
         Make new hlink files and return new hlink paths
+
+        Arguments
+        * gsmid : 
+        * ts : 
+        * igrn_fn : 
+        * ired_fn : 
+        
         Returns
-            * rlist (list): List of path to new grn [0] and red [1] hlinked idats
+
+        * rlist (list): List of path to new grn [0] and red [1] hlinked idats
     """
     print("generating new hlink filenames...")
     gnewhlinkfn = '.'.join([gsmid, ts, 'hlink', 
@@ -50,11 +64,14 @@ def new_idat_hlinks(gsmid, ts, igrn_fn, ired_fn):
 
 def rmdb_fpaths(rmhlinks=False):
     """ Get filepaths for existant sample idats and msrap outfiles.
+
         Arguments:
-            * rmhlinks : Whether to remove old hardlinks and form new ones, 
+        * rmhlinks : Whether to remove old hardlinks and form new ones, 
                 regardless of whether current hlinks exist.
+
         Returns:
-            * gsmdocdict (dict.) : Dictionary of validated filepaths.
+        * gsmdocdict (dict.) : Dictionary of validated filepaths.
+
     """
     timestamp = gettime_ntp()
     # connect to RMDB mongodb
@@ -207,11 +224,15 @@ def rmdb_fpaths(rmhlinks=False):
 
 def compile_rsheet(gsmfpathdict):
     """ Takes gsm dictionary outputted from rmdb_files_for_processing().
+        
         Compiles valid ids, filenames, and path into an rsheet object.
+        
         Arguments:
             * gsmfpathdict (dict) : gsm paths dict obj output from rmdb_fpaths().
+        
         Returns:
             * null, produces rsheet file as a side effect.
+
     """
     timestamp = gettime_ntp()
     print("Getting equery filter...")
@@ -340,6 +361,8 @@ def compile_rsheet(gsmfpathdict):
     return lsheet
 
 if __name__ == "__main__":
+    """
+    """
     try:
         gsmfpd = rmdb_fpaths()
         if gsmfpd:

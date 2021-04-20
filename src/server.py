@@ -53,7 +53,7 @@ import glob
 import sys
 import os
 import re
-sys.path.insert(0, os.path.join("recount-methylation-server","src"))
+sys.path.insert(0, os.path.join("recountmethylation_server","src"))
 import edirect_query
 from edirect_query import gsm_query, gse_query, gsequery_filter  
 from utilities import gettime_ntp, getlatest_filepath, querydict

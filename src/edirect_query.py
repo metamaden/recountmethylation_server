@@ -42,7 +42,7 @@ import shutil
 import glob
 import filecmp
 from itertools import chain
-sys.path.insert(0, os.path.join("recount-methylation-server","src"))
+sys.path.insert(0, os.path.join("recountmethylation_server","src"))
 from utilities import gettime_ntp, querydict, getlatest_filepath
 import settings
 settings.init()
