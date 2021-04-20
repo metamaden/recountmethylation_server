@@ -87,9 +87,9 @@ if __name__ == "__main__":
     """
     import argparse, os
     parser = argparse.ArgumentParser(description='Arguments for gsm_exclude.py')
-    parser.add_argument("--fname", type=str, required=True, default="gsmv.txt", 
+    parser.add_argument("--fname", type=str, required=False, default="gsmv.txt", 
         help='File containing space-separated GSM IDs to exclude from instance')
-    parser.add_argument("--dpath", type=str, required=True, 
+    parser.add_argument("--dpath", type=str, required=False, 
         default=os.path.join("inst", "freeze_gsmv"), 
         help='Path to directory containg file with GSM IDs for exclusion.')
     args = parser.parse_args()
