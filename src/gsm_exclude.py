@@ -92,6 +92,7 @@ if __name__ == "__main__":
     parser.add_argument("--dpath", type=str, required=True, 
         default=os.path.join("inst", "freeze_gsmv"), 
         help='Path to directory containg file with GSM IDs for exclusion.')
+    args = parser.parse_args()
     gsmv_fpath = os.path.join(args.dpath, args.fname)
     if os.path.exists(gsmv_fpath):
         eqd_gsm_exclude(gsmv_fname = args.fname, exclude_dpath = args.dpath)
