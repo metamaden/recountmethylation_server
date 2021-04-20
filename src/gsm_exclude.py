@@ -40,7 +40,7 @@ def eqd_gsm_exclude(gsmv_fname = "gsm_exclude",
     gsmv_fpath = os.path.join(exclude_dpath, gsmv_fname)
     if not os.path.exists(gsmv_fpath):
         print("Couldn't find sample ID file")
-    gsmv_exclude = [line.rstrip('\n') for line in open(gsmv_fpath)]
+    gsmv_exclude = [line.rstrip('\n').split(" ") for line in open(gsmv_fpath)]
     eqpath = settings.equerypath
     gsefilt_latest = getlatest_filepath(eqpath,'gsequery_filt', 
             embeddedpattern=True, tslocindex=1, returntype='returnlist'
