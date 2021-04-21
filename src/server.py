@@ -64,18 +64,19 @@ settings.init()
 def firsttime_run(filedir='recount-methylation-files', 
     run_timestamp=gettime_ntp()):
     """ firsttime_run
+
         On first setup, run new equeries and query filter.
+    
         Arguments:
             * filedir (str): Dir name for db files. 
             * run_timestamp (str) : NTP timestamp or function to retrieve it.
+    
         Returns:
             * gseidlist (list): List of valid GSE IDs.
     """
     print("Beginning first time server run...")
-    equery_dest = settings.equerypath
-    temppath = settings.temppath
-    gse_query()
-    gsm_query()
+    equery_dest = settings.equerypath; temppath = settings.temppath
+    gse_query(); gsm_query()
     gseqfile = getlatest_filepath(equery_dest,'gse_edirectquery') 
     gsmqfile = getlatest_filepath(equery_dest,'gsm_edirectquery')
     gsequery_filter()
@@ -88,17 +89,21 @@ def firsttime_run(filedir='recount-methylation-files',
     else:
         print("Error retrieving gse query filtered file. Returning...")
         return None
+    return None
 
 def scheduled_run(eqfilt_path=False, run_timestamp=gettime_ntp()):
     """ scheduled_run
+
         Tasks performed on regular schedule, after first setup. For the job 
         queue, a list of GSE ids is returned. The id list is filtered on 
         existing GSE soft files to prioritize unrepresented experiments for 
         download. 
+
         Arguments:
             * eqfilt_path (str) : Filepath to edirect query filter file.
             * filedir (str) : Root name of files directory.
             * run_timestamp (str) : NTP timestamp or function to retrieve it.
+        
         Returns:
             * gse_list (list) : list of valid GSE IDs, or None if error occurs 
 
@@ -123,15 +128,13 @@ def scheduled_run(eqfilt_path=False, run_timestamp=gettime_ntp()):
     print(str(gsesoftfiles))
     rxgse = re.compile('GSE[0-9]*')
     gseid_softexists = [str(rxgse.findall(softfn)[0]) for softfn in gsesoftfiles
-        if rxgse.findall(softfn)
-    ]
+        if rxgse.findall(softfn)]
     if gsefiltd:
         gseid_listall = list(gsefiltd.keys())
         print("GSE id list of len "+str(len(gseid_listall)) + " found. Filtering..")
         if gseid_softexists and len(gseid_softexists)>0:
             gseid_filt = [gseid for gseid in gseid_listall
-                if not gseid in gseid_softexists
-            ]
+                if not gseid in gseid_softexists]
         else:
             gseid_filt = gseid_listall
         print("After filtering on existing soft files, N = "+str(len(gseid_filt))
@@ -146,8 +149,10 @@ def scheduled_run(eqfilt_path=False, run_timestamp=gettime_ntp()):
 
 if __name__ == "__main__":
     """ Recount-methylation sever server.py main
+        
         Code addresses various contingencies precluding generation of GSE ID 
         list. Once list can be made, it is used to populate a new Celery queue.
+    
     """
     print("Starting server.py...")
     from gse_celerytask import gse_task
@@ -157,7 +162,6 @@ if __name__ == "__main__":
     qstatlist = [] # job status object, also stored at sqlite db
     print("Getting timestamp...")
     run_timestamp = gettime_ntp() # pass this result to child functions
-    
     # If GSE ID provided, immediately parse it for download
     parser = argparse.ArgumentParser(description='Arguments for server.py')
     parser.add_argument("--gseid", type=str, required=False,
@@ -176,6 +180,9 @@ if __name__ == "__main__":
         files_dir = settings.filesdir
         if os.path.exists(files_dir):
             print("Directory : "+files_dir+" found. Running scheduled_run...")
+            if not os.path.exists(settings.gsesoftpath):
+                print("Couldn't find path ",settings.gsesoftpath,
+                    ", making new dir..."); os.mkdir(settings.gsesoftpath)
             gselist = scheduled_run(run_timestamp=run_timestamp)
         else:    
             print("Directory : "+files_dir+" not found. Creating filesdir and "
@@ -194,5 +201,4 @@ if __name__ == "__main__":
                     )
                 )    
         else:
-            print("Error: Valid gselist absent. Returning...")
-            
+            print("Error: valid gselist absent. Returning...")
