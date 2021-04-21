@@ -5,27 +5,25 @@
 Author: Sean Maden
 
 Description:
+
     Exclude a vector of GSM IDs from this instance.
 
 Functions:
+
     * eqd_gsm_exclude
  
 """
 
 import subprocess, os, socket, struct, sys, time, tempfile, atexit, shutil
-import glob, filecmp, re
-from itertools import chain
+import glob, filecmp, re; from itertools import chain
 sys.path.insert(0, os.path.join("recountmethylation_server","src"))
 from utilities import gettime_ntp, querydict, getlatest_filepath
-import settings
-settings.init()
-from server import firsttime_run
+import settings; settings.init(); from server import firsttime_run
 from utilities import get_queryfilt_dict, querydict, gettime_ntp
 from edirect_query import gse_query_diffs
 
-def eqd_gsm_exclude(gsmv_fname = "gsmv.txt", 
-    exclude_dpath = os.path.join("."),  filesdir = settings.filesdir,
-    equery_dest = settings.equerypath):
+def eqd_gsm_exclude(equery_dest=settings.equerypath, filesdir=settings.filesdir,
+    gsmv_fname="gsmv.txt", exclude_dpath=os.path.join("inst", "freeze_gsmv")):
     """ Exclude GSM IDs from edirecty query objects
 
     Arguments:
@@ -40,33 +38,30 @@ def eqd_gsm_exclude(gsmv_fname = "gsmv.txt",
     gsmv_fpath = os.path.join(exclude_dpath, gsmv_fname)
     if not os.path.exists(gsmv_fpath):
         print("Couldn't find sample ID file")
-    gsmv_exclude = [line.rstrip('\n').split(" ") for line in open(gsmv_fpath)]
-    gsmv_exclude = [i for sublist in gsmv_exclude for i in sublist]
+    gsmv_exclude = [line.rstrip('\n').split(" ") 
+                        for line in open(gsmv_fpath)][0]
+    # gsmv_exclude = [i for sublist in gsmv_exclude for i in sublist]
     eqpath = settings.equerypath
     gsefilt_latest = getlatest_filepath(eqpath,'gsequery_filt', 
             embeddedpattern=True, tslocindex=1, returntype='returnlist'
         )[0]
     print("Starting with latest detected filter file: "+gsefilt_latest)
     querylines = [line.rstrip('\n') for line in open(gsefilt_latest)]
-    qlnew = []
-    print("Applying filter...")
+    qlnew = []; print("Applying filter..."); numgsm_old = len(querylines)
     for line in querylines:
-        ldat = line.split(" ")
-        numgsm_old = len(ldat)
-        ldat = [gid for gid in ldat 
-                    if gid[0:3] == "GSE" or 
-                    gid not in gsmv_exclude]
+        line = line.split(" ")
+        ldat = [gid for gid in line if not gid in gsmv_exclude]
         numgsm_new = len(ldat)
         if len(ldat) > 1:
             qlnew.append(ldat)
-    print("After filter, retained " + len(qlnew) + " studies.")
+    print("After filter, retained " + str(len(qlnew)) + " studies.")
     nts = gettime_ntp()
     newfpath = os.path.join(eqpath, ".".join(["gsequery_filt",nts]))
     print("Writing new filter file: ", newfpath)
     with open(newfpath, "w") as wf:
         for line in qlnew:
             wf.write(" ".join(line) + "\n")
-    return newfpath
+        return newfpath
 
 if __name__ == "__main__":
     """ gsm_exclude
