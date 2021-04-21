@@ -48,18 +48,13 @@ Dependencies and Setup:
             * SQLite (https://www.sqlite.org/)
 """
 
-import subprocess
-import glob
-import sys
-import os
-import re
+import subprocess, glob, sys, os, re
 sys.path.insert(0, os.path.join("recountmethylation_server","src"))
-import edirect_query
+import edirect_query, settings; settings.init()
 from edirect_query import gsm_query, gse_query, gsequery_filter  
 from utilities import gettime_ntp, getlatest_filepath, querydict
-from utilities import get_queryfilt_dict  
-import settings
-settings.init()
+from utilities import get_queryfilt_dict
+
 
 def firsttime_run(filedir='recount-methylation-files', 
     run_timestamp=gettime_ntp()):
@@ -154,35 +149,37 @@ if __name__ == "__main__":
         list. Once list can be made, it is used to populate a new Celery queue.
     
     """
-    print("Starting server.py...")
-    from gse_celerytask import gse_task
-    import argparse
-    from random import shuffle
+    print("Starting server.py..."); import subprocess, glob, sys, os, re
+    sys.path.insert(0, os.path.join("recountmethylation_server","src"))
+    import edirect_query, settings, argparse; settings.init()
+    from edirect_query import gsm_query, gse_query, gsequery_filter  
+    from utilities import gettime_ntp, getlatest_filepath, querydict
+    from utilities import get_queryfilt_dict
+    from gse_celerytask import gse_task; from random import shuffle
     gselist = [] # queue input, gse-based
     qstatlist = [] # job status object, also stored at sqlite db
     print("Getting timestamp...")
     run_timestamp = gettime_ntp() # pass this result to child functions
-    # If GSE ID provided, immediately parse it for download
+    # Parse the specified GSE id.
     parser = argparse.ArgumentParser(description='Arguments for server.py')
-    parser.add_argument("--gseid", type=str, required=False,
-        default=None, help='Option to enter valid GSE ID for immediate download.')
+    parser.add_argument("--gseid", type=str, required=False, default=None, 
+        help='Option to enter valid GSE ID for immediate download.')
     args = parser.parse_args()
     # For the job queue, either from provided argument or automation
     if args.gseid:
         print("Provided GSE id detected. Processing...")
         gqd = get_queryfilt_dict()
         qstatlist.append(gse_task(gse_id = args.gseid, gsefiltdict=gqd, 
-                timestamp = run_timestamp
-                )
-            )
+                timestamp = run_timestamp))
     else:
         print("No GSE id(s) provided. Forming id list for job queue...")
         files_dir = settings.filesdir
         if os.path.exists(files_dir):
-            print("Directory : "+files_dir+" found. Running scheduled_run...")
+            print("Directory : "+files_dir+" found.")
             if not os.path.exists(settings.gsesoftpath):
                 print("Couldn't find path ",settings.gsesoftpath,
                     ", making new dir..."); os.mkdir(settings.gsesoftpath)
+            print("Running scheduled_run...")
             gselist = scheduled_run(run_timestamp=run_timestamp)
         else:    
             print("Directory : "+files_dir+" not found. Creating filesdir and "
@@ -197,8 +194,6 @@ if __name__ == "__main__":
             gqd = get_queryfilt_dict() # one eqfilt call for all jobs this run
             for gse in gselist:
                 qstatlist.append(gse_task(gse_id=gse, gsefiltdict=gqd, 
-                    timestamp=run_timestamp
-                    )
-                )    
+                    timestamp=run_timestamp))    
         else:
             print("Error: valid gselist absent. Returning...")
