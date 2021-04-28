@@ -26,23 +26,11 @@
             pipeline at varying starting indices in the files list.
 """
 
-import os
-import sys
-import re
-import gzip
-import shutil
-import subprocess
-import filecmp
-import tempfile
-import pickle
-from datetime import datetime
-import time
-from random import shuffle
+import os, sys, re, gzip, shutil, subprocess, filecmp, tempfile, pickle, time
+from datetime import datetime; from random import shuffle
 sys.path.insert(0, os.path.join("recountmethylation_server","src"))
 from utilities import gettime_ntp, getlatest_filepath, get_queryfilt_dict
-from utilities import monitor_processes
-import settings
-settings.init()
+from utilities import monitor_processes; import settings; settings.init()
 
 def expand_soft(rmcompressed=False):
     """ expand_soft
@@ -54,20 +42,15 @@ def expand_soft(rmcompressed=False):
             * rsoftd (list) : List of filenames and statuses, produces expanded 
                 soft files as side effect.
     """
-    eqfiltdict=get_queryfilt_dict()
-    validgselist = list(eqfiltdict.keys())
+    eqfiltdict=get_queryfilt_dict(); validgselist = list(eqfiltdict.keys())
     gsesoft_fpath = settings.gsesoftpath
     gsesoft_fnlist = os.listdir(gsesoft_fpath)  
     gseidlist =  [fn.split('.')[0] for fn in gsesoft_fnlist]
-    gsepatt = settings.gsepatt
-    rgse = re.compile(gsepatt)
+    gsepatt = settings.gsepatt; rgse = re.compile(gsepatt)
     gseidlist = list(filter(rgse.match, gseidlist)) # valid GSE IDs
-    print(str(gseidlist))
-    softpatt = settings.softallpatt
-    comppatt = settings.compsoftpatt
-    expsoftpatt = settings.expsoftpatt
-    rsoft = re.compile(softpatt)
-    rcompsoft = re.compile(comppatt)
+    print(str(gseidlist)); softpatt = settings.softallpatt
+    comppatt = settings.compsoftpatt; expsoftpatt = settings.expsoftpatt
+    rsoft = re.compile(softpatt); rcompsoft = re.compile(comppatt)
     rexpsoft = re.compile(expsoftpatt)
     gsesoft_compflist = [] # filtered fn list of compressed soft files
     for gseid in gseidlist:
@@ -152,8 +135,7 @@ def extract_gsm_soft(gsesoft_flist=[], softopenindex='.*!Sample_title.*',
     eqfiltdict=get_queryfilt_dict()
     validgsmlist = list(set([gsmid for gselist in list(eqfiltdict.values()) 
         for gsmid in gselist
-    ]))
-    print("length validgsmlist : "+str(len(validgsmlist)))
+    ])); print("length validgsmlist : "+str(len(validgsmlist)))
     rvalidsoft = re.compile(".*soft$") # identify expanded GSE soft files
     gsmsoft_temppath = settings.temppath
     os.makedirs(gsm_softpath, exist_ok=True)
@@ -167,20 +149,14 @@ def extract_gsm_soft(gsesoft_flist=[], softopenindex='.*!Sample_title.*',
             if os.path.exists(os.path.join(gse_softpath, gsefile))
         ]
     gse_softlist = list(filter(rvalidsoft.match, gse_soft_dirlist))
-    shuffle(gse_softlist)
-    newfilesd = {} # new files, status dictionary to return
+    shuffle(gse_softlist); newfilesd = {} # new files, status dict to return
     print("new tempdir for writing soft files : "+str(temp_dir_make))
     print("length gse_softlist: "+str(len(gse_softlist)))
-    rxopen = re.compile(softopenindex)
-    rxclose = re.compile(softcloseindex)
-    rxgsm = re.compile('GSM[0-9]*')
-    rxgsmfile = re.compile('.*GSM.*')
+    rxopen = re.compile(softopenindex); rxclose = re.compile(softcloseindex)
+    rxgsm = re.compile('GSM[0-9]*'); rxgsmfile = re.compile('.*GSM.*')
     for gse_softfile in gse_softlist:
         print("Beginning gse softfile : "+gse_softfile)
-        newfilesd[gse_softfile] = []
-        openindex = []
-        closeindex = []
-        lsoft = []
+        newfilesd[gse_softfile] = []; openindex = []; closeindex = [];lsoft = []
         gse_softfile_path = os.path.join(gse_softpath, gse_softfile)
         with open(gse_softfile_path) as file:
             for num, line in enumerate(file, 0):
@@ -194,8 +170,7 @@ def extract_gsm_soft(gsesoft_flist=[], softopenindex='.*!Sample_title.*',
         print("for gse, found n = "+str(len(lsoft))+" soft file lines. "
             +"Continuing...")
         for num, openi in enumerate(openindex,0):
-            print("num : "+str(num))
-            print("openi : "+str(openi))
+            print("num : "+str(num)); print("openi : "+str(openi))
             print("closei : "+str(closeindex[num]))
             try:
                 gsm_softlines = lsoft[openi:closeindex[num]] # read gsm lines
@@ -228,12 +203,9 @@ def extract_gsm_soft(gsesoft_flist=[], softopenindex='.*!Sample_title.*',
             if gsmfilelist and len(gsmfilelist)>0:
                 print(str(gsmfilelist))
                 for gsmfile in gsmfilelist:
-                    gsm_oldfile_path = ""
-                    gsm_newfile_path = ""
-                    gsm_softfn = gsmfile
-                    gsmstr = gsm_softfn.split(".")[1]
-                    print("gsmfile: "+str(gsmfile))
-                    print("gsmstr : "+gsmstr)
+                    gsm_oldfile_path = ""; gsm_newfile_path = ""
+                    gsm_softfn = gsmfile; gsmstr = gsm_softfn.split(".")[1]
+                    print("gsmfile: "+str(gsmfile)); print("gsmstr : "+gsmstr)
                     gsm_newfile_path = os.path.join(temp_dir_make, gsm_softfn)
                     gsm_oldfile_path = getlatest_filepath(
                             filepath=gsmsoft_destpath, filestr=gsmstr, 
@@ -270,8 +242,7 @@ def extract_gsm_soft(gsesoft_flist=[], softopenindex='.*!Sample_title.*',
             shutil.move(os.path.join(temp_dir_make, fn), 
                 os.path.join(gsmsoft_destpath, fn))
     if rmtempdir:
-        print("Removing tempdir...")
-        shutil.rmtree(temp_dir_make) # remove tempdir
+        print("Removing tempdir..."); shutil.rmtree(temp_dir_make)
     return newfilesd 
 
 def gsm_soft2json(gsm_softlist = [], scriptpath = settings.s2jscriptpath,
@@ -312,8 +283,7 @@ def gsm_soft2json(gsm_softlist = [], scriptpath = settings.s2jscriptpath,
             statd[gsm_softfn] = []
             if gsmid in validgsmlist:
                 softts = gsm_softfn.split('.')[0] # soft file timestamp
-                rgsm = re.compile('.*GSM.*')
-                gsmid = gsm_softfn.split('.')[1]
+                rgsm = re.compile('.*GSM.*'); gsmid = gsm_softfn.split('.')[1]
                 gsmid = str(rgsm.findall(gsmid)[0])
                 gsmjson_latestfpath = getlatest_filepath(
                         filepath=gsm_jsonpath, filestr=gsmid, tslocindex=0,  
