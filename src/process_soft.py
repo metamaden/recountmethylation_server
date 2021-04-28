@@ -34,13 +34,17 @@ from utilities import monitor_processes; import settings; settings.init()
 
 def expand_soft(rmcompressed=False):
     """ expand_soft
+        
         Expand compressed GSE soft files, including filter on valid GSE ids.
+        
         Arguments:
             * rmcompressed (T/F,Bool.) : Whether to remove compressed soft files
                 once they have been successfully expanded.
+        
         Returns:
             * rsoftd (list) : List of filenames and statuses, produces expanded 
                 soft files as side effect.
+                
     """
     eqfiltdict=get_queryfilt_dict(); validgselist = list(eqfiltdict.keys())
     gsesoft_fpath = settings.gsesoftpath
@@ -115,7 +119,9 @@ def extract_gsm_soft(gsesoft_flist=[], softopenindex='.*!Sample_title.*',
     gse_softpath = settings.gsesoftpath, gsm_softpath = settings.gsmsoftpath, 
     gsmsoft_destpath = settings.gsmsoftpath, rmtempdir = True, validate=True):
     """ extract_gsm_soft
+        
         Extract GSM soft file sections from GSE soft files.
+        
         Arguments: 
             * gsesoft_flist (list, optional) : List of gse soft files to process
             * softopenindex (str) : Index of label/tag to open entry, defaults
@@ -128,6 +134,7 @@ def extract_gsm_soft(gsesoft_flist=[], softopenindex='.*!Sample_title.*',
             * rmtempdir (Bool.) : Whether to remove temp directory.
             * validate (Bool.) : Validate extracted GSM files against files in 
                 gsm_soft directory?
+        
         Returns:
             * newfilesd (dictionary), or error (null), generates GSM soft files 
                 as a side effect.
@@ -248,13 +255,16 @@ def extract_gsm_soft(gsesoft_flist=[], softopenindex='.*!Sample_title.*',
 def gsm_soft2json(gsm_softlist = [], scriptpath = settings.s2jscriptpath,
     gsm_jsonpath = settings.gsmjsonpath, gsm_softpath = settings.gsmsoftpath):
     """ gsm_soft2json
+        
         Convert GSM soft file to JSON format Calls R script to coerce GSM soft 
         files (XML-like format) to valid JSON format.
+        
         Arguments:
             * gsm_softlist (list, optional) : List of GSM soft filenames to 
                 process.
             * scriptpath (str) : Path to R script for JSON conversion. If not 
                 provided, automatically checks current working directory.
+        
         Returns:
             * rlist object (list) of converted files and statuses, or error, 
                 generates GSM JSON files as a side effect.
@@ -335,8 +345,9 @@ def gsm_soft2json(gsm_softlist = [], scriptpath = settings.s2jscriptpath,
     return rlist
 
 if __name__ == "__main__":
-    """ Process downloaded SOFT files
+    """ process_soft.py
+
+    Process downloaded SOFT files
+    
     """
-    expand_soft()
-    extract_gsm_soft()
-    gsm_soft2json()
+    expand_soft(); extract_gsm_soft(); gsm_soft2json()
