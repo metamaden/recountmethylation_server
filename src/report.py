@@ -98,7 +98,5 @@ def soft_report(ddidat, gsesoftpath = settings.gsesoftpath,
 if __name__ == "__main__":
     """ Report on recountmethylation instance files
     """
-    ddidat = idats_report()
-    ddsoft = soft_report()
-    ddreport = {"ddidat" : ddidat, "ddsoft" : ddsoft}
-    ddreport
+    ddidat = idats_report(); ddsoft = soft_report(ddidat)
+    ddreport = {"ddidat" : ddidat, "ddsoft" : ddsoft}; ddreport
