@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.join("recountmethylation_server","src"))
 import settings
 settings.init()
 
-def expand_idats(idatspath, compext = ".*idat.gz$"):
+def expand_idats(idatspath, compext = ".*idat.gz$", expext = ".*idat$"):
     """ Detect and expand available idat files.
         
         Arguments:
@@ -22,14 +22,19 @@ def expand_idats(idatspath, compext = ".*idat.gz$"):
                             IDATs (valid file path).
             * compext : Regular expression pattern for extension of compressed
                             IDAT files (string, regex pattern).
+            * expext : Regular expression pattern for extension of expanded 
+                            IDAT files (string, regex pattern).
 
         Returns:
             * ridatd dictionary containing expanded IDAT info.
 
     """
     idats_fnlist = os.listdir(idatspath)
-    rcompressed1 = re.compile(compext)
-    idats_fnlist_filt = list(filter(rcompressed1.match, idats_fnlist)) 
+    rexpanded1 = re.compile(expext); rcompressed1 = re.compile(compext)
+    idats_fnlist_filt1 = list(filter(rexpanded1.match, idats_fnlist))
+    idats_fnlist_filt2 = list(filter(rcompressed1.match, idats_fnlist))
+    idats_fnlist_filt = [fn for fn in idats_fnlist_filt2 
+                            if not fn in idats_fnlist_filt1]
     ridatd = {} # return dictionary
     print("Expanding "+str(len(idats_fnlist_filt))+"compressed IDATs...")
     for compidat in idats_fnlist_filt:

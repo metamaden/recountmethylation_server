@@ -32,7 +32,6 @@ def idats_report(strmatchl = [".*idat.gz$", ".*idat$", ".*hlink.*"],
     eqd = get_queryfilt_dict()
     gsmv = list(set([v for sublist in eqd.values() for v in sublist]))
     idatsv = os.listdir(settings.idatspath)
-
     ddidat = {}
     ugsmv = list(set([i.split(".")[0] for i in idatsv]))
     ddidat["unique.gsmv"] = ugsmv
@@ -48,9 +47,8 @@ def idats_report(strmatchl = [".*idat.gz$", ".*idat$", ".*hlink.*"],
 def soft_report(ddidat, gsesoftpath = settings.gsesoftpath, 
     gsmsoftpath = settings.gsmsoftpath, 
     gsmjsonfiltpath = settings.gsmjsonfiltpath,
-    strmatchl_gsesoft = [".*family.soft$", ".*family.soft$"],
-    strmatchl_gsmsoft = [".*soft$"],
-    strmatchl_gsejsonfilt = [".*\\.json\\.filt$"]):
+    strmatchl_gsesoft = ".*family.soft$", strmatchl_gsmsoft = ".*soft$",
+    strmatchl_gsejsonfilt = ".*\\.json\\.filt$"):
     """ Get report stats for SOFT files
 
     Arguments:
@@ -75,11 +73,10 @@ def soft_report(ddidat, gsesoftpath = settings.gsesoftpath,
     gsmsoftv = list(set(os.listdir(gsmsoftpath)))
     gsmjsonfiltv = list(set(os.listdir(gsmjsonfiltpath)))
     ddsoft = {}
-    for t in strmatchl_gsesoft:
-        lm = list(filter(re.compile(t).match, gsesoftv))
-        ddsoft["gsesoft " + t] = len(lm)
+    lm = list(filter(re.compile(strmatchl_gsesoft).match, gsesoftv))
+    ddsoft["gsesoft " + strmatchl_gsesoft] = len(lm)
     lm = list(filter(re.compile(strmatchl_gsesoft).match, gsmsoftv))
-    ddsoft["gsmsoft " + strmatchl_gsesoft] = len(lm)
+    ddsoft["gsmsoft " + strmatchl_gsesoft] = len(lm)    
     lm = list(filter(re.compile(strmatchl_gsejsonfilt).match, gsmsoftv))
     ddsoft["gsmjsonfilt " + strmatchl_gsesoft] = len(lm)
     ddsoft["gsm_soft_and_idat"] = len(set([gsm for gsm in gsmsoftv

@@ -26,18 +26,20 @@ data_all = pd.DataFrame({"num_idat" : [0], "num_gsesoft" : [0],
 # file counts data
 dfcount = pd.DataFrame({"file_type": [
         "IDAT", "GSE SOFT", "GSM SOFT", "GSM SOFT & IDAT",
-        "IDAT", "IDAT", "IDAT", "GSE SOFT", "GSM SOFT", "GSM JSON"
+        "IDAT", "IDAT", "IDAT"
     ],
     "count_type" : [
         "Unique GSM ID", "Unique GSE ID", "Unique GSM ID", "Unique GSM ID",
-        "Ext. 'idat.gz'", "Ext. `idat`", "Type hlink", "Ext. `soft.gz`", 
-        "Ext. `soft`", "Ext. `json.filt`"
+        "Ext. 'idat.gz'", "Ext. `idat`", "Type hlink"
     ],
     "counts" : [
-        ddidat["unique.gsm"], ddsoft["soft.unique.gse"],
-        ddsoft["soft.unique.gsm"],ddsoft["gsm_soft_and_idat"],
-        ddidat[".*idat.gz$"], ddidat[".*idat$"], ddidat[".*hlink.*"],
-        ddsoft[ddsoft_lkeys[3]],ddsoft[ddsoft_lkeys[4]],ddsoft[ddsoft_lkeys[5]]
+        ddidat["unique.gsm"], 
+        ddsoft[ddsoft_lkeys[0]],
+        ddsoft[ddsoft_lkeys[1]],
+        ddsoft[ddsoft_lkeys[3]],
+        ddidat[".*idat.gz$"], 
+        ddidat[".*idat$"], 
+        ddidat[".*hlink.*"]
         ]
     }
 )
@@ -175,4 +177,4 @@ def uscatter_numidat(n):
     return fig
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=False, port=8000, host='127.0.0.1')
