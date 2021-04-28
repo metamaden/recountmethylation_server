@@ -7,14 +7,10 @@
 #
 
 import datetime, dash, plotly, os, sys, re
-import pandas as pd
-import dash_core_components as dcc
-import dash_html_components as html
-import dash_bootstrap_components as dbc
-from dash.dependencies import Input, Output
-import plotly.express as px
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+import pandas as pd; import dash_core_components as dcc
+import dash_html_components as html; import dash_bootstrap_components as dbc
+from dash.dependencies import Input, Output; import plotly.express as px
+import plotly.graph_objects as go; from plotly.subplots import make_subplots
 sys.path.insert(0, os.path.join("recountmethylation_server","src"))
 from report import idats_report, soft_report
 
@@ -22,8 +18,7 @@ from report import idats_report, soft_report
 # define globals
 NUM_SEC = 60
 # new query
-ddidat = idats_report()
-ddsoft = soft_report(ddidat = ddidat)
+ddidat = idats_report(); ddsoft = soft_report(ddidat)
 ddsoft_lkeys = list(ddsoft.keys())
 # main data for line plots by time
 data_all = pd.DataFrame({"num_idat" : [0], "num_gsesoft" : [0],
