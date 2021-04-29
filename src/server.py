@@ -13,7 +13,7 @@ Overview:
     data or 'idat' files) obtained from edirect queries and ftp-called downloads 
     from the Gene Expression Omnibus (GEO). RMDB is a recount-methylation Mongo 
     database that aggregates file metadata as documents, including experiement 
-    (GSE) and sample (GSM) ids, ftp addresses and file paths to downloaded 
+    (GSE) and sample (GSM) IDs, ftp addresses and file paths to downloaded 
     files, and a datetime-formatted date corresponding to last file update. 
     Files are versioned using NTP timestamps in filenames. 
 
@@ -90,7 +90,7 @@ def scheduled_run(eqfilt_path=False, run_timestamp=gettime_ntp()):
     """ scheduled_run
 
         Tasks performed on regular schedule, after first setup. For the job 
-        queue, a list of GSE ids is returned. The id list is filtered on 
+        queue, a list of GSE IDs is returned. The id list is filtered on 
         existing GSE soft files to prioritize unrepresented experiments for 
         download. 
 
@@ -106,7 +106,7 @@ def scheduled_run(eqfilt_path=False, run_timestamp=gettime_ntp()):
     try:
         gsefiltd = get_queryfilt_dict()
     except:
-        print("No gse query filt file found, checking for gse and gsm "
+        print("No gse query filt file found, checking for GSE and GSM "
             +"queries...")
         gsequery_latest = getlatest_filepath(filepath=eqpath,
             filestr='gse_edirectquery')
@@ -115,26 +115,24 @@ def scheduled_run(eqfilt_path=False, run_timestamp=gettime_ntp()):
         gsmquery_latest = getlatest_filepath(eqpath,'gsm_edirectquery')
         if not gsmquery_latest:
             gsm_query()
-        print("Running filter on gse query...")
-        gsequery_filter()
-        gsefiltd = get_queryfilt_dict()
-    # get list of gse ids from existing soft files
+        print("Running filter on GSE query...")
+        gsequery_filter(); gsefiltd = get_queryfilt_dict()
+    # get list of GSE IDs from existing SOFT files
     gsesoftfiles = os.listdir(settings.gsesoftpath)
-    print(str(gsesoftfiles))
-    rxgse = re.compile('GSE[0-9]*')
+    print("GSE SOFT files: " + str(gsesoftfiles));rxgse=re.compile('GSE[0-9]*')
     gseid_softexists = [str(rxgse.findall(softfn)[0]) for softfn in gsesoftfiles
         if rxgse.findall(softfn)]
     if gsefiltd:
         gseid_listall = list(gsefiltd.keys())
-        print("GSE id list of len "+str(len(gseid_listall)) + " found. Filtering..")
+        print("GSE ID list of len "+str(len(gseid_listall)) + " found. Filtering..")
         if gseid_softexists and len(gseid_softexists)>0:
             gseid_filt = [gseid for gseid in gseid_listall
                 if not gseid in gseid_softexists]
         else:
             gseid_filt = gseid_listall
-        print("After filtering on existing soft files, N = "+str(len(gseid_filt))
-            +" GSE ids remain. Returning id list...")
-        # if all gse ids represented, return all gse ids for brand new run
+        print("After filtering existing SOFT files, N = "+str(len(gseid_filt))
+            +" GSE IDs remain. Returning ID list...")
+        # if all GSE IDs represented, return all GSE IDs for brand new run
         if len(gseid_filt)==len(gseid_listall):
             gseid_filt = gseid_listall
         return gseid_filt
@@ -160,19 +158,19 @@ if __name__ == "__main__":
     qstatlist = [] # job status object, also stored at sqlite db
     print("Getting timestamp...")
     run_timestamp = gettime_ntp() # pass this result to child functions
-    # Parse the specified GSE id.
+    # Parse the specified GSE ID.
     parser = argparse.ArgumentParser(description='Arguments for server.py')
     parser.add_argument("--gseid", type=str, required=False, default=None, 
         help='Option to enter valid GSE ID for immediate download.')
     args = parser.parse_args()
     # For the job queue, either from provided argument or automation
     if args.gseid:
-        print("Provided GSE id detected. Processing...")
+        print("Provided GSE ID detected. Processing...")
         gqd = get_queryfilt_dict()
         qstatlist.append(gse_task(gse_id = args.gseid, gsefiltdict=gqd, 
                 timestamp = run_timestamp))
     else:
-        print("No GSE id(s) provided. Forming id list for job queue...")
+        print("No GSE ID(s) provided. Forming ID list for job queue...")
         files_dir = settings.filesdir
         if os.path.exists(files_dir):
             print("Directory : "+files_dir+" found.")
@@ -187,9 +185,9 @@ if __name__ == "__main__":
             os.makedirs(files_dir, exist_ok=True)
             gselist = firsttime_run(run_timestamp=run_timestamp)
         if gselist:
-            print("Shuffling GSE id list...")
+            print("Shuffling GSE ID list...")
             shuffle(gselist) # randomize GSE ID order
-            print("Beginning job queue for GSE id list of "+str(len(gselist))
+            print("Beginning job queue for GSE ID list of "+str(len(gselist))
                 +" samples...")
             gqd = get_queryfilt_dict() # one eqfilt call for all jobs this run
             for gse in gselist:
