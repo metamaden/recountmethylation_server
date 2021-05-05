@@ -53,16 +53,21 @@ def gse_task(gse_id, gsefiltdict = get_queryfilt_dict(),
         print('File gsefiltdict provided, continuing...')
         gsmlist = gsefiltdict[gse_id]
         print("Detected N = "+str(len(gsmlist))+' GSM IDs...')
-        rl.append(True)
-        print("Beginning soft file download...")
-        ddsoft = dl_soft(gse_list=[gse_id], timestamp=run_timestamp)
-        rl.append(True)
-        print('Beginning idat download...')
-        ddidat = dl_idat(input_list=gsmlist, timestamp=run_timestamp)
-        rl.append(True)
-        print('updating rmdb...')
-        updateobj = update_rmdb(ddidat=ddidat, ddsoft=ddsoft)
-        rl.append(True)
+        if len(gsmlist) > 0:
+            rl.append(True)
+            print("Beginning soft file download...")
+            ddsoft = dl_soft(gse_list=[gse_id], timestamp=run_timestamp)
+            rl.append(True)
+            print('Beginning idat download...')
+            ddidat = dl_idat(input_list=gsmlist, timestamp=run_timestamp)
+            rl.append(True)
+            print('updating rmdb...')
+            updateobj = update_rmdb(ddidat=ddidat, ddsoft=ddsoft)
+            rl.append(True)
+        else:
+            print('No valid GSM IDs detected for study GSE ID ', gse_id, 
+                  ", skipping...")
+            rl.append(None)
         print('Task completed! Returning...')
         return rl
     else:
