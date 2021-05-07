@@ -218,7 +218,7 @@ def run_msrap_compjson(json_flist=[], njint = 100, jsonpatt=".*json.filt$",
     print("Filtering GSM JSON filenames on pattern, existing msrap files...")
     gsm_json_fn_list = list(filter(re.compile(jsonpatt).match, json_flist))
     gsm_json_fn_list = [fn for fn in gsm_json_fn_list 
-                        if not fn.split(.)[1] in msrap_oldgsm]
+                        if not fn.split(".")[1] in msrap_oldgsm]
     cjsonpath = os.path.join(msrap_destpath, tempdname)
     os.makedirs(cjsonpath, exist_ok=True); msrap_statlist = []
     msrap_fn = settings.msrapfnstem; process_list = []
