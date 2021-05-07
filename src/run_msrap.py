@@ -21,6 +21,7 @@
             JSON generation from the filtered JSON files (write_cjson function),
             pipeline metadata mapping, and sample/GSM-level metadata output
             writes (get_gsm_outputs function).
+
 """
 
 import os, sys, re, gzip, shutil, subprocess, filecmp, tempfile, pickle, time
@@ -36,14 +37,14 @@ def write_cjson(jffnv, newfilefn = "cjson",
     """ Write a composite JSON file with multiple samples
 
     Arguments: 
-        * jffnv (list): Vector of filtered JSON filenames.
-        * newfilefn (str): File name stem of new file to write
-        * msrap_destpath (str): Path to MetaSRA-pipeline output files.
-        * jsonfiltpath (str): Path to filtered GSM JSON files.
-        * tempdname (str): Name of dir, at jsonfiltpath, to contain composite 
-            JSON 
+        * jffnv : Vector of filtered JSON filenames (list).
+        * newfilefn : File name stem of new file to write (str).
+        * msrap_destpath : Path to MetaSRA-pipeline output files (str).
+        * jsonfiltpath : Path to filtered GSM JSON files (str).
+        * tempdname : Name of dir, at jsonfiltpath, to contain composite 
+            JSON (str).
         files.
-        * ts (int): Timestamp of output and input files.
+        * ts : Timestamp of output and input files (int).
 
     Returns:
         * Path to new composite JSON file.
@@ -121,13 +122,13 @@ def get_gsm_outputs(cjfn = "cjson", newfn = "msrap.cjson",
     match the valid detected composite file pairs.
     
     Arguments:
-        * cjfn (str): File name string of composite JSON files containing the 
-            GSM IDs.
-        * newfn (str): File name string of the composite output metadata.
-        * tempdname (str): Name of dir, at jsonfiltpath, to contain composite 
-            JSON files.
-        * jsonfiltpath (str): Path to filtered GSM JSON files.
-        * msrap_destpath (str): Path to MetaSRA-pipeline output files.
+        * cjfn : File name string of composite JSON files containing the 
+            GSM IDs (str).
+        * newfn : File name string of the composite output metadata (str).
+        * tempdname : Name of dir, at jsonfiltpath, to contain composite 
+            JSON files (str).
+        * jsonfiltpath : Path to filtered GSM JSON files (str).
+        * msrap_destpath : Path to MetaSRA-pipeline output files (str).
 
     Returns:
         * NULL produces gsm metadata files at top level of msrap_destpath.
@@ -179,7 +180,7 @@ def get_gsm_outputs(cjfn = "cjson", newfn = "msrap.cjson",
                             str(gsmct)); gsmct += 1            
     return NULL
 
-def run_msrap_compjson(json_flist=[], njint = 100, jsonpatt=".*json.filt$", 
+def run_msrap_compjson(json_flist = [], njint = 100, jsonpatt = ".*json.filt$", 
     gsm_jsonpath = settings.gsmjsonfiltpath, tempdname = "cjsontemp",
     msrap_destpath = settings.gsmmsrapoutpath, newfnpattern = "msrap.cjson"):
     """ Run MetaSRA-pipeline on composite JSON files
@@ -191,17 +192,17 @@ def run_msrap_compjson(json_flist=[], njint = 100, jsonpatt=".*json.filt$",
         GSM-specific files, which are output to the top level of msrap_destpath.
         
         Arguments:
-            * json_flist (list, optional) : List of JSON filename(s) to process. 
+            * json_flist : List of JSON filename(s) to process. 
                 If not provided, automatically targets all JSON files at 
-                gsm_jsondir.
-            * njint (int): Number of JSON files per composite file to process.
-            * jsonpatt (str): File name pattern for valid filtered JSON files.
-            * gsm_jsonpath (str): Path to the filtered GSM JSON files directory.
-            * tempdname (str): Dir, located at msrap_destpath, where composite
-                JSON files and outputs are to be written.
-            * msrap_destpath (str): Path where mapped metadata output files will
-                be written.     
-            * newfnpattern (str): File name pattern for mapped metadata output.
+                gsm_jsondir (list, optional).
+            * njint : Number of JSON files per composite file to process (int).
+            * jsonpatt : File name pattern for valid filtered JSON files (str).
+            * gsm_jsonpath : Path to the filtered GSM JSON files directory (str).
+            * tempdname : Dir, located at msrap_destpath, where composite
+                JSON files and outputs are to be written (str).
+            * msrap_destpath : Path where mapped metadata output files will
+                be written (str).     
+            * newfnpattern : File name pattern for mapped metadata output (str).
         
         Returns:
             * NULL, produces the composite file pairs and GSM metadata files.
@@ -211,10 +212,16 @@ def run_msrap_compjson(json_flist=[], njint = 100, jsonpatt=".*json.filt$",
     validgsmlist = [gsmid for gselist in list(eqfiltdict.values()) 
         for gsmid in gselist]
     msrap_runpath = settings.msraprunscriptpath
-    msrap_oldgsm = os.listdir(msrap_runpath)
-    msrap_oldgsm = [fn.split(".")[1] for fn in msrap_oldgsm]
-    if not (json_flist and len(json_flist))>0:
-        json_flist = os.listdir(gsm_jsonpath)
+    if os.path.exists(msrap_destpath):
+        msrap_oldgsm = os.listdir(msrap_destpath)
+        msrap_oldgsm = [fn.split(".")[1] for fn in msrap_oldgsm]
+    else:
+        msrap_oldgsm = []
+    if not (json_flist and len(json_flist)>0):
+        if os.path.exists(gsm_jsonpath):
+            json_flist = os.listdir(gsm_jsonpath)
+        else:
+            print("Couldn't find JSON file dir at "+gsm_jsonpath)
     print("Filtering GSM JSON filenames on pattern, existing msrap files...")
     gsm_json_fn_list = list(filter(re.compile(jsonpatt).match, json_flist))
     gsm_json_fn_list = [fn for fn in gsm_json_fn_list 
