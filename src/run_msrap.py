@@ -212,7 +212,7 @@ def run_msrap_compjson(json_flist = [], njint = 100, jsonpatt = ".*json.filt$",
     validgsmlist = [gsmid for gselist in list(eqfiltdict.values()) 
         for gsmid in gselist]
     msrap_runpath = settings.msraprunscriptpath
-    if os.path.exists(msrap_destpath):
+    if os.path.exists(msrap_destpath) and len(os.listdir(msrap_destpath)) > 0:
         msrap_oldgsm = os.listdir(msrap_destpath)
         msrap_oldgsm = [fn.split(".")[1] for fn in msrap_oldgsm]
     else:
