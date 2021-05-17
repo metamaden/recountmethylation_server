@@ -10,8 +10,6 @@
     composite files with pipeline mappings, and the sample/GSM-level pipeline
     outputs.
     
-    Notes:
-
     Functions:
         * write_cjson: Writes the composite JSON files to be used in the 
             pipeline.
@@ -152,7 +150,7 @@ def get_gsm_outputs(cjfn = "cjson", newfn = "msrap.cjson",
             msrap_fmatch = [mn for mn in prl_msrap 
                                 if mn.split(".")[2] == fn.split(".")[1]][0]
             ts = msrap_fmatch.split(".")[2] # use cfile ts
-            rpath1 = os.path.join(pathread_mdout, fn)
+            rpath1 = os.path.join(pathread_mdout, fn); llf = []
             with open(rpath1, "r") as rf:
                 for line in rf:
                     if line.split(":")[0] == '\t\t"gsm"':
@@ -178,7 +176,7 @@ def get_gsm_outputs(cjfn = "cjson", newfn = "msrap.cjson",
                             wf.write("    }\n");wf.write("]");ld = []
                         print("Finished writing file num "+
                             str(gsmct)); gsmct += 1            
-    return NULL
+    return None
 
 def run_msrap_compjson(json_flist = [], njint = 100, jsonpatt = ".*json.filt$", 
     gsm_jsonpath = settings.gsmjsonfiltpath, tempdname = "cjsontemp",
@@ -244,7 +242,7 @@ def run_msrap_compjson(json_flist = [], njint = 100, jsonpatt = ".*json.filt$",
         print("Finished index "+str(r))
     print("Extracting GSM data from composite JSON results...")
     get_gsm_outputs()
-    return NULL
+    return None
 
 if __name__ == "__main__":
     run_msrap_compjson()
