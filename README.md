@@ -1,4 +1,4 @@
-# recount-methylation-server
+# recountmethylation_server
 
 [![DOI](https://zenodo.org/badge/148216129.svg)](https://zenodo.org/badge/latestdoi/148216129)
 
