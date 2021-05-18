@@ -213,8 +213,9 @@ def run_msrap_compjson(json_flist = [], njint = 100, jsonpatt = ".*json.filt$",
     if os.path.exists(msrap_destpath): 
         mld = os.listdir(msrap_destpath); mld = [i for i in mld if not i == "cjsontemp"]
         if len(mld) > 0:
-            msrap_oldgsm = os.listdir(msrap_destpath)
-            msrap_oldgsm = [fn.split(".")[1] for fn in msrap_oldgsm]
+            # msrap_oldgsm = os.listdir(msrap_destpath)
+            msrap_oldgsm = [fn.split(".")[1] for fn in mld 
+                if len(fn.split(".")) > 1]
     if not (json_flist and len(json_flist)>0):
         if os.path.exists(gsm_jsonpath):
             json_flist = os.listdir(gsm_jsonpath)
