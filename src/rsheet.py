@@ -13,17 +13,10 @@
 
 """
 
-import pymongo
-import sys
-import os
-import datetime
-import inspect
-import re
-import json
-sys.path.insert(0, os.path.join("recount-methylation-server","src"))
+import pymongo, sys, os, datetime, inspect, re, json, utilities
+sys.path.insert(0, os.path.join("recountmethylation_server","src"))
 from utilities import gettime_ntp, getlatest_filepath, get_queryfilt_dict
-import settings
-settings.init()
+import settings; settings.init()
 
 def new_idat_hlinks(gsmid, ts, igrn_fn, ired_fn):
     """ new_idat_hlinks
@@ -78,19 +71,17 @@ def rmdb_fpaths(rmhlinks=False):
     timestamp = gettime_ntp()
     # connect to RMDB mongodb
     client = pymongo.MongoClient(settings.rmdbhost, settings.rmdbport)
-    dbcon = client.recount_methylation
-    idatscon = dbcon.gsm.idats
-    softcon = dbcon.gse.soft
-    # grab unique gsm ids
-    idatslist = list(idatscon.find())
+    dbcon = client.recount_methylation; idatscon = dbcon.gsm.idats
+    softcon = dbcon.gse.soft; idatslist = list(idatscon.find())
+        # grab unique gsm ids
     idatslist = [record for record in idatslist if 'gsmid' in record.keys()]
     gsmindex = list(set([record['gsmid'] for record in idatslist]))
     print("from idats db, found n = "+str(len(gsmindex))+" gsm ids")
-    # fname catch patterns for re
+        # fname catch patterns for re
     grnidatcatch = settings.grnidat_expcatch
     redidatcatch = settings.redidat_expcatch
     msrapoutcatch = settings.msrapoutfnpattern
-    # filter all records for gsm on most recent update datetime
+        # filter all records for gsm on most recent update datetime
     gsm_fpaths_dd = {}
     # list all previously expanded idat files directy from idats dir
     allidatslist = os.listdir(settings.idatspath)
@@ -243,13 +234,11 @@ def compile_rsheet(gsmfpathdict):
     gsmvalidlist = list(set([gsmid for gselist in list(eqd.values()) 
         for gsmid in gselist
     ]))
-    sheetspath = settings.sheetspath
-    sheetfn_ext = settings.sheetfnstem
+    sheetspath = settings.sheetspath; sheetfn_ext = settings.sheetfnstem
     os.makedirs(sheetspath, exist_ok = True)
     sheets_fpath = os.path.join(sheetspath, ".".join([timestamp, sheetfn_ext]))
     # table written as list of row strings
-    print("Forming table list for rsheet...")
-    lsheet = []
+    print("Forming table list for rsheet..."); lsheet = []
     lsheet.append(" ".join(["gsmid",
         "gseid",
         "idats_fn",
@@ -258,11 +247,9 @@ def compile_rsheet(gsmfpathdict):
         "SENTRIX_ID",
         "ARRAY_ID",
         "Basename"]))
-    lsheet[0] = lsheet[0]+"\n"
-    print("Forming filtered GSM dictionary...")
+    lsheet[0] = lsheet[0]+"\n"; print("Forming filtered GSM dictionary...")
     gsmvalid_fpathlist = {key:value for (key,value) in gsmfpathdict.items() 
-        if key in gsmvalidlist
-    }
+        if key in gsmvalidlist}
     if gsmvalid_fpathlist:
         print("Starting iterations on gsm filepaths list of len = "
             +str(len(list(gsmvalid_fpathlist.keys()))))
@@ -270,8 +257,7 @@ def compile_rsheet(gsmfpathdict):
             print("Beginning GSM num "+str(gsmindex)+", id: "+str(gsmid))
             gsmvalid_fp = [fp for fp in gsmvalid_fpathlist[gsmid] 
                 if not fp==None
-                and not fp==False
-            ]
+                and not fp==False]
             if gsmvalid_fp:
                 print("Getting GSE ID...")
                 gseid = ';'.join(list(set([gsek for gsek in list(eqd.keys()) 
@@ -293,9 +279,8 @@ def compile_rsheet(gsmfpathdict):
                     grn_idatfn = os.path.basename(gsmi_grnidatpath)
                     red_idatfn = os.path.basename(gsmi_redidatpath)
                     # sample basename (common stem of channel array filenames)
-                    print("Getting sample basename...")
+                    print("Getting sample basename..."); gsmimdd = []
                     gsmi_basename = "_".join(red_idatfn.split("_")[0:3]) # basename
-                    gsmimdd = []
                     if gsmi_msrappath:
                         print("Detected metadata file for GSM.")
                         gsmi_msrappath = gsmi_msrappath[0]
@@ -311,8 +296,7 @@ def compile_rsheet(gsmfpathdict):
                     else:
                         gsmi_msrappath_var = "NA"
                     if gsmimdd and not gsmi_msrappath_var == "NA":
-                        gsmi_md = gsmimdd[0]
-                        gmd = [] # list to contain mapped metadata terms
+                        gsmi_md = gsmimdd[0]; gmd = []
                         # coerce json metadata to flat string
                         for key in list(gsmi_md.keys()):
                             print(str(key))
