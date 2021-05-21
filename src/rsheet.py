@@ -28,13 +28,13 @@ settings.init()
 def new_idat_hlinks(gsmid, ts, igrn_fn, ired_fn):
     """ new_idat_hlinks
 
-        Make new hlink files and return new hlink paths
+        Make new hlink files and return new hlink paths.
 
         Arguments
-        * gsmid : 
-        * ts : 
-        * igrn_fn : 
-        * ired_fn : 
+        * gsmid : Valid sample GSM ID (str).
+        * ts : Timestamp (int or str).
+        * igrn_fn : Filename of green intensity data file (IDAT, str).
+        * ired_fn : Filename of red intensity data file (IDAT, str).
         
         Returns
 
@@ -63,11 +63,13 @@ def new_idat_hlinks(gsmid, ts, igrn_fn, ired_fn):
     return(rlist)
 
 def rmdb_fpaths(rmhlinks=False):
-    """ Get filepaths for existant sample idats and msrap outfiles.
+    """ rmdb_fpaths
+
+        Get filepaths for existant sample idats and msrap outfiles.
 
         Arguments:
         * rmhlinks : Whether to remove old hardlinks and form new ones, 
-                regardless of whether current hlinks exist.
+                regardless of whether current hlinks exist (boolean).
 
         Returns:
         * gsmdocdict (dict.) : Dictionary of validated filepaths.
@@ -223,12 +225,13 @@ def rmdb_fpaths(rmhlinks=False):
     return gsm_fpaths_dd
 
 def compile_rsheet(gsmfpathdict):
-    """ Takes gsm dictionary outputted from rmdb_files_for_processing().
-        
+    """ compile_rsheet
+
+        Takes gsm dictionary outputted from rmdb_files_for_processing(). 
         Compiles valid ids, filenames, and path into an rsheet object.
         
         Arguments:
-            * gsmfpathdict (dict) : gsm paths dict obj output from rmdb_fpaths().
+            * gsmfpathdict : gsm paths dict obj output from rmdb_fpaths() (dict).
         
         Returns:
             * null, produces rsheet file as a side effect.
