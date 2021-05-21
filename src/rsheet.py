@@ -13,10 +13,11 @@
 
 """
 
-import pymongo, sys, os, datetime, inspect, re, json, utilities
+import pymongo, sys, os, datetime, inspect, re, json
 sys.path.insert(0, os.path.join("recountmethylation_server","src"))
-from utilities import gettime_ntp, getlatest_filepath, get_queryfilt_dict
 import settings; settings.init()
+from utilities import gettime_ntp, getlatest_filepath, get_queryfilt_dict
+
 
 def new_idat_hlinks(gsmid, ts, igrn_fn, ired_fn):
     """ new_idat_hlinks
@@ -54,14 +55,10 @@ def new_idat_hlinks(gsmid, ts, igrn_fn, ired_fn):
     rlist.append(os.path.join(settings.idatspath, rnewhlinkfn))
     return rlist
 
-def rmdb_fpaths(mdb_host = settings.rmdbhost, mdb_port = settings.rmdbport):
+def rmdb_fpaths():
     """ rmdb_fpaths
 
         Get filepaths for existant sample idats and msrap outfiles.
-
-        Arguments:
-        * mdb_host: Host name for the instance (setting param, str).
-        * mdb_port: Port number for the instance (setting param, int).
 
         Returns:
         * hlinklist, list of new hlink files created at settings.idatspath.
@@ -69,36 +66,37 @@ def rmdb_fpaths(mdb_host = settings.rmdbhost, mdb_port = settings.rmdbport):
     """
     timestamp = gettime_ntp()
     # connect to RMDB mongodb
-    client = pymongo.MongoClient(mdb_host, mdb_port)
-    mdbcon = client.recount_methylation; mdb_idatscon = mdbcon.gsm.idats
-    mdb_idatrecords = list(mdb_idatscon.find())
+    #client = pymongo.MongoClient(mdb_host, mdb_port)
+    #mdbcon = client.recount_methylation; mdb_idatscon = mdbcon.gsm.idats
+    #mdb_idatrecords = list(mdb_idatscon.find())
     # list all previously expanded idat files directy from idats dir
     instpath_allidats = os.listdir(settings.idatspath)
     # compressed idats
     instpath_compidats = list(filter(re.compile('.*\.idat.gz$').match, 
         instpath_allidats))
+    # expanded idats
+    instpath_expidat = list(filter(re.compile('.*\.idat$').match, 
+        instpath_allidats))
     # idat hlinks
     instpath_hlink = list(filter(re.compile('.*hlink.*').match, 
-        instpath_allidats))
+        instpath_expidat))
     # expanded idats without hlinks
-    instpath_nohlink = list(filter(re.compile('.*\.idat$').match, 
-        instpath_allidats))
-    instpath_nohlink = [i for i in instpath_nohlink 
+    instpath_nohlink = [i for i in instpath_expidat 
         if not i in instpath_hlink]
     print("Detected " +str(len(instpath_compidats))+ 
-        " compressed IDATs, " + str(len(instpath_nohlink)) + 
-        " expanded IDATs without hlinks, and " +
-        str(len(instpath_hlink)) + " expanded IDATs with hlinks.")
+        " compressed IDATs, " + str(len(instpath_expidat)) + 
+        " expanded IDATs, and " + str(len(instpath_nohlink)) + 
+        " expanded IDATs without hlinks.")
     print("Getting GSM IDs for IDATs without hlinks...")
-    instpath_nohlink_gsm =  list(set([i.split(".")[0] for i in instpath_nohlink]))
+    instpath_nohlink_gsm = list(set([i.split(".")[0] for i in instpath_nohlink]))
     print("Getting IDAT filepaths from MongoDB records, "+
         "for GSM IDs lacking hlinks...")
-    mdb_nohlink_gsmlist = list(set([i["gsmid"] for i in mdb_idatrecords 
-        if i["gsmid"] in instpath_nohlink_gsm]))
+    #mdb_nohlink_gsmlist = list(set([i["gsmid"] for i in mdb_idatrecords 
+    #    if i["gsmid"] in instpath_nohlink_gsm]))
+    gsmlist = list(set([i.split(".")[0] for i in instpath_nohlink]))
     instpath_idatspathlist = [i for i in instpath_nohlink 
-        if i.split(".")[0] in mdb_nohlink_gsmlist]
-    hlinklist=[]
-    for gsmid in mdb_nohlink_gsmlist:
+        if i.split(".")[0] in gsmlist]; hlinklist=[]
+    for gsmid in gsmlist:
         print("Processing GSM ID " + gsmid + "..."); 
         ired_fn = ""; igrn_fn = ""; basename_grn = ""; basename_red = ""
         gsm_idats = [i for i in instpath_idatspathlist
@@ -109,7 +107,8 @@ def rmdb_fpaths(mdb_host = settings.rmdbhost, mdb_port = settings.rmdbport):
             ired_fn = list(filter(re.compile(".*Red\.idat$").match, gsm_idats))[0]
             basename_grn = "_".join(igrn_fn.split(".")[2].split("_")[0:-1])
             basename_red = "_".join(ired_fn.split(".")[2].split("_")[0:-1])
-            if basename_grn==basename_red and not basename_grn == "" and not basename_red == "":
+            if (basename_grn==basename_red and not basename_grn == "" 
+                and not basename_red == ""):
                 print("Making new IDAT hlinks for GSM ID " + gsmid)
                 rlist = new_idat_hlinks(gsmid = gsmid, ts = timestamp, 
                     igrn_fn = igrn_fn, ired_fn = ired_fn)
@@ -413,10 +412,12 @@ def rmdb_fpaths_old(rmhlinks=False):
 if __name__ == "__main__":
     """ rsheet.py
 
-        Coordinate MongoDB documents on valid IDATs and SOFT files. First 
-        generates any missing hlink files, then passes to compile_rsheet a 
-        dictionary of GSM IDs corresponding to newlt created hlink files for
-        validation.
+        Coordinate MongoDB documents on valid IDATs and SOFT files. 
+
+        First generates any missing hlink files. 
+
+        Second, passes to compile_rsheet a dictionary of GSM IDs corresponding 
+        to newlt created hlink files for validation.
 
     """
     try:
