@@ -28,11 +28,12 @@ sys.path.insert(0, os.path.join("recountmethylation_server","src"))
 from utilities import gettime_ntp, getlatest_filepath, get_queryfilt_dict
 from utilities import monitor_processes; import settings; settings.init()
 
-def write_cjson(jffnv, newfilefn = "cjson", 
-    jsonfiltpath = settings.gsmjsonfiltpath, 
-    msrap_destpath = settings.gsmmsrapoutpath, tempdname = "cjsontemp",
-    ts = gettime_ntp()):
-    """ Write a composite JSON file with multiple samples
+def write_cjson(jffnv, ts = gettime_ntp(), newfilefn = "cjson",
+    tempdname = "cjsontemp", jsonfiltpath = settings.gsmjsonfiltpath, 
+    msrap_destpath = settings.gsmmsrapoutpath):
+    """ write_cjson
+
+    Write a composite JSON file with multiple samples
 
     Arguments: 
         * jffnv : Vector of filtered JSON filenames (list).
@@ -40,8 +41,7 @@ def write_cjson(jffnv, newfilefn = "cjson",
         * msrap_destpath : Path to MetaSRA-pipeline output files (str).
         * jsonfiltpath : Path to filtered GSM JSON files (str).
         * tempdname : Name of dir, at jsonfiltpath, to contain composite 
-            JSON (str).
-        files.
+            JSON files (str).
         * ts : Timestamp of output and input files (int).
 
     Returns:
@@ -87,7 +87,8 @@ def write_cjson(jffnv, newfilefn = "cjson",
                                 lf = ['title'] + lf[1::]
                             else:
                                 lf = lf[1::]
-                            lf = ['"' + i + '"' for i in lf];lf = ':'.join(lf)
+                            lf = ['"' + i + '"' for i in lf]
+                            lf = ':'.join(lf[0:2])
                             if ii == len(ld) - 1:
                                 lf = lf + "\n" # comma for values before last
                             else:
@@ -110,7 +111,9 @@ def write_cjson(jffnv, newfilefn = "cjson",
 def get_gsm_outputs(cjfn = "cjson", newfn = "msrap.cjson", 
     tempdname = "cjsontemp", jsonfiltpath = settings.gsmjsonfiltpath, 
     msrap_destpath = settings.gsmmsrapoutpath):
-    """ Get the GSM-specific data from pipeline output files.
+    """ get_gsm_outputs
+
+    Get the GSM-specific data from pipeline output files.
 
     Get the GSM-specific data from pipeline outputs run using composite JSON 
     files. Detects JSON composite files (cjfn) and output files (newfn) with
@@ -178,10 +181,12 @@ def get_gsm_outputs(cjfn = "cjson", newfn = "msrap.cjson",
                             str(gsmct)); gsmct += 1            
     return None
 
-def run_msrap_compjson(json_flist = [], njint = 100, jsonpatt = ".*json.filt$", 
+def run_msrap_compjson(json_flist = [], njint = 500, jsonpatt = ".*json.filt$", 
     gsm_jsonpath = settings.gsmjsonfiltpath, tempdname = "cjsontemp",
     msrap_destpath = settings.gsmmsrapoutpath, newfnpattern = "msrap.cjson"):
-    """ Run MetaSRA-pipeline on composite JSON files
+    """ run_msrap_compjson
+
+        Run MetaSRA-pipeline on composite JSON files
         
         Runs the MetaSRA-pipeline on composite JSON files containing njint 
         samples' JSON-formatted metadata. The composite JSON files and the 
