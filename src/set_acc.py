@@ -10,7 +10,7 @@
 
 """
 
-import os, sys
+import os, sys, re
 sys.path.insert(0, os.path.join("recountmethylation_server","src"))
 
 def acc_dialogue(current_platform):
@@ -51,7 +51,8 @@ def acc_dialogue(current_platform):
 def get_acc_opt(settings_path):
     """ get_acc_opt
 
-        Get the accession ID options.
+        Read the current platform accession from `settings.py`, parse accession 
+        options, and write the new platform accession.
 
         Arguments
         * settings_path: Path to settings.py script.
@@ -61,10 +62,11 @@ def get_acc_opt(settings_path):
     """
     with open(settings_path, "r") as rf:
         lines = rf.readlines()
-    acc_line = lines[24]
-    acc_split = acc_line.split("'")
-    acc_split[1] = acc_dialogue(acc_split[1])
-    lines[24] = "'".join(acc_split)
+    acc_index = [key for key, value in enumerate(lines) 
+        if re.match(".*platformid =.*", value)][0]
+    acc_current = lines[acc_index].split("'")[1]
+    acc_new = acc_dialogue(acc_current)
+    lines[acc_index] = "    platformid = '" + acc_new + "'\n"
     with open(settings_path, "w") as wf:
         wf.writelines(lines)
     return True
@@ -73,5 +75,4 @@ if __name__ == "__main__":
     src_path = os.path.join("recountmethylation_server", "src")
     settings_path = os.path.join(src_path,"settings.py")
     get_acc_opt(settings_path)
-
 
