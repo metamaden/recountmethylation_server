@@ -5,37 +5,32 @@
     Authors: Sean Maden, Abhi Nellore
 
     Commonly referenced functions for recount methylation server.
+    
     Functions:
-        * gettime_ntp: Return an NTP timestamp as a string, for file versioning.
-        * getlatest_filepath: Access the path to the latest version of a file in
-            a provided files directory. References NTP timestamp in filename to 
-            determine latest available file.
-        * querydict: Form a dictionary object by reading in an edirect file.
-        * get_queryfilt_dict: Retrieve latest edirect query filtered file.
+    * gettime_ntp: Return an NTP timestamp as a string, for file versioning.
+    * getlatest_filepath: Access the path to the latest version of a file in
+        a provided files directory. References NTP timestamp in filename to 
+        determine latest available file.
+    * querydict: Form a dictionary object by reading in an edirect file.
+    * get_queryfilt_dict: Retrieve latest edirect query filtered file.
 """
 
-import os
-import glob
-import socket
-import struct
-import sys
-import time
-import pickle
-import subprocess
+import os, glob, socket, struct, sys, time, pickle, subprocess
 from datetime import datetime
-import time
 sys.path.insert(0, os.path.join("recountmethylation_server","src"))
-import settings
-settings.init()
+import settings; settings.init()
 
 def gettime_ntp(addr='time.nist.gov'):
     """ gettime_ntp
+        
         Get NTP Timestamp for file versioning.
+        
         Arguments
-            * addr (str) : valid NTP address (e.g. '0.uk.pool.ntp.org',
-                'time.nist.gov' etc)
+        * addr (str) : valid NTP address (e.g. '0.uk.pool.ntp.org', 
+            'time.nist.gov' etc)
+        
         Returns
-            * timestamp (str) : NTP seconds timestamp, converted to string.
+        * timestamp (str) : NTP seconds timestamp, converted to string.
     """
     TIME1970 = 2208988800
     client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -48,19 +43,22 @@ def gettime_ntp(addr='time.nist.gov'):
 def getlatest_filepath(filepath, filestr, embeddedpattern=False, tslocindex=1,
     returntype='returnstr'):
     """ getlatest_filepath
+        
         Get path the latest version of a file, based on its timestamp. Can 
         return >1 files sharing latest timestamp as type list or str.
+        
         Arguments:
-            * filepath (str) : Path to directory to search.
-            * filestr (str) : Pattern of filename filter for search.
-            * embeddedpattern (T/F, bool) : Whether filestr pattern is embedded
-                in filename (assumes pattern at start of name otherwise)
-            * tslocindex (int) : Relative location index of timestamp in fn.
-            * returntype (str) : Return file path(s) as str (use 'returnstr') or 
-                list (use 'returnlist')
+        * filepath (str) : Path to directory to search.
+        * filestr (str) : Pattern of filename filter for search.
+        * embeddedpattern (T/F, bool) : Whether filestr pattern is embedded in 
+            filename (assumes pattern at start of name otherwise)
+        * tslocindex (int) : Relative location index of timestamp in fn.
+        * returntype (str) : Return file path(s) as str (use 'returnstr') or 
+            list (use 'returnlist')
+        
         Returns:
-            * latest_file_path (str) or status (0, int) : Path to latest version 
-                of file, or else 0 if search turned up no files at location
+        * latest_file_path (str) or status (0, int) : Path to latest version of 
+            file, or else 0 if search turned up no files at location
     """
     if embeddedpattern:
         embedpattern = str('*' + filestr + '*')
@@ -104,13 +102,16 @@ def getlatest_filepath(filepath, filestr, embeddedpattern=False, tslocindex=1,
 
 def querydict(querypath, splitdelim='\t'):
     """ querydict
+        
         Read edirect query results file into a dictionary object.
+        
         Arguments:
-            * querypath (str) : Filepath of edirect results (format: 1 GSE per 
-                newline).
+        * querypath (str) : Filepath of edirect results (format: 1 GSE per 
+            newline).
+        
         Returns:
-            * query (dictionary) : Dictionary (format : keys = GSEs, vals = GSM 
-                lists)
+        * query (dictionary) : Dictionary (format : keys = GSEs, vals = GSM 
+            lists)
     """
     querylines = [line.rstrip('\n') for line in open(querypath)]
     querylist = []
@@ -126,12 +127,15 @@ def querydict(querypath, splitdelim='\t'):
 def get_queryfilt_dict(filesdir='recount-methylation-files',
     eqtarget='equery'):
     """ get_queryfilt_dict
+        
         Return the latest filtered GSE query file as a dictionary.
+        
         Arguments:
-            * filesdir: Root name of directory containing database files.
-            * eqtarget: Name of equery files destination directory.
+        * filesdir: Root name of directory containing database files.
+        * eqtarget: Name of equery files destination directory.
+        
         Returns:
-            * gsefiltd (dict): GSE filtered query, as a dictionary object.
+        * gsefiltd (dict): GSE filtered query, as a dictionary object.
     """
     # eqpath = os.path.join('recount-methylation-files','equery')
     eqpath = settings.equerypath
@@ -147,15 +151,19 @@ def get_queryfilt_dict(filesdir='recount-methylation-files',
         return
 
 def monitor_processes(process_list, logpath, timelim=2800, statint=5):
-    """
-        Monitor ongoing background processes
+    """ monitor_processes
+        
+        Monitor ongoing background processes.
+        
         Arguments
-        * process_list (list): list of processes to monitor
-        * logpath (path): path to store new process log
-        * timelim (int): max time (minutes) to monitor processes
+        * process_list (list): list of processes to monitor.
+        * logpath (path): path to store new process log.
+        * timelim (int): max time (minutes) to monitor processes.
         * statint (int): interval for getting status updates.
+        
         Returns
-        * process_statlist (list): list of process statuses after done monitoring
+        * process_statlist (list): list of process statuses after done 
+            monitoring.
     """
     print("Monitoring launched processes...")
     ts = gettime_ntp()
@@ -189,7 +197,6 @@ def monitor_processes(process_list, logpath, timelim=2800, statint=5):
         time.sleep(statint)
     print("Finished processes, or reached max time limit. Saving logs and "
         + "returning...")
-    
     # return pids in dict
     print("Forming log dictionary...")
     procstatdict = {}
@@ -198,13 +205,11 @@ def monitor_processes(process_list, logpath, timelim=2800, statint=5):
     pfn = '.'.join([ts,'log','pickle'])
     # write stats dict to pickle object
     dfp = os.path.join(logpath, pfn)
-    
     # write status log
     print("Writing log dict to new pickle file :" + str(pfn) + "...")
     pickle_out = open(dfp,"wb")
     pickle.dump(procstatdict, pickle_out)
     pickle_out.close()
-
     print("Completed preprocessing. Returning...")
     return None
 

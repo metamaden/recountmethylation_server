@@ -5,13 +5,13 @@
     Author: Sean Maden
 
     Description:
-        Get data for a report on a recountmethylation instance.
+    Get data for a report on a recountmethylation instance.
     
     Functions:
-        * idats_report: Get report stats for IDAT files.
-        * soft_report: Get report stats for SOFT files.
-        * equery_fractions: Get fractions of targeted GSM and GSE IDs currently
-            represented among available instance files.
+    * idats_report: Get report stats for IDAT files.
+    * soft_report: Get report stats for SOFT files.
+    * equery_fractions: Get fractions of targeted GSM and GSE IDs currently
+        represented among available instance files.
 
 """
 
@@ -22,11 +22,15 @@ import settings; settings.init()
 
 def idats_report(strmatchl = [".*idat.gz$", ".*idat$", ".*hlink.*"], 
     ipath = settings.idatspath):
-    """ Get report stats for IDATs
+    """ idats_report
 
-    Arguments:
+        Get report stats for IDATs
 
-    Returns:
+        Arguments:
+        * strmatchl
+        * ipath
+
+        Returns:
         * ddidat, dictionary of IDAT file stats.
     """
     eqd = get_queryfilt_dict()
@@ -49,9 +53,11 @@ def soft_report(ddidat, gsesoftpath = settings.gsesoftpath,
     gsmjsonfiltpath = settings.gsmjsonfiltpath,
     strmatchl_gsesoft = ".*family.soft$", strmatchl_gsmsoft = ".*soft$",
     strmatchl_gsejsonfilt = ".*\\.json\\.filt$"):
-    """ Get report stats for SOFT files
+    """ soft_report
+    
+        Get report stats for SOFT files
 
-    Arguments:
+        Arguments:
         * ddidat: Results object returned by `idats_report()`.
         * gsesoftpath: Path to GSE SOFT files.
         * gsmsoftpath: Path to GSM SOFT files.
@@ -61,7 +67,7 @@ def soft_report(ddidat, gsesoftpath = settings.gsesoftpath,
         * strmatchl_gsejsonfilt: List of regex patterns for GSM filtered 
             JSON files.
 
-    Returns:
+        Returns:
         * ddsoft, dictionary of SOFT file stats for report.
 
     """

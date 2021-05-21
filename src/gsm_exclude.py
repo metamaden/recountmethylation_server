@@ -24,14 +24,16 @@ from edirect_query import gse_query_diffs
 
 def eqd_gsm_exclude(equery_dest=settings.equerypath, filesdir=settings.filesdir,
     gsmv_fname="gsmv.txt", exclude_dpath=os.path.join("inst", "freeze_gsmv")):
-    """ Exclude GSM IDs from edirecty query objects
+    """ eqd_gsm_exclude
 
-    Arguments:
+        Exclude GSM IDs from edirecty query objects
+
+        Arguments:
         * gsmv_fname: Name of the file to load. Should include only 
             space-separated sample/GSM IDs in a single line.
         * exclude_dpath: Path to directory containing the file gsmv_fname.
 
-    Returns:
+        Returns:
         * Returns the path to the new filtered file at settings.equerypath.
 
     """
@@ -66,18 +68,16 @@ def eqd_gsm_exclude(equery_dest=settings.equerypath, filesdir=settings.filesdir,
 if __name__ == "__main__":
     """ gsm_exclude
 
-    Exclude a file containing a space-sparated list of GSM IDs (a.k.a. gsmv 
-    file) prior to synchronizing a recountmethylation instance.
+        Exclude a file containing a space-sparated list of GSM IDs (a.k.a. gsmv 
+        file) prior to synchronizing a recountmethylation instance.
 
-    Arguments:
-
-    * fname: Name of the file containing the GSM IDs for exclusion.
-    * dpath: Path to the directory containing the file with GSM IDs for 
+        Arguments:
+        * fname: Name of the file containing the GSM IDs for exclusion.
+        * dpath: Path to the directory containing the file with GSM IDs for 
         exclusion.
 
-    Returns:
-
-    None, modifies the contents of files targeted by an instance.
+        Returns:
+        None, modifies the contents of files targeted by an instance.
 
     """
     import argparse, os

@@ -7,6 +7,7 @@
     Get files of GSE and GSM ids from GEO via edirect query (NCBI entrez 
     utlities function). IDs correspond to valid HM450k array experiments and 
     samples.
+    
     Notes:
         * Scheduling: New edirect queries should be scheduled periodically to 
             check for latest experiment/sample/file info and to detect novel
@@ -14,6 +15,7 @@
         * Filters: The edirect queries (GSE, GSM, and filtered query file) work
             together to form a filter on valid sample and experiment ids whose 
             files are to be downloaded and preprocessed. 
+    
     Functions:
         * gse_query_diffs: Quickly detect and return differences between two 
             edirect query files.
@@ -30,18 +32,8 @@
             idats available in sample supplemental files.
 """
 
-import subprocess
-import os
-import socket
-import struct
-import sys
-import time
-import tempfile
-import atexit
-import shutil
-import glob
-import filecmp
-from itertools import chain
+import subprocess, os, socket, struct, sys, time, tempfile, atexit, shutil
+import glob, filecmp; from itertools import chain
 sys.path.insert(0, os.path.join("recountmethylation_server","src"))
 from utilities import gettime_ntp, querydict, getlatest_filepath
 import settings
@@ -49,12 +41,15 @@ settings.init()
 
 def gse_query_diffs(query1, query2, rstat=False):
     """ gse_query_diffs
+        
         Compares two GSE query results, returning query file diffs or boolean.
+        
         Arguments:
             * query1 (str) : first edirect query, filename
             * query2 (str) : second edirect query, filename
             * rstat (True/False, bool.) : whether to return boolean only, 
                 or else return list (default)
+        
         Returns:
             * boolean (T/F) or query diffs (list of GSE IDs). Boolean is 'True' 
                 if query objects are the same, 'False' otherwise
@@ -154,11 +149,14 @@ def gsm_query(validate=True, timestamp=gettime_ntp()):
 
 def gse_query(validate=True, timestamp=gettime_ntp()):
     """ gse_query
+        
         Get GSE level query object from edirect query.
+        
         Arguments:
             * validate (True/False, bool) : Whether to validate the file after 
                 download.
             * timestamp (str) : NTP timestamp or function to retrieve it.
+        
         Returns: 
             * Error (str) or download object (dictionary).
     """
@@ -220,11 +218,14 @@ def gse_query(validate=True, timestamp=gettime_ntp()):
 
 def gsequery_filter(splitdelim='\t', timestamp=gettime_ntp()):
     """ gsequery_filter
+        
         Prepare an edirect query file. Filter a GSE query file on its GSM 
             membership. 
+        
         Arguments:
             * splitdelim (str) : Delimiter to split ids in querydict() call.
             * timestamp (str) : NTP timestamp or function to retrieve it.
+        
         Returns:
             * gsequeryfiltered (list): Filtered GSE query object (list), writes
                 filtered query file as side effect.

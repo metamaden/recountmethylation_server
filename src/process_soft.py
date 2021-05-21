@@ -4,8 +4,8 @@
 
     Authors: Sean Maden, Abhi Nellore
     
-    Preprocess GSE/GSM Soft files for recount methylation samples. Includes GSM 
-    Soft metadata extraction, methods to convert to JSON, and methods to process 
+    Preprocess GSE/GSM SOFT files for recount methylation samples. Includes GSM 
+    SOFT metadata extraction, methods to convert to JSON, and methods to process 
     samples in MetaSRA-pipeline.
     
     Notes:
@@ -14,10 +14,10 @@
         with valid GSE ids as keys and valid/filtered GSM ids listed as values.
     
     Functions:
-        * expand_soft : Expand/extract a compressed GSE Soft file from GEO.
-        * extract_gsm_soft : Extract GSM-level sample metadata from GSE soft 
+        * expand_soft : Expand/extract a compressed GSE SOFT file from GEO.
+        * extract_gsm_soft : Extract GSM-level sample metadata from GSE SOFT 
             file.
-        * gsm_soft2json : Convert GSM Soft metadata file to JSON for passage to
+        * gsm_soft2json : Convert GSM SOFT metadata file to JSON for passage to
             MetaSRA-pipeline.
         * msrap_prepare_json : Concatenate multiple JSON sample files for 
             passage to MetaSRA-pipeline
@@ -35,15 +35,15 @@ from utilities import monitor_processes; import settings; settings.init()
 def expand_soft(rmcompressed=False):
     """ expand_soft
         
-        Expand compressed GSE soft files, including filter on valid GSE ids.
+        Expand compressed GSE SOFT files, including filter on valid GSE ids.
         
         Arguments:
-            * rmcompressed (T/F,Bool.) : Whether to remove compressed soft files
-                once they have been successfully expanded.
+        * rmcompressed (T/F,Bool.) : Whether to remove compressed SOFT files
+            once they have been successfully expanded.
         
         Returns:
-            * rsoftd (list) : List of filenames and statuses, produces expanded 
-                soft files as side effect.
+        * rsoftd (list) : List of filenames and statuses, produces expanded 
+            SOFT files as side effect.
                 
     """
     eqfiltdict=get_queryfilt_dict(); validgselist = list(eqfiltdict.keys())
@@ -120,24 +120,23 @@ def extract_gsm_soft(gsesoft_flist=[], softopenindex='.*!Sample_title.*',
     gsmsoft_destpath = settings.gsmsoftpath, rmtempdir = True, validate=True):
     """ extract_gsm_soft
         
-        Extract GSM soft file sections from GSE soft files.
+        Extract GSM sample metadata from GSE SOFT files.
         
         Arguments: 
-            * gsesoft_flist (list, optional) : List of gse soft files to process
-            * softopenindex (str) : Index of label/tag to open entry, defaults
-                to sample title section.
-            * softcloseindex (str) : Index of label/tag to close entry, defaults 
-                to close just before possible by-CpG methylation table. To 
-                include possible methylation data table, change to 
-                '!sample_table_end'.
-            * timestamp (str) : NTP timestamp version for expanded files.
-            * rmtempdir (Bool.) : Whether to remove temp directory.
-            * validate (Bool.) : Validate extracted GSM files against files in 
-                gsm_soft directory?
+        * gsesoft_flist (list, optional) : List of gse SOFT files to process
+        * softopenindex (str) : Index of label/tag to open entry, defaults
+            to sample title section.
+        * softcloseindex (str) : Index of label/tag to close entry, defaults 
+            to close just before possible by-CpG methylation table. To include 
+            possible methylation data table, change to '!sample_table_end'.
+        * timestamp (str) : NTP timestamp version for expanded files.
+        * rmtempdir (Bool.) : Whether to remove temp directory.
+        * validate (Bool.) : Validate extracted GSM files against files in 
+            gsm_soft directory?
         
         Returns:
-            * newfilesd (dictionary), or error (null), generates GSM soft files 
-                as a side effect.
+        * newfilesd (dictionary), or error (null), generates GSM SOFT files 
+            as a side effect.
     """
     eqfiltdict=get_queryfilt_dict()
     validgsmlist = list(set([gsmid for gselist in list(eqfiltdict.values()) 
@@ -260,14 +259,13 @@ def gsm_soft2json(gsm_softlist = [], scriptpath = settings.s2jscriptpath,
         files (XML-like format) to valid JSON format.
         
         Arguments:
-            * gsm_softlist (list, optional) : List of GSM soft filenames to 
-                process.
-            * scriptpath (str) : Path to R script for JSON conversion. If not 
-                provided, automatically checks current working directory.
+        * gsm_softlist (list, optional) : List of GSM soft filenames to process.
+        * scriptpath (str) : Path to R script for JSON conversion. If not 
+            provided, automatically checks current working directory.
         
         Returns:
-            * rlist object (list) of converted files and statuses, or error, 
-                generates GSM JSON files as a side effect.
+        * rlist object (list) of converted files and statuses, or error, 
+            generates GSM JSON files as a side effect.
     """
     eqfiltdict = get_queryfilt_dict()
     validgsmlist = [gsmid for gselist in list(eqfiltdict.values()) 

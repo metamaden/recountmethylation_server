@@ -2,12 +2,12 @@
 
 """ server.py
 
-Authors: Sean Maden, Abhinav Nellore
+    Authors: Sean Maden, Abhinav Nellore
 
-Description:
+    Description:
     Server script to manage an instance of the recount-methylation database.
 
-Overview:
+    Overview:
     A recount-methylation instance consists of files (namely edirect query 
     results, experiment metadata in soft format, and methylation array intensity 
     data or 'idat' files) obtained from edirect queries and ftp-called downloads 
@@ -22,7 +22,7 @@ Overview:
     filenames, and do not directly change locations or names of files initially 
     downloaded.
 
-Server Processes:
+    Server Processes:
     The server.py script manages process queues, error handling, and 
     coordination of recount-methylation. It currently uses Celery distributed 
     task queue to queue jobs synchronously. Jobs are brokered using RabbitMQ, 
@@ -30,7 +30,7 @@ Server Processes:
     consult the SQLite backend database for details about interruptions to 
     server operations.
 
-Dependencies and Setup:
+    Dependencies and Setup:
     1. Recount-methylation primarily uses Python 3 for download handling and 
         file management. R is used for SOFT-to-JSON conversion, and for 
         preprocessing arrays. MetaSRA-pipeline, which runs using Python 2, is 
@@ -63,11 +63,11 @@ def firsttime_run(filedir='recount-methylation-files',
         On first setup, run new equeries and query filter.
     
         Arguments:
-            * filedir (str): Dir name for db files. 
-            * run_timestamp (str) : NTP timestamp or function to retrieve it.
+        * filedir (str): Dir name for db files. 
+        * run_timestamp (str) : NTP timestamp or function to retrieve it.
     
         Returns:
-            * gseidlist (list): List of valid GSE IDs.
+        * gseidlist (list): List of valid GSE IDs.
     """
     print("Beginning first time server run...")
     equery_dest = settings.equerypath; temppath = settings.temppath
@@ -95,13 +95,12 @@ def scheduled_run(eqfilt_path=False, run_timestamp=gettime_ntp()):
         download. 
 
         Arguments:
-            * eqfilt_path (str) : Filepath to edirect query filter file.
-            * filedir (str) : Root name of files directory.
-            * run_timestamp (str) : NTP timestamp or function to retrieve it.
+        * eqfilt_path (str) : Filepath to edirect query filter file.
+        * filedir (str) : Root name of files directory.
+        * run_timestamp (str) : NTP timestamp or function to retrieve it.
         
         Returns:
-            * gse_list (list) : list of valid GSE IDs, or None if error occurs 
-
+        * gse_list (list) : list of valid GSE IDs, or None if error occurs 
     """
     try:
         gsefiltd = get_queryfilt_dict()

@@ -1,22 +1,18 @@
 #!/usr/bin/env python3
 
 """ preprocess_mdat2.py
+    
     Scripts for preprocesssing idats. 
+    
     Sequence of operations (and relevant function or functions):
     1. Compile a status dictionary (see: 'scan_gsmstatdict')
     2. Run preprocessing using wrapper function (see: 'preprocess_mdat_wrapper')
     3. Append new data to compilations (see: 'append_compilations')
+
 """
 
-import sys
-import os
-import inspect
-import re
-import shutil
-import subprocess
-import pickle
+import sys, os, inspect, re, shutil, subprocess, pickle, time
 from datetime import datetime
-import time
 sys.path.insert(0, os.path.join("recountmethylation_server","src"))
 sys.path.insert(0, os.path.join("recount-methylation-analysis","src"))
 from utilities import gettime_ntp, getlatest_filepath, get_queryfilt_dict
@@ -25,8 +21,10 @@ import settings
 settings.init()
 
 def checkmdatpaths():
-    """ checkdirs
+    """ checkmdatpaths
+        
         Verify mdat directories exist.
+    
     """
     os.makedirs(settings.mdatdirpath, exist_ok=True)
     os.makedirs(settings.rawbetapath, exist_ok=True)
@@ -43,9 +41,12 @@ def checkmdatpaths():
 
 def getbn(maxbn=1000):
     """ getbn
+        
         Returns list of valid hlink basenames retrieved from idats dir.
+        
         Arguments:
         * maxbn (int): Upper limit to basenames returned.
+        
         Returns:
         * bnlist (list): List of valid basenames.
     """
@@ -91,14 +92,17 @@ def getbn(maxbn=1000):
 
 def preprocess_mdat(bnlistpass, timelim=40, nsampproc=10, nprocmax=4, statint=2):
     """ preprocess_mdat
+        
         Preprocess mdat files via background subprocesses, monitoring, and 
         logging.
+        
         Arguments
             * bnlistpass (list) : List of valid basenames
             * timelim (int) : Time limit for running processes, in minutes.
             * nsampproc (int): Number of samples per process launched.
             * nprocmax (int): Total processes to launch
             * statint (int): Seconds to wait before monitor status updates.
+        
         Returns
             * None, produces status log in stdout and new logfile as side effect
     """
@@ -147,11 +151,13 @@ def preprocess_mdat(bnlistpass, timelim=40, nsampproc=10, nprocmax=4, statint=2)
 def preprocess_mdat_wrapper(filttype='notrun', timelim=1000, nprocmax=4, 
     nsampproc=10, statint=2):
     """ preprocess_mdat_wrapper
+        
         Run preprocessing batches as child processes, processively. Each batch 
         parallelizes among an array sublist passed to it by the wrapper.
         This function automatically detects valid basenames, forms basenames 
         into sublists, and passes these sublists to preprocess_mdat for 
         parallelization within the sublist.
+        
         Arguments:
         * filttype: How to pre-filter basename files to be run. Options:
             - 'notrun' : any samples lacking all mdata
@@ -161,6 +167,7 @@ def preprocess_mdat_wrapper(filttype='notrun', timelim=1000, nprocmax=4,
         * timelim (int): Max time (minutes) to monitor processes
         * nprocmax (int): Max processes for child process to deploy
         * nsampproc (int): Max samples per child process
+        
         Returns: 
         * None. Creates logs for preprocessing batches as side-effect.
     """
@@ -218,10 +225,13 @@ def preprocess_mdat_wrapper(filttype='notrun', timelim=1000, nprocmax=4,
 
 def check_and_form_compilations():
     """ check_and_form_compilations
+        
         Detect available compilations, and form new compilations from subset
         tables if valid compilation not available for filetype.
+        
         Arguments:
         * None
+        
         Returns:
         * None, checks and/or forms compilation files as side effect.
     """
@@ -290,14 +300,17 @@ def check_and_form_compilations():
 def scan_gsmstatdict(usersheet=True, maxbn=40000,
         gsmstatdictpath=settings.gsmstatpicklepath):
     """ scan_gsmstatdict
+        
         Make a new GSM status dictionary, or update an existing dictionary with
         latest sample data from compilations files.
+        
         Arguments:
         * usersheet (Bool.): Whether to load sample basenames from latest 
             detected rsheet. If 'False', detect basenames de novo with 
             "getbn()".
         * maxbn (int): Max basenames allowed when forming new status dictionary.
         * gsmstatdictpath (path/str): Path from which to read status dictionary.
+        
         Returns: 
         * None, or status dictionary object if loadobj
     """
@@ -367,10 +380,13 @@ def scan_gsmstatdict(usersheet=True, maxbn=40000,
 
 def append_compilations():
     """ append_compilations
+        
         Append new data to compilations from subset tables, updating the sample 
         status dictionary in the process.
+        
         Arguments:
         * None
+        
         Returns:
         * None, appends new data to compilations as side effect.
     """
@@ -455,11 +471,14 @@ def append_compilations():
 
 def purgemdatdir(type="subsettables"):
     """ purgemdatdir
+        
         Purge preprocessing files from mdata dir in perparation for new 
         analysis.
+        
         Argumernts:
         * type (str): What filetype(s) to purge (options: 'subsettables', 'all', 
             'compilations')
+        
         Returns:
         * None, purges files as side effect
     """

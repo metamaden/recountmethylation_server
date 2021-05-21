@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
-# Author: Sean Maden
-# 
-# Dashboard script for recountmethylation server.
-#
-#
+""" serverdash.py
+
+    Author: Sean Maden
+
+    Dashboard script for recountmethylation server.
+"""
 
 import datetime, dash, plotly, os, sys, re
 import pandas as pd; import dash_core_components as dcc

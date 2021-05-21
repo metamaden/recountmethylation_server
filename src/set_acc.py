@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
-"""
+""" set_acc.py
 
-Author: Sean Maden
+    Author: Sean Maden
 
-Description:
+    Description:
     Set the platform accession ID for the recountmethylation instance. Contains 
     user prompts to specify the target accession ID for the instance.
 
@@ -16,11 +16,12 @@ sys.path.insert(0, os.path.join("recountmethylation_server","src"))
 def acc_dialogue(current_platform):
     """ acc_dialogue
     
-    Arguments:
-    * current_platform: Current platform accession ID specified in settings.py
+        Arguments:
+        * current_platform: Current platform accession ID specified in 
+            settings.py
 
-    Returns:
-    * User-specified platform accession ID, based on prompt outcomes.
+        Returns:
+        * User-specified platform accession ID, based on prompt outcomes.
 
     """
     input2 = current_platform
@@ -48,14 +49,15 @@ def acc_dialogue(current_platform):
     return input2
 
 def get_acc_opt(settings_path):
-    """ Get the accession ID options
+    """ get_acc_opt
 
-    Arguments
-    * settings_path: Path to settings.py script.
+        Get the accession ID options.
 
-    Returns 
-    * True, sets the accession in settings.py based on prompts.
+        Arguments
+        * settings_path: Path to settings.py script.
 
+        Returns 
+        * True, sets the accession in settings.py based on prompts.
     """
     with open(settings_path, "r") as rf:
         lines = rf.readlines()
@@ -68,8 +70,6 @@ def get_acc_opt(settings_path):
     return True
 
 if __name__ == "__main__":
-    """
-    """
     src_path = os.path.join("recountmethylation_server", "src")
     settings_path = os.path.join(src_path,"settings.py")
     get_acc_opt(settings_path)

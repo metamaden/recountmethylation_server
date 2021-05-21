@@ -6,32 +6,32 @@
     
     Functions to update Recount Methylation MongoDB (or "RMDB"), a database of 
     file metadata for recount methylation. 
+    
     Notes:
-        * Job: This function is run as part of the GSE-based job definition for
-            celery job queue. After attempting idat and soft file downloads,
-            any newly detected files have their metadata stored as docs in RMDB.
+    * Job: This function is run as part of the GSE-based job definition for
+        celery job queue. After attempting idat and soft file downloads, any 
+        newly detected files have their metadata stored as docs in RMDB.
+    
     Functions:
-        * update_rmdb: Update RMDB with any metadata for newly downloaded files.
+    * update_rmdb: Update RMDB with any metadata for newly downloaded files.
 """
 
-import pymongo
-import datetime
-import os
-import sys
+import pymongo, datetime, os, sys
 sys.path.insert(0, os.path.join("recountmethylation_server","src"))
-import settings
-settings.init()
+import settings; settings.init()
 
 def update_rmdb(ddidat, ddsoft, host=settings.rmdbhost, port=settings.rmdbport):
-    """ Update recount-methylation database compilations with new documents.
+    """ update_rmdb
+
+        Update recount-methylation database compilations with new documents.
+        
         Arguments
-            * ddidat : Download dictionary from dl_idats, as returned by 
-                dl_idats().
-            * ddsoft : Download dicitonary from dl_soft, as returned by 
-                dl_soft(). 
+        * ddidat : Download dictionary from dl_idats, as returned by dl_idats().
+        * ddsoft : Download dicitonary from dl_soft, as returned by dl_soft(). 
+        
         Returns
-            * statusdict object (dictionary): Result list (1 = new doc added, 
-                0 = no doc added) .
+        * statusdict object: Result list (1 = new doc added, 0 = no 
+            doc added) (dict).
     """
     statusdict = {}
     client = pymongo.MongoClient('localhost', 27017)

@@ -2,9 +2,10 @@
 
 """ retry.py
 
-Author: Sean Maden
+    Author: Sean Maden
 
-Flexible functions to repeatedly attempt tasks for `recountmethylation_server`.
+    Flexible functions to repeatedly attempt tasks for 
+    `recountmethylation_server`.
 
 """
 
@@ -15,20 +16,21 @@ settings.init()
 def retry(script, complist, timelimit=180):
     """ retry
     
-    Repeatedly attempt processes in `recountmethylation_server`. The indicated
-    script should return a list of objects, to be compared with object provided
-    in the `complist` argument. The process halts if either the time limit is
-    reached or the percent provided by complistperc is achieved.
+        Repeatedly attempt processes in `recountmethylation_server`. The 
+        indicated script should return a list of objects, to be compared with 
+        object provided in the `complist` argument. The process halts if either 
+        the time limit is reached or the percent provided by complistperc is 
+        achieved.
 
-    Arguments:
-    * script: Path to script for repeated attempts. Note, this must return 
-        a list for comparison to the complist object.
-    * complist: Comparison list for job status evaluation.
-    * timelimit: Time limit in minutes (numeric, default 180min).
+        Arguments:
+        * script: Path to script for repeated attempts. Note, this must return 
+            a list for comparison to the complist object.
+        * complist: Comparison list for job status evaluation.
+        * timelimit: Time limit in minutes (numeric, default 180min).
 
-    Returns:
+        Returns:
 
-    Null, provides status updates over run.
+        Null, provides status updates over run.
 
     """
 

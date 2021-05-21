@@ -5,11 +5,11 @@
     Author: Sean Maden
 
     Description:
-        Prepare an R sheet for analysis, using RMDB.
+    Prepare an R sheet for analysis, using RMDB.
     
     Functions:
-        * rmdb_files_for_processing: compile valid file info from RMDB
-        * compile_rsheet: compile R sheet from files and RMDB pointers.
+    * rmdb_files_for_processing: compile valid file info from RMDB
+    * compile_rsheet: compile R sheet from files and RMDB pointers.
 
 """
 
@@ -30,7 +30,6 @@ def new_idat_hlinks(gsmid, ts, igrn_fn, ired_fn):
         * ired_fn : Filename of red intensity data file (IDAT, str).
         
         Returns
-
         * rlist (list): List of path to new grn [0] and red [1] hlinked idats
     """
     print("generating new hlink filenames...")
@@ -348,7 +347,10 @@ def compile_rsheet(gsmfpathdict):
     return lsheet
 
 if __name__ == "__main__":
-    """
+    """ rsheet.py
+
+        Coordinate MongoDB documents on valid IDATs and SOFT files.
+
     """
     try:
         gsmfpd = rmdb_fpaths()

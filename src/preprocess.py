@@ -8,6 +8,7 @@
     prepare data and valid sheet files for R analysis.
     Prepares SOFT data for by-GSM input to MetaSRA-pipeline, and runs the 
     pipeline.
+    
     Functions:
         * get_mongofiles_for_preprocessing: Access latest file info for idats 
             and soft files, from RMDB. Includes validation of filepaths.
@@ -19,13 +20,7 @@
             pipeline output. Can be read into R/minfi.
 """
 
-import pymongo
-import sys
-import os
-import datetime
-import inspect
-import re
-import json
+import pymongo, sys, os, datetime, inspect, re, json
 sys.path.insert(0, os.path.join("recountmethylation_server","src"))
 from process_soft import expand_soft, extract_gsm_soft, gsm_soft2json
 from process_soft import msrap_prepare_json, run_metasrapipeline
@@ -36,13 +31,17 @@ import settings
 settings.init()
 
 def get_mongofiles_for_preprocessing(filtresults = True):
-    """ Get GSE and GSM IDs from MongoDB 
-        Get most recent records for relevant GSE and GSM MongoDB entries
+    """ get_mongofiles_for_preprocessing
+
+        Get GSE and GSM IDs from MongoDB. Get most recent records for relevant 
+        GSE and GSM MongoDB entries
+        
         Arguments
             *idatsdir (str) : Path to dir containing idat files
             * softdir (str) : Path to dir containing soft files
             * filtresults (T/F, Bool.) : Whether to pre-filter returned records
                 on valid file status (e.g. if path exists).
+        
         Returns
             * doclist object (list): List of relevant docs
     """
@@ -150,26 +149,30 @@ def get_mongofiles_for_preprocessing(filtresults = True):
 
 def process_gsesoft(rmcompressed_gsesoft=False, expand_soft_opt=True, 
     extract_gsm_opt=True, conv_json_opt=True, msrap_prepare_opt=True):
-    """ Wrapper to preprocess GSE soft files and run MetaSRA-pipeline on GSM 
+    """ process_gsesoft
+
+        Wrapper to preprocess GSE soft files and run MetaSRA-pipeline on GSM 
         data.
+        
         Arguments
-            * filesdir (str): Root files directory name.
-            * rmcompressed_gsesoft (True/False, bool.) : Whether to remove the 
-                compressed GSE soft files after they have been expanded.
-            * gse_softdir (str): Directory to look for GSE soft files.
-            * gsm_softdir (str): Destination directory for GSM soft files.
-            * gsm_jsondir (str): Destination directory for GSM JSON files.
-            * expand_soft_opt (True/False, Bool.): Option, whether to scan 
-                for/expand compressed soft files.
-            * extract_gsm_opt (True/False, Bool. ): Option, whether to extract 
-                GSM-level soft data from GSE soft file(s).            
-            * conv_json_opt (True/False, Bool.): Option, whether to convert GSM 
-                soft files to JSON files.
-            * msrap_prepare_opt (True/False, Bool.): Option, whether to prepare 
-                GSM JSON files for MetaSRA-pipeline by aggregating sample JSON
-                files.
+        * filesdir (str): Root files directory name.
+        * rmcompressed_gsesoft (True/False, bool.) : Whether to remove the 
+            compressed GSE soft files after they have been expanded.
+        * gse_softdir (str): Directory to look for GSE soft files.
+        * gsm_softdir (str): Destination directory for GSM soft files.
+        * gsm_jsondir (str): Destination directory for GSM JSON files.
+        * expand_soft_opt (True/False, Bool.): Option, whether to scan 
+            for/expand compressed soft files.
+        * extract_gsm_opt (True/False, Bool. ): Option, whether to extract 
+            GSM-level soft data from GSE soft file(s).            
+        * conv_json_opt (True/False, Bool.): Option, whether to convert GSM 
+            soft files to JSON files.
+        * msrap_prepare_opt (True/False, Bool.): Option, whether to prepare 
+            GSM JSON files for MetaSRA-pipeline by aggregating sample JSON
+            files.
+        
         Returns
-            * null
+            NULL
     """
     # filter softlist on valid files
     gse_softpath = settings.gsesoftpath
@@ -219,28 +222,31 @@ def process_gsesoft(rmcompressed_gsesoft=False, expand_soft_opt=True,
 def compile_rsheet(eqfiltd=get_queryfilt_dict(), sheetfn_ext='rsheet', 
     msrapfn_ext='msrapout', msrapfn='msrapout', idatsfn_ext='idat',
     timestamp=gettime_ntp()):
-    """ Knits poised file data together into a sheet to be read into R using 
-        minfi.
-        Steps taken include: 
+    """ compile_rsheet
+
+        Knits poised file data together into a sheet to be read into R using 
+        minfi. Steps taken include: 
             1. Grab msrap file list
             2. Grab idats file list
             3. Intersect files lists
             4. Subset eqfilt dict on gse
             5. Form and write new sheet files, one per gse
+        
         Arguments
-            * eqfiltd (function or dictionary) : Equery filter dictionary object.
-            * sheetsdir (str) : Directory to write new sheet files.
-            * sheetfn_ext (str) : Filename extension for new sheet files.
-            * msrapdir (str) : Directory containing MetaSRA-pipeline datafiles.
-            * msrapfn_ext (str) : Filename extension of valid MetaSRA-pipeline
-                datafiles.
-            * idatsfn_ext (str) : Filename extension of valid idat files.
-            * idatsdir (str) : Name of directory containing GSM idat files.
-            * filesdir (str) : Root name of directory containing database files.
-            * timestamp (str) : NTP timestamp for file versioning.
-            * msrapfn (str) : File name stem for MetaSRA-pipeline files
+        * eqfiltd (function or dictionary) : Equery filter dictionary object.
+        * sheetsdir (str) : Directory to write new sheet files.
+        * sheetfn_ext (str) : Filename extension for new sheet files.
+        * msrapdir (str) : Directory containing MetaSRA-pipeline datafiles.
+        * msrapfn_ext (str) : Filename extension of valid MetaSRA-pipeline
+            datafiles.
+        * idatsfn_ext (str) : Filename extension of valid idat files.
+        * idatsdir (str) : Name of directory containing GSM idat files.
+        * filesdir (str) : Root name of directory containing database files.
+        * timestamp (str) : NTP timestamp for file versioning.
+        * msrapfn (str) : File name stem for MetaSRA-pipeline files
+        
         Returns:
-            * null, produces sheet files as a side effect.
+        * null, produces sheet files as a side effect.
     """
     # form the sheet path and make dir as needed
     sheetspath = settings.sheetspath

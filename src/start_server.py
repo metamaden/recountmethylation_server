@@ -8,14 +8,12 @@
 
 """
 
-import sys
-import os
+import sys, os
 sys.path.insert(0, os.path.join("recountmethylation_server","src"))
-import settings
-settings.init()
+import settings; settings.init()
 
 def start_mongodb():
-    """
+    """ start_mongodb
         Start the MongoDB process
     """
     try:
@@ -25,7 +23,7 @@ def start_mongodb():
         return False
 
 def start_rabbitmq():
-    """
+    """ start_rabbitmq
         Start the RabbitMQ process
     """
     try:
@@ -35,7 +33,7 @@ def start_rabbitmq():
         return False
 
 def start_celery():
-    """
+    """ start_celery
         Start the celery process
     """
     try:

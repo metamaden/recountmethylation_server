@@ -5,11 +5,13 @@
     Authors: Sean Maden, Abhi Nellore
     
     Functions to manage download of idats and experiment soft files from GEO.
+    
     Notes:
         * Validation for each download function checks new files against 
             existing files in the corresponding destination files directory.
         * Downloads are launched from the job definition for the celery job 
             queue manager. Each queued job is based around a valid GSE id.
+    
     Functions:
         * soft_mongo_date: grab latest update date for a soft file from the 
             Recount Methylation Mongo db (or 'RMDB'). 
@@ -18,18 +20,8 @@
         * dl_soft: Download and validate soft files.
 """
 
-import ftplib
-import datetime
-import os
-import sys
-import subprocess
-import glob
-import fnmatch
-import filecmp
-import pymongo
-import time
-import tempfile
-import shutil
+import ftplib, datetime, os, sys, subprocess, glob, fnmatch, filecmp
+import pymongo, time, tempfile, shutil
 sys.path.insert(0, os.path.join("recountmethylation_server","src"))
 from utilities import gettime_ntp, getlatest_filepath
 import settings
@@ -37,11 +29,14 @@ settings.init()
 
 def soft_mongo_date(gse, filename, client):
     """ soft_mongo_date
+        
         Get date(s) from mongo soft subcollection.
+        
         Arguments:
             * gse (str) : Valid GSE ID.
             * filename (str) : Name of a valid soft file.
             * client (conn.) : A client connection to RMDB.
+        
         Returns:
             * mongo_date_list : list of resultant date(s) from query, or empty 
                 list if no docs detected
@@ -58,12 +53,15 @@ def soft_mongo_date(gse, filename, client):
 
 def idat_mongo_date(gsm_id,filename,client):
     """ idat_mongo_date
+        
         Get date(s) from mongo idat subcollections.
+        
         Arguments:
             * gsm_id (str) : A valid sample GSM ID.
             * filename (str) : Name of valid array idat file, inc. 'grn' or 
                 'red'.
             * client (conn.) : A client connection to RMDB.
+        
         Returns:
             * mongo_date_list (list) : list of resultant date(s) from query, or 
                 empty list if no docs detected
@@ -87,7 +85,9 @@ def idat_mongo_date(gsm_id,filename,client):
 def dl_idat(input_list, retries_connection=3, retries_files=3, interval_con=.1, 
     interval_file=.01, validate=True, timestamp=gettime_ntp()):
     """ dl_idat
+        
         Download idats, reading in either list of GSM IDs or ftp addresses.
+        
         Arguments
             * input list (list, required) : A list of valid GSM IDs.
             * retries_connection (int) : Number of ftp connection retries 
@@ -100,6 +100,7 @@ def dl_idat(input_list, retries_connection=3, retries_files=3, interval_con=.1,
                 a file connection. 
             * validate (Bool.): Validate new files against existing idats?
             * timestamp (str) : An NTP timestamp for versioning.
+        
         Returns 
             * dldict (dictionary) : Records, dates, and exit statuses of ftp 
                 calls, OR error string over connection issues. Downloads and 
@@ -312,8 +313,10 @@ def dl_idat(input_list, retries_connection=3, retries_files=3, interval_con=.1,
 def dl_soft(gse_list=[], retries_connection=3, retries_files=3, interval_con=.1, 
     interval_file=.01, validate=True, timestamp=gettime_ntp()):
     """ dl_soft
+        
         Download GSE soft file(s). Accepts either a list of GSM IDs or ftp 
         addresses.
+        
         Arguments:
             * gse_list (list, required) : A list of valid GSE id(s).
             * retries_connection (int) : Number of ftp connection retries 
@@ -326,6 +329,7 @@ def dl_soft(gse_list=[], retries_connection=3, retries_files=3, interval_con=.1,
                 a file connection. 
             * validate (Bool.): Validate new files against existing idats?
             * timestamp (str) : An NTP timestamp for versioning.     
+        
         Returns: 
             * Dictionary showing records, dates, and exit statuses of ftp calls
                 OR error string over connection issues

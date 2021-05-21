@@ -8,13 +8,14 @@
     platformid. Settings global objects are accessible by importing settings 
     then running 'settings.init()' and declaring a global object (e.g. 
     'settings.filesdir').
+    
     Notes:
-        * It is highly recommended you do not change any settings unnecessarily,
-            including files directory names and paths.
-        * You will need to change certain sections in settings.py, namely under
-            the '[resource path]' section, depending on your system.
-        * Consult all setup and README documents for details and troubleshooting
-            instructions.
+    * It is highly recommended you do not change any settings unnecessarily,
+        including files directory names and paths.
+    * You will need to change certain sections in settings.py, namely under the 
+        '[resource path]' section, depending on your system.
+    * Consult all setup and README documents for details and troubleshooting
+        instructions.
 """
 
 import os

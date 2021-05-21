@@ -7,9 +7,11 @@
     Task script for celery. This script defines a task for celerybeat, where 
     individual task managed by celeryd and worker. Configuration is also 
     accessed from celeryconfig.py, including SQLite backend database info.
+    
     Notes:
         * Broker: For best results, ensure RabbitMQ broker and celery are both 
             running in background.
+    
     Functions:
         * gse_task: Job task definition for celery queue. Returns sparse info. 
             and GSE ID, for access from backend db.
@@ -27,7 +29,9 @@ app = Celery(); app.config_from_object('celeryconfig')
 @app.task
 def gse_task(gse_id, gsefiltdict = get_queryfilt_dict(), 
     timestamp = gettime_ntp()):
-    """ GSE based task for celery job queue.
+    """ gse_task
+
+        GSE based task for celery job queue.
         
         Arguments
             * gse_id : A single valid GSE id (str).
