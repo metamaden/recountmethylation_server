@@ -52,7 +52,8 @@ def expand_soft(rmcompressed=False):
     gseidlist =  [fn.split('.')[0] for fn in gsesoft_fnlist]
     gsepatt = settings.gsepatt; rgse = re.compile(gsepatt)
     gseidlist = list(filter(rgse.match, gseidlist)) # valid GSE IDs
-    print(str(gseidlist)); softpatt = settings.softallpatt
+    print('Processing SOFT files for GSE list: '+str(gseidlist))
+    softpatt = settings.softallpatt
     comppatt = settings.compsoftpatt; expsoftpatt = settings.expsoftpatt
     rsoft = re.compile(softpatt); rcompsoft = re.compile(comppatt)
     rexpsoft = re.compile(expsoftpatt)
